@@ -5,96 +5,160 @@
 ### Separators
 
 ```
-OPEN         = `...(`
-CLOSE        = `)...`
+OPEN            = `...(`
+CLOSE           = `)...`
 ```
 
 ### Blah blah
 
 ```
-INI          = `Once upon a time in`
-FIN          = `and they lived happily ever after`
+INI             = `Once upon a time in`
+FIN             = `and they lived happily ever after`
 
-F_INI        = `Once upon some other time in`
-F_FIN        = `or that is what they say`
+F_INI           = `Once upon some other time in`
+F_FIN           = `or that is what they say`
 
-THEREWAS     = `There was `
-BROUGHTA     = ` brought a `
+THEREWAS        = `There was`
+BROUGHTA        = `brought a`
+DREAMSOF        = `dreams of`
+KEEPSDREAMINGOF = `keeps dreaming of`
+TOLDTHESTORY    = `told the story`
+MADEA           = `made a`
 ```
 
 ### Type names
 
 ```
-INT_TYPE     = `bag`
-FLOAT_TYPE   = `wallet`
-CHAR_TYPE    = `book`
-BOOL_TYPE    = `lightbulb`
+INT_TYPE        = `bag`
+FLOAT_TYPE      = `wallet`
+CHAR_TYPE       = `book`
+BOOL_TYPE       = `lightbulb`
 
-ARRAY_TYPE   = `chain`
-STRUCT_TYPE  = `machine`
-UNION_TYPE   = `thing`
+ARRAY_TYPE      = `chain`
+STRUCT_TYPE     = `machine`
+UNION_TYPE      = `thing`
 
-POINTER_TYPE = `direction`
+POINTER_TYPE    = `direction`
 ```
 
 ### Identifiers
 
 ```
-FNAME        = `/[A-Za-z][A-Za-z0-9_]*/`
-PNAME        = `/[A-Za-z-]+/`
-VNAME        = `/[A-Za-z_]+/`
-PROPNAME     = `/[A-Za-z_]+/`
+FNAME           = `/[A-Za-z][A-Za-z0-9_]*/`
+PNAME           = `/[A-Za-z-]+/`
+VNAME           = `/[A-Za-z_]+/`
+PROPNAME        = `/[A-Za-z_]+/`
 ```
 
 
 ## Grammar definition
 
 ```
-Source              : INI ProgramName OPEN Block CLOSE FIN
+Source                : INI ProgramName OPEN Block CLOSE FIN
 
-Block               : Statement . Block
-                      \l
+Block                 : Statement . Block
+                        \l
 
-Statement           : FunctionDeclaration
-                      PersonDeclaration
-                      VariableDeclaration
-                      Expression
-                      \l
+FunctionBlock         : Statement . FunctionBlock
+                        ReturnStatement . FunctionBlock
+                        \l
 
-FunctionDeclaration : ( F_INI FNAME OPEN Block CLOSE F_FIN )
+ReturnStatement       : `return` Expression
 
-PersonDeclaration   : THEREWAS PNames.
+Statement             : FunctionDeclaration
+                        PersonDeclaration
+                        VariableDeclaration
+                        Instruction
+                        \l
 
-PNames              : PNAME
-                      PNAME, PNames
-                      PNAME and PNames
+FunctionDeclaration   : ( F_INI FNAME, `a` Type OPEN Block CLOSE F_FIN )
+                        ( F_INI FNAME, `a` Type (`from` FunctionArgs) OPEN Block CLOSE F_FIN )
 
-VariableDeclaration : PNAME BROUGHTA Type: VNAME ASSIGNED Expression
+FunctionFormalParams  : Type VNAME
+                        Type * VNAME, FunctionFormalParams
 
-Type                : INT_TYPE
-                      FLOAT_TYPE
-                      CHAR_TYPE
-                      BOOL_TYPE
-                      ARRAY_TYPE (`of` Type)
-                      STRUCT_TYPE (`with` StructTyping)
-                      UNION_TYPE (`either` UnionTyping)
-                      POINTER_TYPE (`to` Type)
+PersonDeclaration     : THEREWAS PropNames.
 
-StructTyping        : PropTyping
-                      PropTyping `and` StructTyping
+PropNames             : PNAME
+                        PNAME, PropNames
+                        PNAME and PropNames
 
-PropTyping          : Type PROPNAME
+VariableDeclaration   : PNAME BROUGHTA Type: VNAME
+                        PNAME BROUGHTA Type: VNAME = Expression
 
-UnionTyping         : Type
-                      Type `or` UnionTyping
+Type                  : INT_TYPE
+                        FLOAT_TYPE
+                        CHAR_TYPE
+                        BOOL_TYPE
+                        ARRAY_TYPE (`of` Type)
+                        STRUCT_TYPE (`with` StructTyping)
+                        UNION_TYPE (`either` UnionTyping)
+                        POINTER_TYPE (`to` Type)
 
-Expression          : LITERAL
-                      VNAME
-                      (Expression)
-                      Expression + Expression
-                      Expression - Expression
-                      Expression * Expression
-                      Expression / Expression
-                      Expression % Expression
-                      Expression ^ Expression
+StructTyping          : PropTyping
+                        PropTyping `and` StructTyping
+
+PropTyping            : Type PROPNAME
+
+UnionTyping           : Type
+                        Type `or` UnionTyping
+
+Expression            : LITERAL
+                        VNAME
+                        ( Expression )
+                        Malloc
+                        Assignment
+                        FunctionCall
+                        BinaryOperation
+                        UnaryOperation
+                        DeStructProp
+
+Malloc                : PNAME MADEA Type 
+
+Assignment            : VNAME = Expression
+
+DeStructProp          : Expression .PROPNAME
+
+UnaryOperation        : - Expression
+                        + Expression
+                        ~ Expression
+                        $ Expression
+                        
+
+BinaryOperation       : Expression + Expression
+                        Expression - Expression
+                        Expression * Expression
+                        Expression / Expression
+                        Expression % Expression
+                        Expression ^ Expression
+
+                        Expression `and` Expression
+                        Expression `or` Expression
+
+                        Expression == Expression
+                        Expression /= Expression
+
+                        Expression >= Expression
+                        Expression <= Expression
+                        Expression < Expression
+                        Expression > Expression
+
+FunctionCall          : FNAME()
+                        FNAME(`with` FunctionActualParams)
+
+FunctionActualParams  : VNAME
+                        Expression
+                        Expression, FunctionActualParam
+
+Instruction           : Expression
+                        Selection
+                        UnboundedIteration
+                        BoundedIteration
+
+Selection             : PNAME DREAMSOF OPEN Block CLOSE `when` Expression
+                      : PNAME DREAMSOF OPEN Block CLOSE `when` Expression ... `otherwise` OPEN Block CLOSE
+
+UnboundedIteration    : PNAME KEEPSDREAMINGOF Expression ? OPEN Block CLOSE
+
+BoundedIteration      : OPEN Block CLOSE PNAME TOLDTHESTORY Expression times!
 ```
