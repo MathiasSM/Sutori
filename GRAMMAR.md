@@ -1,6 +1,6 @@
 # Sutori language definition
 
-## Syntax (tokens)
+## Lexemes (tokens)
 
 ### Separators
 
