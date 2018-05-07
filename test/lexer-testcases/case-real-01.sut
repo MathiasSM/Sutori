@@ -1,0 +1,18 @@
+Once upon a time in Santadila ...( 
+	There was Angel, Deamon and iPod.
+	(Once upon some other time in Carac4s, a bag ...(
+    Angel brought a bag: low = 0.
+    Deamon brought a bag: hi = 10000.
+    Angel brought a bag: x = 42.
+    iPod keeps dreaming of low < hi ? ...(
+      Angel brought a bag: mid = (low + hi) / 2 .
+      PNAME DREAMSOF OPEN Block CLOSE `when` Expression
+      Angel dreams of ...(
+        low = mid.
+      )... when mid <= x ... otherwise ...( 
+        hi = mid - 1.
+      )...
+    )...
+		return low
+	 )... or that is what they say)
+)... and they lived happily ever after
