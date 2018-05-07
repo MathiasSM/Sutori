@@ -77,11 +77,11 @@ FunctionDeclaration   : ( F_INI FNAME, `a` Type OPEN Block CLOSE F_FIN )
 FunctionFormalParams  : Type VNAME
                         Type * VNAME, FunctionFormalParams
 
-PersonDeclaration     : THEREWAS PropNames.
+PersonDeclaration     : THEREWAS PersonNames.
 
-PropNames             : PNAME
-                        PNAME, PropNames
-                        PNAME and PropNames
+PersonNames           : PNAME
+                        PNAME, PersonNames
+                        PNAME and PersonNames
 
 VariableDeclaration   : PNAME BROUGHTA Type: VNAME
                         PNAME BROUGHTA Type: VNAME = Expression
