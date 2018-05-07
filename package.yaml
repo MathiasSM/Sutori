@@ -1,48 +1,54 @@
-name:                lenguaje
-version:             0.1.0.0
-github:              "githubuser/lenguaje"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2018 Author name here"
+name: sutori
+version: 0.1.0
+github: MathiasSM/Sutori
+license: BSD3
+author:
+  - Mathias San Miguel <mathiassanmiguel@gmail.com>
+  - Génesis Kufatty <gdkufatty@gmail.com>
+maintainer:
+  - Mathias San Miguel <mathiassanmiguel@gmail.com>
+  - Génesis Kufatty <gdkufatty@gmail.com>
+copyright:
+  - (c) 2018 Mathias San Miguel
+  - (c) 2018 Génesis Kufatty
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - src/Lexer.x
+  - README.md
+  - GRAMMAR.md
+  - ChangeLog.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis: Front-end for Sutori language compiler
+category: Language
 
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/lenguaje#readme>
+description: 'Please see the README on GitHub at <https://github.com/MathiasSM/Sutori#readme>'
 
 dependencies:
-- base >= 4.7 && < 5
+  - base >= 4.7 && < 5
+  - array
 
 library:
   source-dirs: src
 
 executables:
-  lenguaje-exe:
-    main:                Main.hs
-    source-dirs:         app
+  sutori:
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - lenguaje
+      - sutori
 
 tests:
-  lenguaje-test:
-    main:                Spec.hs
-    source-dirs:         test
+  sutori-test:
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - lenguaje
+      - sutori
+
