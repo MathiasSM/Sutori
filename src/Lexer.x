@@ -73,7 +73,6 @@ tokens :-
     \^                                   { mkL Pot }
     $digit+(\.[$digit]+)                 { getFloatNumber }
     $digit+                              { getIntegerNumber }
-    $digit+\.+                           { getError }
     [a-zA-Z][a-zA-Z\_]*                  { getId }
     [a-zA-Z][a-zA-Z\_0-9]*               { getFuncId }
     [$digit \_]+                         { getError }
