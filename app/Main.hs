@@ -1,6 +1,13 @@
 module Main where
 
-import Lib
+import Lexer
+import System.Environment
+import Control.Monad
+import Data.Maybe
 
-main :: IO ()
-main = someFunc
+main = do
+  s <- getContents
+  let sr = runAlexScan s
+  case sr of
+    Left st  -> error st
+    Right ls -> mapM_ (putStrLn. printToken) ls
