@@ -60,6 +60,7 @@ tokens :-
     \)                                   { mkL ParenClose }
     \+                                   { mkL Plus }
     \=\=                                 { mkL Equal }
+    \=                                   { mkL Assign }
     \*                                   { mkL Product }
     \-                                   { mkL Minus }
     \%                                   { mkL Rest }
@@ -153,6 +154,7 @@ data TokenClass =
     Rest                   |
     DivExac                |
     Dif                    |
+    Assign                 |
     GreaterEqual           |
     LessEqual              |
     Greater                |
