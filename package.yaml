@@ -13,6 +13,7 @@ copyright:
   - (c) 2018 Génesis Kufatty
 
 extra-source-files:
+  - src/Lexer.x
   - README.md
   - GRAMMAR.md
   - ChangeLog.md
@@ -24,12 +25,13 @@ description: 'Please see the README on GitHub at <https://github.com/MathiasSM/S
 
 dependencies:
   - base >= 4.7 && < 5
+  - array
 
 library:
   source-dirs: src
 
 executables:
-  sutori-exe:
+  sutori:
     main: Main.hs
     source-dirs: app
     ghc-options:

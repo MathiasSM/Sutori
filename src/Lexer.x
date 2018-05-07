@@ -8,16 +8,16 @@ import Data.Maybe
 %wrapper "monadUserState"
 
 $digit = 0-9            -- digits
-$Alpha = [a-zA-Z]       -- alphabetic characters
-$alpha = [a-z]          -- alphabetic characters
-$ALPHA = [A-Z]          -- alphabetic characters
+$Alpha = [a-zA-Z]       -- all alphabetic characters
+$alpha = [a-z]          -- minus alphabetic characters
+$ALPHA = [A-Z]          -- mayus alphabetic characters
 $sim = [\=\+\-\*\/\/\=\%\=\=\<\>\>\=\<\=]
 
 tokens :-
 
     "Once upon a time in"                { mkL INI }
     "and they lived happily ever after"  { mkL FIN }
-    "Once upon some other time in"       { mkL F_INI } 
+    "Once upon some other time in"       { mkL F_INI }
     "or that is what they say"           { mkL F_FIN }
     "There was"                          { mkL THEREWAS }
     "brought a"                          { mkL BROUGHTA }
@@ -35,7 +35,7 @@ tokens :-
     "thing"                              { mkL UNION_TYPE }
     "direction"                          { mkL POINTER_TYPE }
     "return"                             { mkL Return }
-    "a"                                  { mkL A } 
+    "a"                                  { mkL A }
     "and"                                { mkL AND }
     "or"                                 { mkL OR }
     "of"                                 { mkL OF }
@@ -54,12 +54,13 @@ tokens :-
     \,                                   { mkL COMMA }
     \:                                   { mkL COLONS }
     \$                                   { mkL DOLLAR }
-    \?                                   { mkL INTER }    
+    \?                                   { mkL INTER }
     \!                                   { mkL EXCL }
     \(                                   { mkL ParenOpen }
-    \)                                   { mkL ParenClose }    
+    \)                                   { mkL ParenClose }
     \+                                   { mkL Plus }
     \=\=                                 { mkL Equal }
+    \=                                   { mkL Assign }
     \*                                   { mkL Product }
     \-                                   { mkL Minus }
     \%                                   { mkL Rest }
@@ -69,16 +70,15 @@ tokens :-
     \<\=                                 { mkL LessEqual }
     \>                                   { mkL Greater }
     \<                                   { mkL Less }
-    \^                                   { mkL Pot } 
-    $digit+(\.[$digit]+)                 { getFloatNumber } 
+    \^                                   { mkL Pot }
+    $digit+(\.[$digit]+)                 { getFloatNumber }
     $digit+                              { getIntegerNumber }
-    $digit+\.+                           { getError }
     [a-zA-Z][a-zA-Z\_]*                  { getId }
     [a-zA-Z][a-zA-Z\_0-9]*               { getFuncId }
     [$digit \_]+                         { getError }
     .                                    { getError }
 
-{ 
+{
 
 
 data Token = Token AlexPosn TokenClass
@@ -106,7 +106,7 @@ data TokenClass =
     EOF                    |
     INI                    |
     FIN                    |
-    F_INI                  | 
+    F_INI                  |
     F_FIN                  |
     THEREWAS               |
     BROUGHTA               |
@@ -123,7 +123,7 @@ data TokenClass =
     UNION_TYPE             |
     POINTER_TYPE           |
     Return                 |
-    A                      | 
+    A                      |
     AND                    |
     OR                     |
     OF                     |
@@ -142,10 +142,10 @@ data TokenClass =
     COMMA                  |
     COLONS                 |
     DOLLAR                 |
-    INTER                  |   
+    INTER                  |
     EXCL                   |
     ParenOpen              |
-    ParenClose             |    
+    ParenClose             |
     Plus                   |
     Equal                  |
     Product                |
@@ -153,16 +153,17 @@ data TokenClass =
     Rest                   |
     DivExac                |
     Dif                    |
+    Assign                 |
     GreaterEqual           |
     LessEqual              |
     Greater                |
     Less                   |
-    Pot                    | 
-    FloatNumber Float      | 
+    Pot                    |
+    FloatNumber Float      |
     IntegerNumber  Int     |
     Id String              |
     FuncId String          |
-    InvalidToken  String       
+    InvalidToken  String
   deriving (Eq,Show)
 
 type Action = AlexInput -> Int -> Alex Token
