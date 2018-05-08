@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..), printToken, runAlexScan, AlexUserState(..), AlexPosn(..)) where
+module Lexer(Token(..), printToken, isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
 
 import Control.Monad
 import Data.Maybe
@@ -74,7 +74,7 @@ tokens :-
     $digit+(\.[$digit]+)                 { getFloatNumber }
     $digit+                              { getIntegerNumber }
     [a-zA-Z][a-zA-Z\_]*                  { getId }
-    [a-zA-Z][a-zA-Z\_0-9]*               { getFuncId }
+    [A-Z][A-Z\_0-9]*                     { getFuncId }
     [$digit \_]+                         { getError }
     .                                    { getError }
 
@@ -200,13 +200,16 @@ scanner str = let loop = do (t, m) <- alexComplementError alexMonadScan
                             let tok@(Token p cl) = t
                             if (cl == EOF)
                                then do f1 <- getLexerError
-                                       if (not f1)
+                                       if (True)
                                           then return [tok]
                                           else alexError $ "Error Lexicografico, Alex isn't Happy:("
+
                                else do toks <- loop
                                        return (tok : toks)
               in  runAlex str loop
 
+isInvalid (Token p (InvalidToken s)) = True
+isInvalid _ = False
 
 alexComplementError :: Alex a -> Alex (a, Maybe String)
 alexComplementError (Alex al) = Alex (\s -> case al s of
