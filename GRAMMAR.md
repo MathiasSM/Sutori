@@ -1,179 +1,303 @@
 # Sutori language definition
 
-## Lexemes (tokens)
+## (Common) Lexemes (tokens)
 
 
 ### Comments
 
-```
-ONELINE         = `--`
-MULTILINE       = `/*` and `*/`
-```
-### Separators
+Some kind a narration, or dialog, that doesn't take place within the story.
 
 ```
-OPEN            = `...(`
-CLOSE           = `)...`
+ONELINE           : `-- .*$`
+MULTILINE         : `--|` .* `|--`
 ```
 
-### Blah blah
+### Block separators
+
+We're too cool to go with `{` `}`.
 
 ```
-INI             = `Once upon a time in`
-FIN             = `and they lived happily ever after`
+BLOCK_OPEN        : ... (
+BLOCK_CLOSE       : ) ...
+```
 
-F_INI           = `Once upon some other time in`
-F_FIN           = `or that is what they say`
+### _あなたはたくさん話します_
 
-THEREWAS        = `There was`
-BROUGHTA        = `brought a`
-DREAMSOF        = `dreams of`
-KEEPSDREAMINGOF = `keeps dreaming of`
-TOLDTHESTORY    = `told the story`
-MADEA           = `made a`
+Anata talk too much.
+
+```
+PROGRAM_INI       : `Once upon a time in`
+PROGRAM_FIN       : `and they lived happily ever after`
+FUNCTION_INI      : `Once upon some other time`
+FUNCTION_FIN      : `or that is what they say`
+
+S_Therewas        : `There was`
+S_therewasa       : `there was a`
+S_madeof          : `made of`
+S_broughta        : `brought a`
+S_dreamsof        : `dreams of`
+S_keepsdreamingof : `keeps dreaming of`
+S_toldthatstory   : `told that story`
+S_madea           : `made a`
 ```
 
 ### Type names
 
+Nani?!
+
 ```
-INT_TYPE        = `bag`
-FLOAT_TYPE      = `wallet`
-CHAR_TYPE       = `book`
-BOOL_TYPE       = `lightbulb`
+TYPE_INT          : `bag`
+TYPE_FLOAT        : `wallet`
+TYPE_CHAR         : `letter`
+TYPE_BOOL         : `light`
 
-ARRAY_TYPE      = `chain`
-STRUCT_TYPE     = `machine`
-UNION_TYPE      = `thing`
+TYPE_ARRAY        : `chain`
+TYPE_STRUCT       : `machine`
+TYPE_UNION        : `thing`
+TYPE_STRING       : `phrase`
 
-POINTER_TYPE    = `direction`
+TYPE_POINTER      : `direction`
+```
+
+### Literals
+
+We know commas are wrong.
+
+```
+LITERAL_INT           : `/\d+/`
+LITERAL_FLOAT         : `/\d+,\d+/`
+LITERAL_CHAR          : `/'.'/`
+LITERAL_STRING        : `/"([^"]|\\.)*"/`
+LITERAL_BOOL          : `on`
+                        `off`
 ```
 
 ### Identifiers
 
+Regular expressions. Names can be hyphened (Like Jean-Jacques)
+
 ```
-FNAME           = `/[A-Za-z][A-Za-z0-9_]*/`
-PNAME           = `/[A-Za-z-]+/`
-VNAME           = `/[A-Za-z_]+/`
-PROPNAME        = `/[A-Za-z_]+/`
+ID_MODULE         : `/[a-zA-Z][A-Za-z0-9_]*/`
+ID_FUNCTION       : `/[a-zA-Z][A-Za-z1-9_]*/`
+ID_PERSON         : `/[a-zA-Z-]+/`
+ID_VARIABLE       : `/[a-zA-Z_]+/`
+ID_PROP           : `/[a-zA-Z_]+/`
 ```
+
 
 
 ## Grammar definition
 
+### Expressions
+
+#### Expression
+
+Either a variable, a literal, a constructed object of a special type, a function call, an operation, or association. The usual.
+
+
 ```
-Source                : INI ProgramName OPEN Block CLOSE FIN
-
-Block                 : Statement . Block
-                        \l
-
-FunctionBlock         : Statement . FunctionBlock
-                        ReturnStatement . FunctionBlock
-                        \l
-
-ReturnStatement       : `return` Expression
-
-Statement             : FunctionDeclaration
-                        PersonDeclaration
-                        VariableDeclaration
-                        Instruction
-                        \l
-
-FunctionDeclaration   : ( F_INI FNAME, `a` Type OPEN Block CLOSE F_FIN )
-                        ( F_INI FNAME, `a` Type (`from` FunctionArgs) OPEN Block CLOSE F_FIN )
-
-FunctionFormalParams  : Type VNAME
-                        Type * VNAME
-                        Type VNAME, FucntionFormalParams
-                        Type * VNAME, FunctionFormalParams
-
-PersonDeclaration     : THEREWAS PersonNames.
-
-PersonNames           : PNAME
-                        PNAME, PersonNames
-                        PNAME and PersonNames
-
-VariableDeclaration   : PNAME BROUGHTA Type: ListOfVariables
-                        
-ListOfVariables       : VNAME, ListOfVariables
-                        VNAME = Expression, ListOfVariables
-                        VNAME
-                        VNAME = Expression
-
-Type                  : INT_TYPE
-                        FLOAT_TYPE
-                        CHAR_TYPE
-                        BOOL_TYPE
-                        ARRAY_TYPE (`of` Type)
-                        STRUCT_TYPE (`with` StructTyping)
-                        UNION_TYPE (`either` UnionTyping)
-                        POINTER_TYPE (`to` Type)
-
-StructTyping          : PropTyping
-                        PropTyping `and` StructTyping
-
-PropTyping            : Type PROPNAME
-
-UnionTyping           : Type
-                        Type `or` UnionTyping
-
-Expression            : LITERAL
-                        VNAME
-                        ( Expression )
-                        Malloc
-                        Assignment
+Expression            : ID_VARIABLE
+                        Literal
+                        Constructor
                         FunctionCall
-                        BinaryOperation
-                        UnaryOperation
-                        DeStructProp
+                        Operation 
+                        ( Expression )
 
-Malloc                : PNAME MADEA Type 
+Literal               : LITERAL_INT
+                        LITERAL_FLOAT
+                        LITERAL_CHAR
+                        LITERAL_BOOL
+```
 
-Assignment            : VNAME = Expression
+#### Constructors
 
-DeStructProp          : Expression .PROPNAME
+Some helping syntax to set values quickly.
 
-UnaryOperation        : - Expression
-                        + Expression
-                        ~ Expression
-                        $ Expression
-                        ! Expression
+```
+Constructor              : ConstructorArray
+                           ConstructorStruct
+                           
+ConstructorArray         : [ ConstructorArray_list ]
+ConstructorArray_list    : Expression
+                           Expression , ConstructorArray_list
+                           
+ConstructorStruct        : { ConstructorStruct_list }
+ConstructorStruct_list   : ID_PROP : Expression
+                           ID_PROP : Expression , ConstructorStruct_list
+```
+
+#### Operators
+
+Symbols. There are way more special characters, but we need more time and imagination to give them meanings.
+
+```
+Operation                 : UnaryOperation
+                            BinaryOperation
+
+UnaryOperation            : Numerical_UnaryOperation 
+                            Logical_UnaryOperation
+                            Dereference
+
+BinaryOperation           : NumericalBinaryOperation
+                            LogicalBinaryOperation
+                            GetProp
+                            GetArrayItem
+                            Assignment
+
+Numerical_UnaryOperation  : + Expression
+                            - Expression
+Numerical_BinaryOperation : Expression + Expression
+                            Expression - Expression
+                            Expression * Expression
+                            Expression / Expression
+                            Expression `div` Expression
+                            Expression % Expression
+                            Expression ^ Expression
+
+Logical_UnaryOperation    : ! Expression   
+Logical_BinaryOperation   : Expression `and` Expression
+                            Expression `or` Expression
+
+                            Expression == Expression
+                            Expression /= Expression
+
+                            Expression >= Expression
+                            Expression <= Expression
+                            Expression < Expression
+                            Expression > Expression
+
+Dereference               : * Expression
+
+GetProp                   : Expression -> ID_PROP
+
+GetArrayItem              : Expression [ Expression ]
+
+Assignment                : ID_VARIABLE = Expression
+```
+
+#### Function call
+
+```        
+FunctionCall          : ID_FUNCTION
+                        ID_FUNCTION ( `with` FunctionActualParams )
+
+FunctionActualParams  : Expression
+                        Expression , FunctionActualParam
+```
+
+### Declarations (of independence?)
+
+#### Declaration
+
+```
+Declaration           : PersonDeclaration
+                        FunctionDeclaration
+                        VariableDeclaration
+```
+
+#### Persons
+
+Not a type you can compute with, but one the language uses for comedic reasons.
+
+```
+PersonDeclaration     : S_Therewas PersonNames
+
+PersonNames           : ID_PERSON
+                        ID_PERSON , PersonNames
+                        ID_PERSON `and` PersonNames
+```
+
+#### Functions, variables
+
+We want to get rid of some parenthesis. You gotta deal with them for the time being, though. 
+
+Yes, you can declare several variables at once (with the same person).
+
+```
+FunctionDeclaration   : ( FUNCTION_INI ID_FUNCTION, S_THEREWASA Type Block FUNCTION_FIN )
+                        ( FUNCTION_INI ID_FUNCTION, S_THEREWASA Type ( S_MADEOF FunctionFormalParams ) Block FUNCTION_FIN )
+
+FunctionFormalParams  : Type ID_VARIABLE
+                        Type ID_VARIABLE , FunctionFormalParams
+                        `your` Type ID_VARIABLE
+                        `your` Type ID_VARIABLE , FunctionFormalParams
+
+VariableDeclaration   : ID_PERSON S_broughta Type : ListOfVariables
                         
+ListOfVariables       : ID_VARIABLE , ListOfVariables
+                        ID_VARIABLE = Expression , ListOfVariables
+                        ID_VARIABLE = Expression
+                        ID_VARIABLE
+```
 
-BinaryOperation       : Expression + Expression
-                        Expression - Expression
-                        Expression * Expression
-                        Expression / Expression
-                        Expression `div` Expression
-                        Expression % Expression
-                        Expression ^ Expression
+#### Types
 
-                        Expression `and` Expression
-                        Expression `or` Expression
+Maybe we could get rid of those parenthesis. But we're evil.
 
-                        Expression == Expression
-                        Expression /= Expression
+```
+Type                  : TYPE_INT
+                        TYPE_FLOAT
+                        TYPE_CHAR
+                        TYPE_BOOL
+                        TYPE_ARRAY ( `of` LITERAL_INT Type )
+                        TYPE_STRUCT ( `with` StructTyping )
+                        TYPE_UNION ( `either` UnionTyping )
+                        TYPE_POINTER ( `to` Type )
 
-                        Expression >= Expression
-                        Expression <= Expression
-                        Expression < Expression
-                        Expression > Expression
+StructTyping          : Type ID_PROP
+                        Type ID_PROP `and` StructTyping
 
-FunctionCall          : FNAME()
-                        FNAME(`with` FunctionActualParams)
+UnionTyping           : Type ID_PROP
+                        Type ID_PROP `or` UnionTyping
+```
 
-FunctionActualParams  : VNAME
-                        Expression
-                        Expression, FunctionActualParam
+### Blocks
 
+We start at `Source`. There's no "main" function. `EOF` is literally "End Of File".
+
+```
+Source                : PROGRAM_INI ID_MODULE Block PROGRAM_FIN EOF
+
+Block                 : BLOCK_OPEN BlockContent BLOCK_CLOSE
+
+BlockContent          : Statement . BlockContent
+                        \l
+
+FunctionBlock         : BLOCK_OPEN FunctionBlockContent BLOCK_CLOSE
+
+FunctionBlockContent  : Statement . FunctionBlockContent
+                        ReturnStatement . FunctionBlockContent
+                        \l
+                        
+Statement             : Instruction
+                        Declaration
+                        \l
+
+ReturnStatement       : `And that's where` Expression `comes from`
+```
+
+### Instructions
+
+Remember that assignment is an expression, and a variable declaration may assign an initial value.
+
+```                  
 Instruction           : Expression
                         Selection
                         UnboundedIteration
                         BoundedIteration
+                        ManageMemory
+ 
+ManageMemory          : CreatePointer
+                        Free
+CreatePointer         : ID_PERSON S_madea Type 
+FreePointer           : ID_PERSON S_broke ID_VARIABLE
+                        
+Selection             : ID_PERSON S_dreamsof Block `when` Expression
+                      : ID_PERSON S_dreamsof Block `when` Expression ; `otherwise` Block
 
-Selection             : PNAME DREAMSOF OPEN Block CLOSE `when` Expression
-                      : PNAME DREAMSOF OPEN Block CLOSE `when` Expression ... `otherwise` OPEN Block CLOSE
+UnboundedIteration    : ID_PERSON S_keepsdreamingof Expression Block
 
-UnboundedIteration    : PNAME KEEPSDREAMINGOF Expression ? OPEN Block CLOSE
+BoundedIteration      : Block ID_PERSON S_toldthatstory Expression `times`
 
-BoundedIteration      : OPEN Block CLOSE PNAME TOLDTHESTORY Expression times
+Print                 : ID_PERSON : Expression
 ```
