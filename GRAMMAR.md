@@ -82,6 +82,8 @@ FunctionDeclaration   : ( F_INI FNAME, `a` Type OPEN Block CLOSE F_FIN )
                         ( F_INI FNAME, `a` Type (`from` FunctionArgs) OPEN Block CLOSE F_FIN )
 
 FunctionFormalParams  : Type VNAME
+                        Type * VNAME
+                        Type VNAME, FucntionFormalParams
                         Type * VNAME, FunctionFormalParams
 
 PersonDeclaration     : THEREWAS PersonNames.
