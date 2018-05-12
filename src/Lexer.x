@@ -3,6 +3,9 @@ module Lexer(Token(..), printToken, isInvalid, runAlexScan, AlexUserState(..), A
 
 import Control.Monad
 import Data.Maybe
+import Numeric ( readDec )
+import Data.Char ( chr )
+
 }
 
 %wrapper "monadUserState"
@@ -56,7 +59,7 @@ tokens :-
 <0>                \:                                   { mkL COLONS }
 <0>                \$                                   { mkL DOLLAR }
 <0>                \?                                   { mkL INTER }
-<0>                \!                                   { mkL EXCL }
+<0>                \!                                   { mkL Neg  }
 <0>                \(                                   { mkL ParenOpen }
 <0>                \)                                   { mkL ParenClose }
 <0>                \+                                   { mkL Plus }
@@ -66,6 +69,7 @@ tokens :-
 <0>                \-                                   { mkL Minus }
 <0>                \%                                   { mkL Rest }
 <0>                \/                                   { mkL DivExac }
+<0>                div                                  { mkL DivFloat }
 <0>                \/\=                                 { mkL Dif }
 <0>                \>\=                                 { mkL GreaterEqual }
 <0>                \<\=                                 { mkL LessEqual }
@@ -77,6 +81,19 @@ tokens :-
 <state_comment>    "*/"                                 { unembedComment }
 <state_comment>    .                                    ;
 <state_comment>    \n                                   { skip }
+<0>                \"                                   { enterNewString `andBegin` state_string }
+<state_string>     \\n                                  { addCharToString '\n' }
+<state_string>     \\t                                  { addCharToString '\t' }
+<state_string>     \\\^[@-_]                            { addControlToString }
+<state_string>     \\$digit$digit$digit                 { addAsciiToString }
+<state_string>     \\\"                                 { addCharToString '\"' }
+<state_string>     \\\\                                 { addCharToString '\\' }
+<state_string>     \\[\ \n\t\f\r\b\v]+\\                ;
+<state_string>     \\                                   { \_ _ -> lexerError "Illegal escape sequence" }
+<state_string>     \"                                   { leaveString `andBegin` state_initial }
+<state_string>     .                                    { addCurrentToString }
+<state_string>     \n                                   { skip }
+<0>                \n                                   { skip }
 <0>                \'[a-z]\'                            { getCharTok  }
 <0>                $digit+(\.[$digit]+)                 { getFloatNumber }
 <0>                $digit+                              { getIntegerNumber }
@@ -152,7 +169,7 @@ data TokenClass =
     COLONS                 |
     DOLLAR                 |
     INTER                  |
-    EXCL                   |
+    Neg                    |
     ParenOpen              |
     ParenClose             |
     Plus                   |
@@ -161,6 +178,7 @@ data TokenClass =
     Minus                  |
     Rest                   |
     DivExac                |
+    DivFloat               |
     Dif                    |
     Assign                 |
     GreaterEqual           |
@@ -173,6 +191,7 @@ data TokenClass =
     Id String              |
     Character String       |
     FuncId String          |
+    String String          |
     InvalidToken  String
   deriving (Eq,Show)
 
@@ -187,7 +206,7 @@ getError (p, _, _, input) len =
 -- actions
 
 enterNewComment, embedComment, unembedComment :: Action
---enterNewString, leaveString, addCurrentToString, addAsciiToString, addControlToString :: Action
+enterNewString, leaveString, addCurrentToString, addAsciiToString, addControlToString :: Action
 
 enterNewComment input len =
     do setLexerCommentDepth 1
@@ -204,11 +223,57 @@ unembedComment input len =
        when (cd == 1) (alexSetStartCode state_initial)
        skip input len
 
+enterNewString _     _   =
+    do setLexerStringState True
+       setLexerStringValue ""
+       alexMonadScan
+
+addCharToString :: Char -> Action
+addCharToString c _     _   =
+    do addCharToLexerStringValue c
+       alexMonadScan
+
+addCurrentToString i@(_, _, _, input) len = addCharToString c i len
+  where
+    c = if (len == 1)
+           then head input
+           else error "Invalid call to addCurrentToString''"
+
+-- if we are given the special form '\nnn'
+addAsciiToString i@(_, _, _, input) len = if (v < 256)
+                                          then addCharToString c i len
+                                          else lexerError ("Invalid ascii value : " ++ input)
+  where
+    s = if (len == 4)
+           then drop 1 input
+           else error "Invalid call to 'addAsciiToString'"
+    r = readDec s
+    v = if (length r == 1)
+           then fst (head r)
+           else error "Invalid call to 'addAsciiToString'"
+    c = chr v
+
+-- if we are given the special form '\^A'
+addControlToString i@(_, _, _, input) len = addCharToString c' i len
+  where
+    c = if (len == 1)
+           then head input
+           else error "Invalid call to 'addControlToString'"
+    v = ord c
+    c' = if (v >= 64)
+            then chr (v - 64)
+            else error "Invalid call to 'addControlToString'"
+
+leaveString (p, _, _, input) len =
+    do s <- getLexerStringValue
+       setLexerStringState False
+       return (Token p (String (reverse s)))
+
 
 
 data AlexUserState = AlexUserState
                    {
-                         lexerError :: Bool
+                         lexerErrorTok :: Bool
                        , lexerCommentDepth  :: Int
                        , lexerStringState   :: Bool
                        , lexerStringValue   :: String
@@ -216,23 +281,38 @@ data AlexUserState = AlexUserState
 alexInitUserState :: AlexUserState
 alexInitUserState = AlexUserState
                    {
-                         lexerError = False
+                         lexerErrorTok = False
                        , lexerCommentDepth  = 0
                        , lexerStringState   = False
                        , lexerStringValue   = ""
                    }
 
 getLexerError :: Alex Bool
-getLexerError = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerError ust)
+getLexerError = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerErrorTok ust)
 
 setLexerError :: Bool -> Alex ()
-setLexerError ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerError=ss}}, ())
+setLexerError ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerErrorTok=ss}}, ())
 
 getLexerCommentDepth :: Alex Int
 getLexerCommentDepth = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerCommentDepth ust)
 
 setLexerCommentDepth :: Int -> Alex ()
 setLexerCommentDepth ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentDepth=ss}}, ())
+
+getLexerStringState :: Alex Bool
+getLexerStringState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerStringState ust)
+
+setLexerStringState :: Bool -> Alex ()
+setLexerStringState ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringState=ss}}, ())
+
+getLexerStringValue :: Alex String
+getLexerStringValue = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerStringValue ust)
+
+setLexerStringValue :: String -> Alex ()
+setLexerStringValue ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringValue=ss}}, ())
+
+addCharToLexerStringValue :: Char -> Alex ()
+addCharToLexerStringValue c = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringValue=c:lexerStringValue (alex_ust s)}}, ())
 
 
 alexEOF :: Alex Token
@@ -243,10 +323,13 @@ scanner str = let loop = do (t, m) <- alexComplementError alexMonadScan
                             when (isJust m) (alexError (fromJust m))
                             let tok@(Token p cl) = t
                             if (cl == EOF)
-                               then do f1 <- getLexerError
-                                       if (True)
+                               then do f1 <- getLexerStringState
+                                       d2 <- getLexerCommentDepth
+                                       if ((not f1) && (d2 == 0))
                                           then return [tok]
-                                          else alexError $ "Error Lexicografico, Alex isn't Happy:("
+                                          else if (f1)
+                                               then alexError "String not closed at end of file"
+                                               else alexError "Comment not closed at end of file"
 
                                else do toks <- loop
                                        return (tok : toks)
@@ -259,6 +342,27 @@ alexComplementError :: Alex a -> Alex (a, Maybe String)
 alexComplementError (Alex al) = Alex (\s -> case al s of
                                                  Right (s', x) -> Right (s', (x, Nothing))
                                                  Left  message -> Right (s, (undefined, Just message)))
+
+
+lexerError :: String -> Alex a
+lexerError msg =
+    do (p, c, _, inp) <- alexGetInput
+       let inp1 = filter (/= '\r') (takeWhile (/='\n') inp)
+       let inp2 = if (length inp1 > 30)
+                     then trim (take 30 inp1)
+                     else trim inp1
+       let disp = if (null inp)
+                     then " at end of file"
+                     else if (null inp2)
+                             then " before end of line"
+                             else " on char " ++ show c ++ " before : '" ++ inp2 ++ "'"
+       let disp3 = if (null msg)
+                      then "Lexer error"
+                      else trim msg
+       alexError (disp3 ++ " at " ++ showPosn p ++ disp)
+  where
+    trim = reverse . dropWhile (== ' ') . reverse . dropWhile (== ' ')
+
 runAlexScan s = scanner s
 
 
