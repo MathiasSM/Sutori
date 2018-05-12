@@ -130,6 +130,7 @@ UnaryOperation        : - Expression
                         + Expression
                         ~ Expression
                         $ Expression
+                        ! Expression
                         
 
 BinaryOperation       : Expression + Expression
