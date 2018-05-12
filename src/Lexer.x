@@ -15,71 +15,79 @@ $sim = [\=\+\-\*\/\/\=\%\=\=\<\>\>\=\<\=]
 
 tokens :-
 
-    "Once upon a time in"                { mkL INI }
-    "and they lived happily ever after"  { mkL FIN }
-    "Once upon some other time in"       { mkL F_INI }
-    "or that is what they say"           { mkL F_FIN }
-    "There was"                          { mkL THEREWAS }
-    "brought a"                          { mkL BROUGHTA }
-    "dreams of"                          { mkL DREAMSOF }
-    "keeps dreaming of"                  { mkL KEEPSDREAMINGOF }
-    "told the story"                     { mkL TOLDTHESTORY }
-    "made a"                             { mkL MADEA }
-    $white+                              ;
-    "bag"                                { mkL INT_TYPE }
-    "wallet"                             { mkL FLOAT_TYPE }
-    "book"                               { mkL CHAR_TYPE }
-    "lightbulb"                          { mkL BOOL_TYPE }
-    "chain"                              { mkL ARRAY_TYPE }
-    "machine"                            { mkL STRUCT_TYPE }
-    "thing"                              { mkL UNION_TYPE }
-    "direction"                          { mkL POINTER_TYPE }
-    "return"                             { mkL Return }
-    "a"                                  { mkL A }
-    "and"                                { mkL AND }
-    "or"                                 { mkL OR }
-    "of"                                 { mkL OF }
-    "with"                               { mkL WITH }
-    "either"                             { mkL EITHER }
-    "to"                                 { mkL TO }
-    "when"                               { mkL WHEN }
-    "otherwise"                          { mkL OTHERWISE }
-    "from"                               { mkL FROM }
-    \.\.\.\(                             { mkL OPEN }
-    \)\.\.\.                             { mkL CLOSE }
-    \.\.\.                               { mkL TPOINTS }
-    true                                 { mkL TrueTK }
-    false                                { mkL FalseTK }
-    \.                                   { mkL POINT }
-    \,                                   { mkL COMMA }
-    \:                                   { mkL COLONS }
-    \$                                   { mkL DOLLAR }
-    \?                                   { mkL INTER }
-    \!                                   { mkL EXCL }
-    \(                                   { mkL ParenOpen }
-    \)                                   { mkL ParenClose }
-    \+                                   { mkL Plus }
-    \=\=                                 { mkL Equal }
-    \=                                   { mkL Assign }
-    \*                                   { mkL Product }
-    \-                                   { mkL Minus }
-    \%                                   { mkL Rest }
-    \/                                   { mkL DivExac }
-    \/\=                                 { mkL Dif }
-    \>\=                                 { mkL GreaterEqual }
-    \<\=                                 { mkL LessEqual }
-    \>                                   { mkL Greater }
-    \<                                   { mkL Less }
-    \^                                   { mkL Pot }
-    $digit+(\.[$digit]+)                 { getFloatNumber }
-    $digit+                              { getIntegerNumber }
-    [a-zA-Z][a-zA-Z\_]*                  { getId }
-    [A-Z][A-Z\_0-9]*                     { getFuncId }
-    [$digit \_]+                         { getError }
-    .                                    { getError }
-
+<0>                "Once upon a time in"                { mkL INI }
+<0>                "and they lived happily ever after"  { mkL FIN }
+<0>                "Once upon some other time in"       { mkL F_INI }
+<0>                "or that is what they say"           { mkL F_FIN }
+<0>                "There was"                          { mkL THEREWAS }
+<0>                "brought a"                          { mkL BROUGHTA }
+<0>                "dreams of"                          { mkL DREAMSOF }
+<0>                "keeps dreaming of"                  { mkL KEEPSDREAMINGOF }
+<0>                "told the story"                     { mkL TOLDTHESTORY }
+<0>                "made a"                             { mkL MADEA }
+<0>                $white+                              ;
+<0>                "--".*                               ;
+<0>                "bag"                                { mkL INT_TYPE }
+<0>                "wallet"                             { mkL FLOAT_TYPE }
+<0>                "book"                               { mkL CHAR_TYPE }
+<0>                "lightbulb"                          { mkL BOOL_TYPE }
+<0>                "chain"                              { mkL ARRAY_TYPE }
+<0>                "machine"                            { mkL STRUCT_TYPE }
+<0>                "thing"                              { mkL UNION_TYPE }
+<0>                "direction"                          { mkL POINTER_TYPE }
+<0>                "return"                             { mkL Return }
+<0>                "a"                                  { mkL A }
+<0>                "and"                                { mkL AND }
+<0>                "or"                                 { mkL OR }
+<0>                "of"                                 { mkL OF }
+<0>                "with"                               { mkL WITH }
+<0>                "either"                             { mkL EITHER }
+<0>                "to"                                 { mkL TO }
+<0>                "when"                               { mkL WHEN }
+<0>                "otherwise"                          { mkL OTHERWISE }
+<0>                "from"                               { mkL FROM }
+<0>                \.\.\.\(                             { mkL OPEN }
+<0>                \)\.\.\.                             { mkL CLOSE }
+<0>                \.\.\.                               { mkL TPOINTS }
+<0>                true                                 { mkL TrueTK }
+<0>                false                                { mkL FalseTK }
+<0>                \.                                   { mkL POINT }
+<0>                \,                                   { mkL COMMA }
+<0>                \:                                   { mkL COLONS }
+<0>                \$                                   { mkL DOLLAR }
+<0>                \?                                   { mkL INTER }
+<0>                \!                                   { mkL EXCL }
+<0>                \(                                   { mkL ParenOpen }
+<0>                \)                                   { mkL ParenClose }
+<0>                \+                                   { mkL Plus }
+<0>                \=\=                                 { mkL Equal }
+<0>                \=                                   { mkL Assign }
+<0>                \*                                   { mkL Product }
+<0>                \-                                   { mkL Minus }
+<0>                \%                                   { mkL Rest }
+<0>                \/                                   { mkL DivExac }
+<0>                \/\=                                 { mkL Dif }
+<0>                \>\=                                 { mkL GreaterEqual }
+<0>                \<\=                                 { mkL LessEqual }
+<0>                \>                                   { mkL Greater }
+<0>                \<                                   { mkL Less }
+<0>                \^                                   { mkL Pot }
+<0>                "/*"                                 { enterNewComment `andBegin` state_comment }
+<state_comment>    "/*"                                 { embedComment }
+<state_comment>    "*/"                                 { unembedComment }
+<state_comment>    .                                    ;
+<state_comment>    \n                                   { skip }
+<0>                \'[a-z]\'                            { getCharTok  }
+<0>                $digit+(\.[$digit]+)                 { getFloatNumber }
+<0>                $digit+                              { getIntegerNumber }
+<0>                [a-zA-Z][a-zA-Z\_]*                  { getId }
+<0>                [A-Z][A-Z\_0-9]*                     { getFuncId }
+<0>                [$digit \_]+                         { getError }
+<0>                .                                    { getError }
 {
 
+state_initial :: Int
+state_initial = 0
 
 data Token = Token AlexPosn TokenClass
 
@@ -97,6 +105,7 @@ showPosn (AlexPn _ line col) = "(" ++ show line ++ "," ++ show col ++ ")"
 getFloatNumber (p, _, _, str) len = return (Token p (FloatNumber (read $ take len str)))
 getIntegerNumber (p, _, _, str) len = return (Token p (IntegerNumber (read $ take len str)))
 getId (p, _, _, str) len = return (Token p (Id (take len str)))
+getCharTok (p, _, _, str) len = return (Token p (Character (take len str)))
 getFuncId (p, _, _, str) len = return (Token p (FuncId (take len str)))
 
 mkL :: TokenClass -> AlexInput -> Int -> Alex Token
@@ -162,6 +171,7 @@ data TokenClass =
     FloatNumber Float      |
     IntegerNumber  Int     |
     Id String              |
+    Character String       |
     FuncId String          |
     InvalidToken  String
   deriving (Eq,Show)
@@ -174,15 +184,42 @@ getError (p, _, _, input) len =
        return (Token p (InvalidToken s))
     where s = take len input
 
+-- actions
+
+enterNewComment, embedComment, unembedComment :: Action
+--enterNewString, leaveString, addCurrentToString, addAsciiToString, addControlToString :: Action
+
+enterNewComment input len =
+    do setLexerCommentDepth 1
+       skip input len
+
+embedComment input len =
+    do cd <- getLexerCommentDepth
+       setLexerCommentDepth (cd + 1)
+       skip input len
+
+unembedComment input len =
+    do cd <- getLexerCommentDepth
+       setLexerCommentDepth (cd - 1)
+       when (cd == 1) (alexSetStartCode state_initial)
+       skip input len
+
+
 
 data AlexUserState = AlexUserState
                    {
-                       lexerError  :: Bool
+                         lexerError :: Bool
+                       , lexerCommentDepth  :: Int
+                       , lexerStringState   :: Bool
+                       , lexerStringValue   :: String
                    }
 alexInitUserState :: AlexUserState
 alexInitUserState = AlexUserState
                    {
-                       lexerError = False
+                         lexerError = False
+                       , lexerCommentDepth  = 0
+                       , lexerStringState   = False
+                       , lexerStringValue   = ""
                    }
 
 getLexerError :: Alex Bool
@@ -190,6 +227,13 @@ getLexerError = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerError ust)
 
 setLexerError :: Bool -> Alex ()
 setLexerError ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerError=ss}}, ())
+
+getLexerCommentDepth :: Alex Int
+getLexerCommentDepth = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerCommentDepth ust)
+
+setLexerCommentDepth :: Int -> Alex ()
+setLexerCommentDepth ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentDepth=ss}}, ())
+
 
 alexEOF :: Alex Token
 alexEOF = return (Token undefined EOF)
