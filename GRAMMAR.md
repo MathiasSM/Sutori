@@ -90,8 +90,12 @@ PersonNames           : PNAME
                         PNAME, PersonNames
                         PNAME and PersonNames
 
-VariableDeclaration   : PNAME BROUGHTA Type: VNAME
-                        PNAME BROUGHTA Type: VNAME = Expression
+VariableDeclaration   : PNAME BROUGHTA Type: ListOfVariables
+                        
+ListOfVariables       : VNAME, ListOfVariables
+                        VNAME = Expression, ListOfVariables
+                        VNAME
+                        VNAME = Expression
 
 Type                  : INT_TYPE
                         FLOAT_TYPE
