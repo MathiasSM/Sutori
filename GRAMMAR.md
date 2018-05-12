@@ -5,9 +5,10 @@
 
 ### Comments
 
-ONELINE: `--`
-MULTILINE: `/*` and `*/`
-
+```
+ONELINE         = `--`
+MULTILINE       = `/*` and `*/`
+```
 ### Separators
 
 ```
