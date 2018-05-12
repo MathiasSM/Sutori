@@ -2,6 +2,13 @@
 
 ## Lexemes (tokens)
 
+
+### Comments
+
+```
+ONELINE         = `--`
+MULTILINE       = `/*` and `*/`
+```
 ### Separators
 
 ```
@@ -75,6 +82,8 @@ FunctionDeclaration   : ( F_INI FNAME, `a` Type OPEN Block CLOSE F_FIN )
                         ( F_INI FNAME, `a` Type (`from` FunctionArgs) OPEN Block CLOSE F_FIN )
 
 FunctionFormalParams  : Type VNAME
+                        Type * VNAME
+                        Type VNAME, FucntionFormalParams
                         Type * VNAME, FunctionFormalParams
 
 PersonDeclaration     : THEREWAS PersonNames.
@@ -83,8 +92,12 @@ PersonNames           : PNAME
                         PNAME, PersonNames
                         PNAME and PersonNames
 
-VariableDeclaration   : PNAME BROUGHTA Type: VNAME
-                        PNAME BROUGHTA Type: VNAME = Expression
+VariableDeclaration   : PNAME BROUGHTA Type: ListOfVariables
+                        
+ListOfVariables       : VNAME, ListOfVariables
+                        VNAME = Expression, ListOfVariables
+                        VNAME
+                        VNAME = Expression
 
 Type                  : INT_TYPE
                         FLOAT_TYPE
@@ -123,12 +136,14 @@ UnaryOperation        : - Expression
                         + Expression
                         ~ Expression
                         $ Expression
+                        ! Expression
                         
 
 BinaryOperation       : Expression + Expression
                         Expression - Expression
                         Expression * Expression
                         Expression / Expression
+                        Expression `div` Expression
                         Expression % Expression
                         Expression ^ Expression
 
@@ -160,5 +175,5 @@ Selection             : PNAME DREAMSOF OPEN Block CLOSE `when` Expression
 
 UnboundedIteration    : PNAME KEEPSDREAMINGOF Expression ? OPEN Block CLOSE
 
-BoundedIteration      : OPEN Block CLOSE PNAME TOLDTHESTORY Expression times!
+BoundedIteration      : OPEN Block CLOSE PNAME TOLDTHESTORY Expression times
 ```
