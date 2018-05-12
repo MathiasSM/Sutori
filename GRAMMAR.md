@@ -2,6 +2,12 @@
 
 ## Lexemes (tokens)
 
+
+### Comments
+
+ONELINE: `--`
+MULTILINE: `/*` and `*/`
+
 ### Separators
 
 ```
