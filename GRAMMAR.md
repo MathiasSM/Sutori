@@ -136,6 +136,7 @@ BinaryOperation       : Expression + Expression
                         Expression - Expression
                         Expression * Expression
                         Expression / Expression
+                        Expression `div` Expression
                         Expression % Expression
                         Expression ^ Expression
 
