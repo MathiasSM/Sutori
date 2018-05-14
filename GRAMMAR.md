@@ -138,7 +138,7 @@ Based on C's precedence rules.
 | Precedence | Associativy | Operator           | Description                                                |
 | ---------- | ----------- | ------------------ | ---------------------------------------------------------- |
 | 1          | left        | `->`               | Member access                                              |
-| 2          | right       | `'!' '*' '+' '-'`  | Unary operators: negation, indirection, positive, negative |
+| 2          | right       | `!` `*` `+` `-`  | Unary operators: negation, indirection, positive, negative |
 | 3          | left        | `^`                | Power                                                      |
 | 4          | left        | `*` `/` `div` `%`  | Multiplication, both divisions and remainder               |
 | 5          | left        | `+` `-`            | Addition and substraction                                  |
