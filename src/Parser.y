@@ -75,7 +75,7 @@ import AST
     id 				{ Id _ $$ }
     c 				{ Character _  $$ }
     fid 			{ FuncId _ $$ }
-    s 				{ String _  $$ }
+    s 				{ StringTK _  $$ }
 
 %left or
 %left and
@@ -116,14 +116,14 @@ FBC : S '.' FBC   				{ FBCN $ $1 : ListFBCN $3 }
 RF : andThat E comes { REN $1 }
 
 -- Function Declaration
-DF  : '(' fBegin fid ',' thereWas T FB fEnd ')' { DFN (tokenString $3) $6 $7 }
-	| '(' fBegin fid ',' thereWas T '(' from LP ')' FB fEnd ')' { PDFN (tokenString $3) $6 $9 $11 }
+DF  : '(' fBegin fid ',' thereWas T FB fEnd ')' { DFN (tokenValue $3) $6 $7 }
+	| '(' fBegin fid ',' thereWas T '(' from LP ')' FB fEnd ')' { PDFN (tokenValue $3) $6 $9 $11 }
 
 -- List of params    
-LP : T id             { LPN [($1, (tokenString $2),1)] }
-   | T your id         { LPN [($1, (tokenString $3),0)] }
-   | T id ',' LP      { LPN $ ($1, (tokenString $2),1) : listLPN $4 }
-   | T your id ',' LP      { LPN $ ($1, (tokenString $3),1)) : listLPN $5 }
+LP : T id             { LPN [($1, (tokenValue $2),1)] }
+   | T your id         { LPN [($1, (tokenValue $3),0)] }
+   | T id ',' LP      { LPN $ ($1, (tokenValue $2),1) : listLPN $4 }
+   | T your id ',' LP      { LPN $ ($1, (tokenValue $3),1)) : listLPN $5 }
 
 --Types 
 T : intNum 						{ IntNumN }
@@ -136,29 +136,29 @@ T : intNum 						{ IntNumN }
   | pointerT '(' to T ')'       { PointerN $4 }
 
 --Struct Type
-ST : T id 	 		{ STN [($1, (tokenString $2))]} 
-   | T id and ST 	{ STN $ ($1, (tokenString $2)) : listSTN $4 }
+ST : T id 	 		{ STN [($1, (tokenValue $2))]} 
+   | T id and ST 	{ STN $ ($1, (tokenValue $2)) : listSTN $4 }
 
 --Union Type
-UT : T id 	 		{ UTN [($1, (tokenString $2))] } 
-   | T id or UT 	{ UTN $ ($1, (tokenString $2)) : listUTN $4 }
+UT : T id 	 		{ UTN [($1, (tokenValue $2))] } 
+   | T id or UT 	{ UTN $ ($1, (tokenValue $2)) : listUTN $4 }
 
 -- Person Declaration
 PD : thereWas LPD   { PDN $ 1 }
 
 -- List of Person Declaration
-LPD : id 		  { LDPN [tokenString $1] }  		  
-	| id ',' LPD  { LPDN $ (tokenString $1) : listLDPN $3 }
-	| id and LPD  { LPDN $ (tokenString $1) : listLDPN $3 }
+LPD : id 		  { LDPN [tokenValue $1] }  		  
+	| id ',' LPD  { LPDN $ (tokenValue $1) : listLDPN $3 }
+	| id and LPD  { LPDN $ (tokenValue $1) : listLDPN $3 }
 
 -- Variable Declaration
 VD : id broughta T ':' LV  { VDN $3 $5 }
 
 -- List of Variable Declaration
-LV : id '=' E  			 { LVN [(tokenString $1,$3)] }
-   | id 	   			 { LVN [(tokenString $1,undefined)] }
-   | id '=' E ',' LV   { LVN $ (tokenString $1,$3) : listLVN $5 } 
-   | id E ',' LV       { LVN $ (tokenString $1,undefined) : listLVN $4 }
+LV : id '=' E  			 { LVN [(tokenValue $1,$3)] }
+   | id 	   			 { LVN [(tokenValue $1,undefined)] }
+   | id '=' E ',' LV   { LVN $ (tokenValue $1,$3) : listLVN $5 } 
+   | id E ',' LV       { LVN $ (tokenValue $1,undefined) : listLVN $4 }
 
 -- List of Instructions
 I : E     									{ ExprN $1 }
@@ -184,7 +184,7 @@ FP : E   		{ FPN [$1] }
    | E ',' FP 	{ FPN $ $1: ListFPN $3 }
 
 -- Expressions
-E : id 					 { IdN (tokenString $1) (tokenPos $1) }
+E : id 					 { IdN (tokenValue $1) (tokenPos $1) }
   | '[' LCA ']' 		 { CN $2 }
   | '{' LCS '}' 		 { CN $2 }
   | fid 				 { FCN $1 [] }
@@ -209,10 +209,10 @@ E : id 					 { IdN (tokenString $1) (tokenPos $1) }
   |	E '<' E     		 { CompareN $1 "<" $3 }
   | id '[' E ']' 		 { GetArrayItem $1 $3 }
   | '(' E ')' 			 { ParentExp $2 }
-  | n 					 { NumberLiteralN (tokenString $1) (tokenPos $1) }
-  |	f 					 { NumberLiteralN (tokenString $1) (tokenPos $1) }
-  | c 					 { NumberLiteralN (tokenString $1) (tokenPos $1) }
-  | s 					 { NumberLiteralN (tokenString $1) (tokenPos $1) }
+  | n 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
+  |	f 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
+  | c 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
+  | s 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
   | on 					 { TrueN }
   |	off 				 { FalseN }
 
@@ -224,24 +224,90 @@ main = interact (show.runCalc)
 
 trans :: [Token] -> [Lexema]
 trans [Token (EOF _)] = []
-trans ((Token p (FloatNumber f)):toks) = (FloatNumber p f):(trans toks)
-trans ((Token p (IntegerNumber f)):toks) = (IntegerNumber p f):(trans toks)
-trans ((Token p (Id f)):toks) = (Id p f):(trans toks)
-trans ((Token p (FuncId f)):toks) = (FuncId p f):(trans toks)
-trans ((Token p (String f)):toks) = (String p f):(trans toks)
-trans ((Token p cl):toks) = (cl p):(trans toks) 
+trans ((Token p (FloatNumber f)):toks) = (FloatNumber (np p) f):(trans toks)
+trans ((Token p (IntegerNumber f)):toks) = (IntegerNumber (np p) f):(trans toks)
+trans ((Token p (Id f)):toks) = (Id (np p) f):(trans toks)
+trans ((Token p (FuncId f)):toks) = (FuncId (np p) f):(trans toks)
+trans ((Token p (String f)):toks) = (String (np p) f):(trans toks)
+trans ((Token p cl):toks) = (cl (np p)):(trans toks) 
+	where np (AlexPn _ f c) = (f,c)
 
 
 runCalc :: String -> Exp
 runCalc = calc . trans .  alexScanTokens
 
 data Lexema =
-   	INI                    { tkPos :: (Int,Int)} |
-    FIN                    { tkPos :: (Int,Int)} |
+    INI 					{  tokenPos :: (Int, Int) } 
+	END 					{  tokenPos :: (Int, Int) }
+   	F_INI 					{  tokenPos :: (Int, Int) }
+  	F_FIN  					{  tokenPos :: (Int, Int) }
+    THEREWAS 				{  tokenPos :: (Int, Int) }
+    BROUGHTA 				{  tokenPos :: (Int, Int) }
+    DREAMSOF 				{  tokenPos :: (Int, Int) }      
+   	KEEPSDREAMINGOF  		{  tokenPos :: (Int, Int) }
+    ANDTHAT 				{  tokenPos :: (Int, Int) }
+  	TOLDTHESTORY 			{  tokenPos :: (Int, Int) }
+  	COMESFROM 				{  tokenPos :: (Int, Int) }
+  	MADEA  					{  tokenPos :: (Int, Int) }
+  	BROKEA 					{  tokenPos :: (Int, Int) }
+    INT_TYPE  				{  tokenPos :: (Int, Int) }
+    FLOAT_TYPE  			{  tokenPos :: (Int, Int) }
+   	CHAR_TYPE  				{  tokenPos :: (Int, Int) }
+    BOOL_TYPE 				{  tokenPos :: (Int, Int) }
+    ARRAY_TYPE 				{  tokenPos :: (Int, Int) }  
+    STRUCT_TYPE  		    {  tokenPos :: (Int, Int) }
+    UNION_TYPE  			{  tokenPos :: (Int, Int) } 
+    POINTER_TYPE  			{  tokenPos :: (Int, Int) } 
+ 	AND  					{  tokenPos :: (Int, Int) }        
+ 	OR    					{  tokenPos :: (Int, Int) }       
+ 	OF   					{  tokenPos :: (Int, Int) }        
+  	WITH  					{  tokenPos :: (Int, Int) }       
+    EITHER 					{  tokenPos :: (Int, Int) }      
+ 	TO 						{  tokenPos :: (Int, Int) }          
+  	WHEN  					{  tokenPos :: (Int, Int) }       
+    OTHERWISE 				{  tokenPos :: (Int, Int) }   
+ 	FROM  					{  tokenPos :: (Int, Int) }
+    TIMES 					{  tokenPos :: (Int, Int) }       
+   	OPEN  					{  tokenPos :: (Int, Int) }       
+   	CLOSE  					{  tokenPos :: (Int, Int) }     
+ 	TrueTK 					{  tokenPos :: (Int, Int) }      
+ 	FalseTK 				{  tokenPos :: (Int, Int) }     
+ 	POINT 					{  tokenPos :: (Int, Int) }       
+ 	COMMA 					{  tokenPos :: (Int, Int) }       
+ 	COLONS  				{  tokenPos :: (Int, Int) }
+  	SEMICOLON 				{  tokenPos :: (Int, Int) }   
+ 	Neg  					{  tokenPos :: (Int, Int) }
+ 	OpenC 					{  tokenPos :: (Int, Int) }
+ 	CloseC 					{  tokenPos :: (Int, Int) }   
+ 	OpenL 					{  tokenPos :: (Int, Int) }
+ 	CloseL 					{  tokenPos :: (Int, Int) }        
+ 	ParenOpen 				{  tokenPos :: (Int, Int) }   
+ 	ParenClose 				{  tokenPos :: (Int, Int) }  
+ 	Plus 					{  tokenPos :: (Int, Int) }        
+  	Equal 					{  tokenPos :: (Int, Int) }       
+ 	Product 				{  tokenPos :: (Int, Int) }     
+ 	Minus 					{  tokenPos :: (Int, Int) }       
+ 	Mod 					{  tokenPos :: (Int, Int) }         
+ 	DivExac 				{  tokenPos :: (Int, Int) }     
+ 	DivFloat 				{  tokenPos :: (Int, Int) }
+  	Your 					{  tokenPos :: (Int, Int) }    
+  	Dif 					{  tokenPos :: (Int, Int) }         
+ 	Assign 					{  tokenPos :: (Int, Int) }      
+  	GreaterEqual 			{  tokenPos :: (Int, Int) }
+ 	Arrow 					{  tokenPos :: (Int, Int) }
+  	LessEqual 				{  tokenPos :: (Int, Int) }   
+ 	Greater 				{  tokenPos :: (Int, Int) }     
+ 	Less 					{  tokenPos :: (Int, Int) }        
+ 	Pot 					{  tokenPos :: (Int, Int) }         
+	FloatNumber 			{ tokenPos :: (Int, Int), tokenValue :: Float } 
+	IntegerNumber 			{ tokenPos :: (Int, Int), tokenValue :: Int } 
+ 	Id 						{ tokenPos :: (Int, Int), tokenValue :: String }
+	Character 				{ tokenPos :: (Int, Int), tokenValue :: String }
+ 	FuncId 					{ tokenPos :: (Int, Int), tokenValue :: String }
+	String 					{ tokenPos :: (Int, Int), tokenValue :: String }
 
   deriving (Eq)
 
-data 
 
 happyError :: [Lexema] -> a
 happyError tks = error ("Parse error at " ++ lcn ++ "\n")

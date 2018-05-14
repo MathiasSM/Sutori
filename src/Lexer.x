@@ -211,7 +211,7 @@ data TokenClass =
     Id String              |
     Character String       |
     FuncId String          |
-    String String          |
+    StringTK String          |
     InvalidToken  String
   deriving (Eq,Show)
 
@@ -276,7 +276,7 @@ addControlToString i@(_, _, _, input) len = addCharToString c' i len
 leaveString (p, _, _, input) len =
     do s <- getLexerStringValue
        setLexerStringState False
-       return (Token p (String (reverse s)))
+       return (Token p (StringTK (reverse s)))
 data AlexUserState = AlexUserState
                    {
                          lexerErrorTok :: Bool
