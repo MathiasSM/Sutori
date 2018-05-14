@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..), printToken, isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
+module Lexer(Token(..), isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
 
 import Control.Monad
 import Data.Maybe
@@ -34,7 +34,7 @@ tokens :-
 <0>                "keeps dreaming of"                  { mkL S_keepsdreamingof }
 <0>                "made a"                             { mkL S_madea }
 <0>                "made of"                            { mkL S_madeof }
-<0>                "there was a"                        { mKL S_therewasa     }
+<0>                "there was a"                        { mkL S_therewasa     }
 <0>                "told that story"                    { mkL S_toldthatstory }
 
 <0>                "bag"                                { mkL TYPE_INT }
@@ -132,7 +132,7 @@ data Token = Token AlexPosn TokenClass
 
 instance Show Token where
   show (Token _ EOF)   = "Token EOF"
-  show (Token p cl) = "Token class = " ++ show cl ++ " posn = " ++ showPosn pp
+  show (Token p cl) = "Token class = " ++ show cl ++ " posn = " ++ showPosn p
 
 data TokenClass =
     EOF                 |
@@ -150,6 +150,7 @@ data TokenClass =
     S_dreamof           |
     S_keepsdreamingof   |
     S_madea             |
+    S_madeof            |
     S_therewasa         |
     S_toldthatstory     |
     TYPE_INT            |
@@ -203,9 +204,9 @@ data TokenClass =
     TIMES               |
     InvalidToken String |
     Character String    |
-    Float Float         |
-    Integer Int         |
-    String String       |
+    Float' Float        |
+    Integer' Int        |
+    String' String      |
     FunctionID String   |
     PersonID String     |
     ID String
@@ -222,12 +223,12 @@ showPosn (AlexPn _ line col) = "(" ++ show line ++ "," ++ show col ++ ")"
 
 -- Token getters
 getTkChar (p, _, _, str) len     = return (Token p (Character (take len str)))
-getTkFloat (p, _, _, str) len    = return (Token p (FloatNumber (read $ take len str)))
-getTkInteger (p, _, _, str) len  = return (Token p (IntegerNumber (read $ take len str)))
+getTkFloat (p, _, _, str) len    = return (Token p (Float' (read $ take len str)))
+getTkInteger (p, _, _, str) len  = return (Token p (Integer' (read $ take len str)))
 
-getTkId (p, _, _, str) len       = return (Token p (Id (take len str)))
-getTkFuncId (p, _, _, str) len   = return (Token p (FuncId (take len str)))
-getTkPersonId (p, _, _, str) len = return (Token p (PersonId (take len str)))
+getTkId (p, _, _, str) len       = return (Token p (ID (take len str)))
+getTkFuncId (p, _, _, str) len   = return (Token p (FunctionID (take len str)))
+getTkPersonId (p, _, _, str) len = return (Token p (PersonID (take len str)))
 
 getError :: Action
 getError (p, _, _, input) len =
@@ -270,7 +271,7 @@ leaveString :: Action
 leaveString (p, _, _, input) len =
     do s <- getLexerStringValue
        setLexerStringState False
-       return (Token p (String (reverse s)))
+       return (Token p (String' (reverse s)))
 
 addCharToString :: Char -> Action
 addCharToString c _ _ =
@@ -403,6 +404,8 @@ lexerError msg =
   where
     trim = reverse . dropWhile (== ' ') . reverse . dropWhile (== ' ')
 
+alexEOF :: Alex Token
+alexEOF = return (Token undefined EOF)
 
 runAlexScan s = scanner s
 

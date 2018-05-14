@@ -2,12 +2,11 @@
 module Parser where
 
 import Lexer
-import AST
 }
 
 %name      calc
 %tokentype { Lexeme }
-%error     { parseError }
+%error     {  }
 
 %token
     EOF                 { EOF _               }
@@ -76,9 +75,9 @@ import AST
     and                 { AND _               }
     or                  { OR _                }
     LITERAL_CHAR        { Character _ $$      }
-    LITERAL_FLOAT       { Float _ $$          }
-    LITERAL_INT         { Integer _ $$        }
-    LITERAL_STRING      { String _ $$         }
+    LITERAL_FLOAT       { Float' _ $$         }
+    LITERAL_INT         { Integer' _ $$       }
+    LITERAL_STRING      { String' _ $$        }
     ID_FUNCTION         { FunctionID _ $$     }
     ID_PERSON           { PersonID _ $$       }
     ID                  { ID _ $$             }
@@ -203,7 +202,7 @@ FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type Functio
 FunctionFormalParams     : Type ID                                                                              { LPN [($1, (tokenString $2),1)] }
                          | Type ID ',' FunctionFormalParams                                                     { LPN $ ($1, (tokenString $2),1) : listLPN $4 }
                          | YOUR Type ID                                                                         { LPN [($2, (tokenString $3),0)] }
-                         | YOUR Type ID ',' FunctionFormalParams                                                { LPN $ ($2, (tokenString $3),1)) : listLPN $5 }
+                         | YOUR Type ID ',' FunctionFormalParams                                                { LPN $ ($2, (tokenString $3),1) : listLPN $5 }
 
 VariableDeclaration      : ID_PERSON S_broughta Type ':' VariableList                                           { VDN $3 $5 }
 
@@ -219,7 +218,7 @@ Type                     : TYPE_INT                                             
                          | TYPE_CHAR                                                                            { CharcN }
                          | TYPE_BOOL                                                                            { BooleanN }
                          | TYPE_STRING                                                                          { StringN }
-                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                                  { ArrayN $4 $5 }
+                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                               { ArrayN $4 $5 }
                          | TYPE_STRUCT '(' WITH StructTyping ')'                                                { StructN $4 }
                          | TYPE_UNION '(' EITHER UnionTyping ')'                                                { UnionN $4 }
                          | TYPE_POINTER '(' TO Type ')'                                                         { PointerN $4 }
@@ -275,13 +274,13 @@ UnboundedIteration       : ID_PERSON S_keepsdreamingof Expression Block         
 
 BoundedIteration         : Block ID_PERSON S_toldthatstory Expression TIMES                                     { ForN $2 $1 $4 }
 
-Print                    : ID_PERSON ':' Expression                                                               { }
+Print                    : ID_PERSON ':' Expression                                                             { }
 
 
 {
 
 main:: IO ()
-main = interact (show.runCalc)
+main = interact (show . runCalc)
 
 trans :: [Token] -> [Lexeme]
 trans ((Token (EOF _))         :[])   = []
@@ -290,88 +289,87 @@ trans ((Token p (Integer' f))  :toks) = (Integer' p f)   : (trans toks)
 trans ((Token p (ID f))        :toks) = (ID p f)         : (trans toks)
 trans ((Token p (FunctionID f)):toks) = (FunctionID p f) : (trans toks)
 trans ((Token p (String' f))   :toks) = (String' p f)    : (trans toks)
-trans ((Token p cl)            :toks) = (cl p)           : (trans toks)
+trans ((Token p cl)            :toks) = (cl (np p))      : (trans toks)
+  where np (AlexPn _ f c) = (f, c)
 
-runCalc :: String -> Exp
 runCalc = calc . trans .  alexScanTokens
 
-data Lexeme =
-   EOF               { tokenPos :: (Int, Int) }
-   PROGRAM_INI       { tokenPos :: (Int, Int) }
-   PROGRAM_FIN       { tokenPos :: (Int, Int) }
-   FUNCTION_INI      { tokenPos :: (Int, Int) }
-   FUNCTION_FIN      { tokenPos :: (Int, Int) }
-   S_Andthatswhere   { tokenPos :: (Int, Int) }
-   S_Therewas        { tokenPos :: (Int, Int) }
-   S_brokea          { tokenPos :: (Int, Int) }
-   S_broughta        { tokenPos :: (Int, Int) }
-   S_comesfrom       { tokenPos :: (Int, Int) }
-   S_dreamof         { tokenPos :: (Int, Int) }
-   S_keepsdreamingof { tokenPos :: (Int, Int) }
-   S_madeof          { tokenPos :: (Int, Int) }
-   S_madea           { tokenPos :: (Int, Int) }
-   S_therewasa       { tokenPos :: (Int, Int) }
-   S_toldthatstory   { tokenPos :: (Int, Int) }
-   TYPE_INT          { tokenPos :: (Int, Int) }
-   TYPE_FLOAT        { tokenPos :: (Int, Int) }
-   TYPE_CHAR         { tokenPos :: (Int, Int) }
-   TYPE_BOOL         { tokenPos :: (Int, Int) }
-   TYPE_ARRAY        { tokenPos :: (Int, Int) }
-   TYPE_STRUCT       { tokenPos :: (Int, Int) }
-   TYPE_UNION        { tokenPos :: (Int, Int) }
-   TYPE_STRING       { tokenPos :: (Int, Int) }
-   TYPE_POINTER      { tokenPos :: (Int, Int) }
-   WITH              { tokenPos :: (Int, Int) }
-   YOUR              { tokenPos :: (Int, Int) }
-   OF                { tokenPos :: (Int, Int) }
-   EITHER            { tokenPos :: (Int, Int) }
-   TO                { tokenPos :: (Int, Int) }
-   WHEN              { tokenPos :: (Int, Int) }
-   OTHERWISE         { tokenPos :: (Int, Int) }
-   TIMES             { tokenPos :: (Int, Int) }
-   TRUE              { tokenPos :: (Int, Int) }
-   FALSE             { tokenPos :: (Int, Int) }
-   BLOCK_OPEN        { tokenPos :: (Int, Int) }
-   BLOCK_CLOSE       { tokenPos :: (Int, Int) }
-   OPEN_PAREN        { tokenPos :: (Int, Int) }
-   OPEN_BRACKETS     { tokenPos :: (Int, Int) }
-   OPEN_BRACES       { tokenPos :: (Int, Int) }
-   CLOSE_PAREN       { tokenPos :: (Int, Int) }
-   CLOSE_BRACKETS    { tokenPos :: (Int, Int) }
-   CLOSE_BRACES      { tokenPos :: (Int, Int) }
-   ELLIPSIS          { tokenPos :: (Int, Int) }
-   PERIOD            { tokenPos :: (Int, Int) }
-   COMMA             { tokenPos :: (Int, Int) }
-   COLON             { tokenPos :: (Int, Int) }
-   SEMICOLON         { tokenPos :: (Int, Int) }
-   DOLLAR            { tokenPos :: (Int, Int) }
-   INTERROGATION     { tokenPos :: (Int, Int) }
-   EXCLAMATION       { tokenPos :: (Int, Int) }
-   ARROW_RIGHT       { tokenPos :: (Int, Int) }
-   PLUS              { tokenPos :: (Int, Int) }
-   MINUS             { tokenPos :: (Int, Int) }
-   EQUAL             { tokenPos :: (Int, Int) }
-   ASSIGNMENT        { tokenPos :: (Int, Int) }
-   ASTERISK          { tokenPos :: (Int, Int) }
-   PERCENT           { tokenPos :: (Int, Int) }
-   SLASH             { tokenPos :: (Int, Int) }
-   DIV               { tokenPos :: (Int, Int) }
-   NOT_EQUAL         { tokenPos :: (Int, Int) }
-   GREATER_EQUAL     { tokenPos :: (Int, Int) }
-   LESS_EQUAL        { tokenPos :: (Int, Int) }
-   GREATER           { tokenPos :: (Int, Int) }
-   LESS              { tokenPos :: (Int, Int) }
-   POWER             { tokenPos :: (Int, Int) }
-   AND               { tokenPos :: (Int, Int) }
-   OR                { tokenPos :: (Int, Int) }
-   InvalidToken      { tokenPos :: (Int, Int) }
-   Character         { tokenPos :: (Int, Int), tokenValue :: String }
-   Float'            { tokenPos :: (Int, Int), tokenValue :: Float  }
-   Integer'          { tokenPos :: (Int, Int), tokenValue :: Int    }
-   String'           { tokenPos :: (Int, Int), tokenValue :: String }
-   FunctionID        { tokenPos :: (Int, Int), tokenValue :: String }
-   PersonID          { tokenPos :: (Int, Int), tokenValue :: String }
-   ID                { tokenPos :: (Int, Int), tokenValue :: String }
+data Lexeme = EOF        { tokenPos :: (Int, Int) }
+     | PROGRAM_INI       { tokenPos :: (Int, Int) }
+     | PROGRAM_FIN       { tokenPos :: (Int, Int) }
+     | FUNCTION_INI      { tokenPos :: (Int, Int) }
+     | FUNCTION_FIN      { tokenPos :: (Int, Int) }
+     | S_Andthatswhere   { tokenPos :: (Int, Int) }
+     | S_Therewas        { tokenPos :: (Int, Int) }
+     | S_brokea          { tokenPos :: (Int, Int) }
+     | S_broughta        { tokenPos :: (Int, Int) }
+     | S_comesfrom       { tokenPos :: (Int, Int) }
+     | S_dreamsof        { tokenPos :: (Int, Int) }
+     | S_keepsdreamingof { tokenPos :: (Int, Int) }
+     | S_madeof          { tokenPos :: (Int, Int) }
+     | S_madea           { tokenPos :: (Int, Int) }
+     | S_therewasa       { tokenPos :: (Int, Int) }
+     | S_toldthatstory   { tokenPos :: (Int, Int) }
+     | TYPE_INT          { tokenPos :: (Int, Int) }
+     | TYPE_FLOAT        { tokenPos :: (Int, Int) }
+     | TYPE_CHAR         { tokenPos :: (Int, Int) }
+     | TYPE_BOOL         { tokenPos :: (Int, Int) }
+     | TYPE_ARRAY        { tokenPos :: (Int, Int) }
+     | TYPE_STRUCT       { tokenPos :: (Int, Int) }
+     | TYPE_UNION        { tokenPos :: (Int, Int) }
+     | TYPE_STRING       { tokenPos :: (Int, Int) }
+     | TYPE_POINTER      { tokenPos :: (Int, Int) }
+     | WITH              { tokenPos :: (Int, Int) }
+     | YOUR              { tokenPos :: (Int, Int) }
+     | OF                { tokenPos :: (Int, Int) }
+     | EITHER            { tokenPos :: (Int, Int) }
+     | TO                { tokenPos :: (Int, Int) }
+     | WHEN              { tokenPos :: (Int, Int) }
+     | OTHERWISE         { tokenPos :: (Int, Int) }
+     | TIMES             { tokenPos :: (Int, Int) }
+     | TRUE              { tokenPos :: (Int, Int) }
+     | FALSE             { tokenPos :: (Int, Int) }
+     | BLOCK_OPEN        { tokenPos :: (Int, Int) }
+     | BLOCK_CLOSE       { tokenPos :: (Int, Int) }
+     | OPEN_PAREN        { tokenPos :: (Int, Int) }
+     | OPEN_BRACKETS     { tokenPos :: (Int, Int) }
+     | OPEN_BRACES       { tokenPos :: (Int, Int) }
+     | CLOSE_PAREN       { tokenPos :: (Int, Int) }
+     | CLOSE_BRACKETS    { tokenPos :: (Int, Int) }
+     | CLOSE_BRACES      { tokenPos :: (Int, Int) }
+     | ELLIPSIS          { tokenPos :: (Int, Int) }
+     | PERIOD            { tokenPos :: (Int, Int) }
+     | COMMA             { tokenPos :: (Int, Int) }
+     | COLON             { tokenPos :: (Int, Int) }
+     | SEMICOLON         { tokenPos :: (Int, Int) }
+     | DOLLAR            { tokenPos :: (Int, Int) }
+     | INTERROGATION     { tokenPos :: (Int, Int) }
+     | EXCLAMATION       { tokenPos :: (Int, Int) }
+     | ARROW_RIGHT       { tokenPos :: (Int, Int) }
+     | PLUS              { tokenPos :: (Int, Int) }
+     | MINUS             { tokenPos :: (Int, Int) }
+     | EQUAL             { tokenPos :: (Int, Int) }
+     | ASSIGNMENT        { tokenPos :: (Int, Int) }
+     | ASTERISK          { tokenPos :: (Int, Int) }
+     | PERCENT           { tokenPos :: (Int, Int) }
+     | SLASH             { tokenPos :: (Int, Int) }
+     | DIV               { tokenPos :: (Int, Int) }
+     | NOT_EQUAL         { tokenPos :: (Int, Int) }
+     | GREATER_EQUAL     { tokenPos :: (Int, Int) }
+     | LESS_EQUAL        { tokenPos :: (Int, Int) }
+     | GREATER           { tokenPos :: (Int, Int) }
+     | LESS              { tokenPos :: (Int, Int) }
+     | POWER             { tokenPos :: (Int, Int) }
+     | AND               { tokenPos :: (Int, Int) }
+     | OR                { tokenPos :: (Int, Int) }
+     | InvalidToken      { tokenPos :: (Int, Int) }
+     | Character         { tokenPos :: (Int, Int), char :: String }
+     | Float'            { tokenPos :: (Int, Int), float :: Float  }
+     | Integer'          { tokenPos :: (Int, Int), int :: Int    }
+     | String'           { tokenPos :: (Int, Int), string :: String }
+     | FunctionID        { tokenPos :: (Int, Int), id :: String }
+     | PersonID          { tokenPos :: (Int, Int), id :: String }
+     | ID                { tokenPos :: (Int, Int), id :: String }
 
   deriving (Eq)
 
