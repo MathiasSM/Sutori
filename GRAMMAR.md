@@ -130,6 +130,26 @@ ConstructorStruct_list   : ID_PROP : Expression
 
 Symbols. There are way more special characters, but we need more time and imagination to give them meanings.
 
+
+##### The operators and their precedence
+
+Based on C's precedence rules.
+
+| Precedence | Associativy | Operator           | Description                                                |
+| ---------- | ----------- | ------------------ | ---------------------------------------------------------- |
+| 1          | left        | `->`               | Member access                                              |
+| 2          | right       | `'!' '*' '+' '-'`  | Unary operators: negation, indirection, positive, negative |
+| 3          | left        | `^`                | Power                                                      |
+| 4          | left        | `*` `/` `div` `%`  | Multiplication, both divisions and remainder               |
+| 5          | left        | `+` `-`            | Addition and substraction                                  |
+| 6          | neither     | `<` `<=` `>=` `>`  | Order compators                                            |
+| 7          | left        | `==` `/=`          | Equality, non-equality                                     |
+| 8          | left        | `and`              | Logical 'and'                                              |
+| 9          | left        | `or`               | Logical 'or'                                               |
+| 10         | right       | `=`                | Assigment                                                  |
+
+##### Operation grammar rules
+
 ```
 Operation                 : UnaryOperation
                             BinaryOperation
@@ -301,3 +321,4 @@ BoundedIteration      : Block ID_PERSON S_toldthatstory Expression `times`
 
 Print                 : ID_PERSON : Expression
 ```
+
