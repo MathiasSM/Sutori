@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..), isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
+module Lexer(Token(..), TokenClass(..), isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
 
 import Control.Monad
 import Data.Maybe
@@ -30,7 +30,7 @@ tokens :-
 <0>                "broke a"                            { mkL S_brokea }
 <0>                "brought a"                          { mkL S_broughta }
 <0>                "comes from"                         { mkL S_comesfrom }
-<0>                "dreams of"                          { mkL S_dreamof }
+<0>                "dreams of"                          { mkL S_dreamsof }
 <0>                "keeps dreaming of"                  { mkL S_keepsdreamingof }
 <0>                "made a"                             { mkL S_madea }
 <0>                "made of"                            { mkL S_madeof }
@@ -52,10 +52,6 @@ tokens :-
 <0>                \'[a-z]\'                            { getTkChar  }
 <0>                $digit+(\.$digit+)                   { getTkFloat }
 <0>                $digit+                              { getTkInteger }
-
-<0>                [A-Z][A-Z\_0-9]*                     { getTkFuncId }
-<0>                [a-zA-Z][a-zA-Z\-]*                  { getTkPersonId }
-<0>                [a-zA-Z][a-zA-Z\_]*                  { getTkId }
 
 <0>                "("                                  { mkL OPEN_PAREN }
 <0>                "["                                  { mkL OPEN_BRACKETS }
@@ -119,6 +115,9 @@ tokens :-
 <state_string>     \n                                   { skip }
 <0>                \n                                   { skip }
 
+<0>                [A-Z][A-Z\_0-9]*                     { getTkFuncId }
+<0>                [a-zA-Z][a-zA-Z\-\_]*                { getTkId }
+
 <0>                [$digit \_]+                         { getError }
 <0>                .                                    { getError }
 
@@ -147,7 +146,7 @@ data TokenClass =
     S_brokea            |
     S_broughta          |
     S_comesfrom         |
-    S_dreamof           |
+    S_dreamsof           |
     S_keepsdreamingof   |
     S_madea             |
     S_madeof            |
@@ -208,7 +207,6 @@ data TokenClass =
     Integer' Int        |
     String' String      |
     FunctionID String   |
-    PersonID String     |
     ID String
   deriving (Eq,Show)
 
@@ -228,7 +226,6 @@ getTkInteger (p, _, _, str) len  = return (Token p (Integer' (read $ take len st
 
 getTkId (p, _, _, str) len       = return (Token p (ID (take len str)))
 getTkFuncId (p, _, _, str) len   = return (Token p (FunctionID (take len str)))
-getTkPersonId (p, _, _, str) len = return (Token p (PersonID (take len str)))
 
 getError :: Action
 getError (p, _, _, input) len =
