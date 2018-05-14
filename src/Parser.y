@@ -4,79 +4,84 @@ import Lexer
 import AST
 }
 
-%name calc
-%tokentype { Lexema }
+%name      calc
+%tokentype { Token }
 
 %token
-    begin       { INI _ } 
-    end       { END _ }
-    fBegin      { F_INI $$ }
-    fEnd      { F_FIN  _ }
-    thereWas    { THEREWAS _ }
-    broughta    { BROUGHTA _ }
-    dreamsof    { DREAMSOF _ }      
-    keeps       { KEEPSDREAMINGOF  _ }
-    andThat     { ANDTHAT _ }
-    told      { TOLDTHESTORY _ }
-    comes     { COMESFROM _ }
-    made      { MADEA  _ }
-    broke     { BROKEA _ }
-    intNum      { INT_TYPE  _ }
-    floatNum    { FLOAT_TYPE  _ }
-    charc       { CHAR_TYPE  _ }
-    boolean     { BOOL_TYPE _ }
-    arrayT      { ARRAY_TYPE _ }  
-    structT     { STRUCT_TYPE  _ }
-    unionT      { UNION_TYPE  _ } 
-    pointerT    { POINTER_TYPE  _ } 
-    and       { AND  $$ }        
-    or        { OR   $$ }       
-    of        { OF   _ }        
-    with      { WITH  _ }       
-    either      { EITHER _ }      
-    to        { TO _ }          
-    when      { WHEN  _ }       
-    otherwise     { OTHERWISE _ }   
-    from      { FROM  _ }
-    times           { TIMES _ }       
-    '...('      { OPEN  _ }       
-    ')...'      { CLOSE  _ }     
-    on        { TrueTK $$ }      
-    off       { FalseTK $$ }     
-    '.'       { POINT $$ }       
-    ','       { COMMA $$ }       
-    ':'       { COLONS  $$ }
-    ';'       { SEMICOLON $$ }   
-    '!'       { Neg  $$ }
-    '['       { OpenC $$ }
-    ']'       { CloseC $$ }   
-    '{'       { OpenL $$ }
-    '}'       { CloseL $$ }        
-    '('       { ParenOpen $$ }   
-    ')'       { ParenClose _ }  
-    '+'       { Plus $$ }        
-    '=='      { Equal $$ }       
-    '*'       { Product $$ }     
-    '-'       { Minus $$ }       
-    '%'       { Mod $$ }         
-    '/'       { DivExac $$ }     
-    div       { DivFloat $$ }
-    your      { Your $$ }    
-    '/='      { Dif $$ }         
-    '='       { Assign $$ }      
-    '>='      { GreaterEqual $$ }
-    '->'      { Arrow $$ }
-    '<='      { LessEqual $$ }   
-    '>'       { Greater $$ }     
-    '<'       { Less $$ }        
-    '^'       { Pot $$ }         
-    f         { FloatNumber _ _ }
-    n         { IntegerNumber _  _}
-    id        { Id _ _ }
-    c         { Character _  _ }
-    fid       { FuncId _ _ }
-    s         { StringTK _  $$ }
+    EOF                 { Token _ EOF               }
+    PROGRAM_INI         { Token _ PROGRAM_INI       }
+    PROGRAM_FIN         { Token _ PROGRAM_FIN       }
+    FUNCTION_INI        { Token _ FUNCTION_INI      }
+    FUNCTION_FIN        { Token _ FUNCTION_FIN      }
+    S_Andthatswhere     { Token _ S_Andthatswhere   }
+    S_Therewas          { Token _ S_Therewas        }
+    S_brokea            { Token _ S_brokea          }
+    S_broughta          { Token _ S_broughta        }
+    S_comesfrom         { Token _ S_comesfrom       }
+    S_dreamsof          { Token _ S_dreamsof        }
+    S_keepsdreamingof   { Token _ S_keepsdreamingof }
+    S_madeof            { Token _ S_madeof          }
+    S_madea             { Token _ S_madea           }
+    S_therewasa         { Token _ S_therewasa       }
+    S_toldthatstory     { Token _ S_toldthatstory   }
+    TYPE_INT            { Token _ TYPE_INT          }
+    TYPE_FLOAT          { Token _ TYPE_FLOAT        }
+    TYPE_CHAR           { Token _ TYPE_CHAR         }
+    TYPE_BOOL           { Token _ TYPE_BOOL         }
+    TYPE_ARRAY          { Token _ TYPE_ARRAY        }
+    TYPE_STRUCT         { Token _ TYPE_STRUCT       }
+    TYPE_UNION          { Token _ TYPE_UNION        }
+    TYPE_STRING         { Token _ TYPE_STRING       }
+    TYPE_POINTER        { Token _ TYPE_POINTER      }
+    WITH                { Token _ WITH              }
+    YOUR                { Token _ YOUR              }
+    OF                  { Token _ OF                }
+    EITHER              { Token _ EITHER            }
+    TO                  { Token _ TO                }
+    WHEN                { Token _ WHEN              }
+    OTHERWISE           { Token _ OTHERWISE         }
+    TIMES               { Token _ TIMES             }
+    TRUE                { Token _ TRUE              }
+    FALSE               { Token _ FALSE             }
+    BLOCK_OPEN          { Token _ BLOCK_OPEN        }
+    BLOCK_CLOSE         { Token _ BLOCK_CLOSE       }
+    '('                 { Token _ OPEN_PAREN        }
+    '['                 { Token _ OPEN_BRACKETS     }
+    '{'                 { Token _ OPEN_BRACES       }
+    ')'                 { Token _ CLOSE_PAREN       }
+    ']'                 { Token _ CLOSE_BRACKETS    }
+    '}'                 { Token _ CLOSE_BRACES      }
+    '.'                 { Token _ PERIOD            }
+    ','                 { Token _ COMMA             }
+    ':'                 { Token _ COLON             }
+    ';'                 { Token _ SEMICOLON         }
+    '!'                 { Token _ EXCLAMATION       }
+    '->'                { Token _ ARROW_RIGHT       }
+    '+'                 { Token _ PLUS              }
+    '-'                 { Token _ MINUS             }
+    '=='                { Token _ EQUAL             }
+    '='                 { Token _ ASSIGNMENT        }
+    '*'                 { Token _ ASTERISK          }
+    '%'                 { Token _ PERCENT           }
+    '/'                 { Token _ SLASH             }
+    div                 { Token _ DIV               }
+    '/='                { Token _ NOT_EQUAL         }
+    '>='                { Token _ GREATER_EQUAL     }
+    '<='                { Token _ LESS_EQUAL        }
+    '>'                 { Token _ GREATER           }
+    '<'                 { Token _ LESS              }
+    '^'                 { Token _ POWER             }
+    and                 { Token _ AND               }
+    or                  { Token _ OR                }
+    LITERAL_CHAR        { Token _ (Character $$)    }
+    LITERAL_FLOAT       { Token _ (Float' $$)       }
+    LITERAL_INT         { Token _ (Integer' $$)     }
+    LITERAL_STRING      { Token _ (String' $$)      }
+    ID_FUNCTION         { Token _ (FunctionID $$)   }
+    ID                  { Token _ (ID $$)           }
 
+
+%right '='
 %left or
 %left and
 %nonassoc '>' '<' '==' '/=' '>=' '<=' 
@@ -217,104 +222,13 @@ E : id           { IdN (tokenValue $1) (tokenPos $1) }
   | off          { FalseN (tokenPos $1) }
 
 
+
 {
 
-main:: IO ()
-main = interact (show.runCalc)
 
-trans :: [Token] -> [Lexema]
-trans [Token (EOF _)] = []
-trans ((Token p (FloatNumber f)):toks) = (FloatNumber (np p) f):(trans toks)
-trans ((Token p (IntegerNumber f)):toks) = (IntegerNumber (np p) f):(trans toks)
-trans ((Token p (Id f)):toks) = (Id (np p) f):(trans toks)
-trans ((Token p (FuncId f)):toks) = (FuncId (np p) f):(trans toks)
-trans ((Token p (String f)):toks) = (String (np p) f):(trans toks)
-trans ((Token p cl):toks) = (cl (np p)):(trans toks) 
-  where np (AlexPn _ f c) = (f,c)
-
-
-runCalc :: String -> Exp
-runCalc = calc . trans .  alexScanTokens
-
-data Lexema =
-    INI           {  tokenPos :: (Int, Int) } 
-  END           {  tokenPos :: (Int, Int) }
-    F_INI           {  tokenPos :: (Int, Int) }
-    F_FIN           {  tokenPos :: (Int, Int) }
-    THEREWAS        {  tokenPos :: (Int, Int) }
-    BROUGHTA        {  tokenPos :: (Int, Int) }
-    DREAMSOF        {  tokenPos :: (Int, Int) }      
-    KEEPSDREAMINGOF     {  tokenPos :: (Int, Int) }
-    ANDTHAT         {  tokenPos :: (Int, Int) }
-    TOLDTHESTORY      {  tokenPos :: (Int, Int) }
-    COMESFROM         {  tokenPos :: (Int, Int) }
-    MADEA           {  tokenPos :: (Int, Int) }
-    BROKEA          {  tokenPos :: (Int, Int) }
-    INT_TYPE          {  tokenPos :: (Int, Int) }
-    FLOAT_TYPE        {  tokenPos :: (Int, Int) }
-    CHAR_TYPE         {  tokenPos :: (Int, Int) }
-    BOOL_TYPE         {  tokenPos :: (Int, Int) }
-    ARRAY_TYPE        {  tokenPos :: (Int, Int) }  
-    STRUCT_TYPE         {  tokenPos :: (Int, Int) }
-    UNION_TYPE        {  tokenPos :: (Int, Int) } 
-    POINTER_TYPE        {  tokenPos :: (Int, Int) } 
-  AND           {  tokenPos :: (Int, Int) }        
-  OR              {  tokenPos :: (Int, Int) }       
-  OF            {  tokenPos :: (Int, Int) }        
-    WITH            {  tokenPos :: (Int, Int) }       
-    EITHER          {  tokenPos :: (Int, Int) }      
-  TO            {  tokenPos :: (Int, Int) }          
-    WHEN            {  tokenPos :: (Int, Int) }       
-    OTHERWISE         {  tokenPos :: (Int, Int) }   
-  FROM            {  tokenPos :: (Int, Int) }
-    TIMES           {  tokenPos :: (Int, Int) }       
-    OPEN            {  tokenPos :: (Int, Int) }       
-    CLOSE           {  tokenPos :: (Int, Int) }     
-  TrueTK          {  tokenPos :: (Int, Int) }      
-  FalseTK         {  tokenPos :: (Int, Int) }     
-  POINT           {  tokenPos :: (Int, Int) }       
-  COMMA           {  tokenPos :: (Int, Int) }       
-  COLONS          {  tokenPos :: (Int, Int) }
-    SEMICOLON         {  tokenPos :: (Int, Int) }   
-  Neg           {  tokenPos :: (Int, Int) }
-  OpenC           {  tokenPos :: (Int, Int) }
-  CloseC          {  tokenPos :: (Int, Int) }   
-  OpenL           {  tokenPos :: (Int, Int) }
-  CloseL          {  tokenPos :: (Int, Int) }        
-  ParenOpen         {  tokenPos :: (Int, Int) }   
-  ParenClose        {  tokenPos :: (Int, Int) }  
-  Plus          {  tokenPos :: (Int, Int) }        
-    Equal           {  tokenPos :: (Int, Int) }       
-  Product         {  tokenPos :: (Int, Int) }     
-  Minus           {  tokenPos :: (Int, Int) }       
-  Mod           {  tokenPos :: (Int, Int) }         
-  DivExac         {  tokenPos :: (Int, Int) }     
-  DivFloat        {  tokenPos :: (Int, Int) }
-    Your          {  tokenPos :: (Int, Int) }    
-    Dif           {  tokenPos :: (Int, Int) }         
-  Assign          {  tokenPos :: (Int, Int) }      
-    GreaterEqual      {  tokenPos :: (Int, Int) }
-  Arrow           {  tokenPos :: (Int, Int) }
-    LessEqual         {  tokenPos :: (Int, Int) }   
-  Greater         {  tokenPos :: (Int, Int) }     
-  Less          {  tokenPos :: (Int, Int) }        
-  Pot           {  tokenPos :: (Int, Int) }         
-  FloatNumber       { tokenPos :: (Int, Int), tokenValue :: Float } 
-  IntegerNumber       { tokenPos :: (Int, Int), tokenValue :: Int } 
-  Id            { tokenPos :: (Int, Int), tokenValue :: String }
-  Character         { tokenPos :: (Int, Int), tokenValue :: String }
-  FuncId          { tokenPos :: (Int, Int), tokenValue :: String }
-  String          { tokenPos :: (Int, Int), tokenValue :: String }
-
-  deriving (Eq)
-
-
-happyError :: [Lexema] -> a
 happyError tks = error ("Parse error at " ++ lcn ++ "\n")
   where
-  lcn =   case tks of
-      [] -> "end of file"
-      tk:_ -> "line " ++ show l ++ ", column " ++ show c
-      where
-      AlexPn _ l c = token_posn tk
+  lcn = case tks of
+          []    -> "end of file"
+          ((Token (AlexPn _ l c) _):_)  -> "line " ++ show l ++ ", column " ++ show c
 }

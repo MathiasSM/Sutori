@@ -1,5 +1,6 @@
 {
-module Lexer(Token(..), printToken, isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
+
+module Lexer(Token(..), TokenClass(..), isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
 
 import Control.Monad
 import Data.Maybe
@@ -33,18 +34,72 @@ tokens :-
 <0>                "broke a"                            { mkL BROKEA }
 <0>                $white+                              ;
 <0>                "--".*                               ;
-<0>                "bag"                                { mkL INT_TYPE }
-<0>                "wallet"                             { mkL FLOAT_TYPE }
-<0>                "your"                               { mkL YOUR }
-<0>                "book"                               { mkL CHAR_TYPE }
-<0>                "lightbulb"                          { mkL BOOL_TYPE }
-<0>                "chain"                              { mkL ARRAY_TYPE }
-<0>                "machine"                            { mkL STRUCT_TYPE }
-<0>                "thing"                              { mkL UNION_TYPE }
-<0>                "phrase"                             { mkL STRING_TYPE }
-<0>                "direction"                          { mkL POINTER_TYPE }
-<0>                "return"                             { mkL Return }
-<0>                "a"                                  { mkL A }
+
+<0>                "...("                               { mkL BLOCK_OPEN }
+<0>                ")..."                               { mkL BLOCK_CLOSE }
+
+<0>                "Once upon a time in"                { mkL PROGRAM_INI     }
+<0>                "and they lived happily ever after"  { mkL PROGRAM_FIN     }
+<0>                "Once upon some other time in"       { mkL FUNCTION_INI    }
+<0>                "or that is what they say"           { mkL FUNCTION_FIN    }
+
+<0>                "And that's where"                   { mkL S_Andthatswhere }
+<0>                "There was"                          { mkL S_Therewas      }
+<0>                "broke a"                            { mkL S_brokea }
+<0>                "brought a"                          { mkL S_broughta }
+<0>                "comes from"                         { mkL S_comesfrom }
+<0>                "dreams of"                          { mkL S_dreamsof }
+<0>                "keeps dreaming of"                  { mkL S_keepsdreamingof }
+<0>                "made a"                             { mkL S_madea }
+<0>                "made of"                            { mkL S_madeof }
+<0>                "there was a"                        { mkL S_therewasa     }
+<0>                "told that story"                    { mkL S_toldthatstory }
+
+<0>                "bag"                                { mkL TYPE_INT }
+<0>                "wallet"                             { mkL TYPE_FLOAT }
+<0>                "book"                               { mkL TYPE_CHAR }
+<0>                "lightbulb"                          { mkL TYPE_BOOL }
+<0>                "chain"                              { mkL TYPE_ARRAY }
+<0>                "machine"                            { mkL TYPE_STRUCT }
+<0>                "thing"                              { mkL TYPE_UNION }
+<0>                "phrase"                             { mkL TYPE_STRING }
+<0>                "direction"                          { mkL TYPE_POINTER }
+
+<0>                "on"                                 { mkL TRUE }
+<0>                "off"                                { mkL FALSE }
+<0>                \'[a-z]\'                            { getTkChar  }
+<0>                $digit+(\.$digit+)                   { getTkFloat }
+<0>                $digit+                              { getTkInteger }
+
+<0>                "("                                  { mkL OPEN_PAREN }
+<0>                "["                                  { mkL OPEN_BRACKETS }
+<0>                "{"                                  { mkL OPEN_BRACES }
+<0>                ")"                                  { mkL CLOSE_PAREN }
+<0>                "]"                                  { mkL CLOSE_BRACKETS }
+<0>                "}"                                  { mkL CLOSE_BRACES }
+
+<0>                "..."                                { mkL ELLIPSIS }
+<0>                "."                                  { mkL PERIOD }
+<0>                ","                                  { mkL COMMA }
+<0>                ":"                                  { mkL COLON }
+<0>                ";"                                  { mkL SEMICOLON }
+<0>                "?"                                  { mkL INTERROGATION }
+<0>                "!"                                  { mkL EXCLAMATION  }
+<0>                "->"                                 { mkL ARROW_RIGHT }
+<0>                "+"                                  { mkL PLUS }
+<0>                "-"                                  { mkL MINUS }
+<0>                "=="                                 { mkL EQUAL }
+<0>                "="                                  { mkL ASSIGNMENT }
+<0>                "*"                                  { mkL ASTERISK }
+<0>                "%"                                  { mkL PERCENT }
+<0>                "/"                                  { mkL SLASH }
+<0>                "div"                                { mkL DIV }
+<0>                "/="                                 { mkL NOT_EQUAL }
+<0>                ">="                                 { mkL GREATER_EQUAL }
+<0>                "<="                                 { mkL LESS_EQUAL }
+<0>                ">"                                  { mkL GREATER }
+<0>                "<"                                  { mkL LESS }
+<0>                "^"                                  { mkL POWER }
 <0>                "and"                                { mkL AND }
 <0>                "or"                                 { mkL OR }
 <0>                "of"                                 { mkL OF }
@@ -106,11 +161,9 @@ tokens :-
 <state_string>     .                                    { addCurrentToString }
 <state_string>     \n                                   { skip }
 <0>                \n                                   { skip }
-<0>                \'[a-z]\'                            { getCharTok  }
-<0>                $digit+(\.[$digit]+)                 { getFloatNumber }
-<0>                $digit+                              { getIntegerNumber }
-<0>                [a-zA-Z][a-zA-Z\_]*                  { getId }
-<0>                [A-Z][A-Z\_0-9]*                     { getFuncId }
+<0>                [A-Z][A-Z\_0-9]*                     { getTkFuncId }
+<0>                [a-zA-Z][a-zA-Z\-\_]*                { getTkId }
+
 <0>                [$digit \_]+                         { getError }
 <0>                .                                    { getError }
 
@@ -120,9 +173,85 @@ state_initial = 0
 data Token = Token AlexPosn TokenClass
 instance Show Token where
   show (Token _ EOF)   = "Token EOF"
-  show (Token p cl) = "Token class = " ++ show cl ++ showap p
-    where
-      showap pp = " posn = " ++ showPosn pp
+
+  show (Token p cl) = "Token class = " ++ show cl ++ " posn = " ++ showPosn p
+
+data TokenClass =
+    EOF                 |
+    BLOCK_OPEN          |
+    BLOCK_CLOSE         |
+    PROGRAM_INI         |
+    PROGRAM_FIN         |
+    FUNCTION_INI        |
+    FUNCTION_FIN        |
+    S_Andthatswhere     |
+    S_Therewas          |
+    S_brokea            |
+    S_broughta          |
+    S_comesfrom         |
+    S_dreamsof           |
+    S_keepsdreamingof   |
+    S_madea             |
+    S_madeof            |
+    S_therewasa         |
+    S_toldthatstory     |
+    TYPE_INT            |
+    TYPE_FLOAT          |
+    TYPE_CHAR           |
+    TYPE_BOOL           |
+    TYPE_ARRAY          |
+    TYPE_STRUCT         |
+    TYPE_UNION          |
+    TYPE_STRING         |
+    TYPE_POINTER        |
+    TRUE                |
+    FALSE               |
+    OPEN_PAREN          |
+    OPEN_BRACKETS       |
+    OPEN_BRACES         |
+    CLOSE_PAREN         |
+    CLOSE_BRACKETS      |
+    CLOSE_BRACES        |
+    ELLIPSIS            |
+    PERIOD              |
+    COMMA               |
+    COLON               |
+    SEMICOLON           |
+    INTERROGATION       |
+    EXCLAMATION         |
+    ARROW_RIGHT         |
+    PLUS                |
+    MINUS               |
+    EQUAL               |
+    ASSIGNMENT          |
+    ASTERISK            |
+    PERCENT             |
+    SLASH               |
+    DIV                 |
+    NOT_EQUAL           |
+    GREATER_EQUAL       |
+    LESS_EQUAL          |
+    GREATER             |
+    LESS                |
+    POWER               |
+    AND                 |
+    OR                  |
+    WITH                |
+    YOUR                |
+    OF                  |
+    EITHER              |
+    TO                  |
+    WHEN                |
+    OTHERWISE           |
+    TIMES               |
+    InvalidToken String |
+    Character String    |
+    Float' Float        |
+    Integer' Int        |
+    String' String      |
+    FunctionID String   |
+    ID String
+  deriving (Eq,Show)
 
 
 printToken tk = show tk
@@ -215,6 +344,13 @@ data TokenClass =
     InvalidToken  String
   deriving (Eq,Show)
 
+-- Token getters
+getTkChar (p, _, _, str) len     = return (Token p (Character (take len str)))
+getTkFloat (p, _, _, str) len    = return (Token p (Float' (read $ take len str)))
+getTkInteger (p, _, _, str) len  = return (Token p (Integer' (read $ take len str)))
+
+getTkId (p, _, _, str) len       = return (Token p (ID (take len str)))
+getTkFuncId (p, _, _, str) len   = return (Token p (FunctionID (take len str)))
 
 type Action = AlexInput -> Int -> Alex Token
 getError :: Action
