@@ -10,7 +10,7 @@ import AST
 %token
     begin   		{ INI _ } 
     end 			{ END _ }
-    fBegin			{ F_INI _ }
+    fBegin			{ F_INI $$ }
     fEnd 			{ F_FIN  _ }
     thereWas 		{ THEREWAS _ }
     broughta 		{ BROUGHTA _ }
@@ -29,8 +29,8 @@ import AST
     structT 		{ STRUCT_TYPE  _ }
     unionT 			{ UNION_TYPE  _ } 
     pointerT 		{ POINTER_TYPE  _ } 
-    and 			{ AND  _ }        
-    or 				{ OR    _ }       
+    and 			{ AND  $$ }        
+    or 				{ OR   $$ }       
     of 				{ OF   _ }        
     with 			{ WITH  _ }       
     either 			{ EITHER _ }      
@@ -41,40 +41,40 @@ import AST
     times           { TIMES _ }       
     '...(' 			{ OPEN  _ }       
     ')...' 			{ CLOSE  _ }     
-    on 				{ TrueTK _ }      
-    off 			{ FalseTK _ }     
-    '.' 			{ POINT _ }       
-    ',' 			{ COMMA _ }       
-    ':' 			{ COLONS  _ }
-    ';'  			{ SEMICOLON _ }   
-    '!' 			{ Neg  _ }
-    '['				{ OpenC _ }
-    ']'				{ CloseC _ }   
-    '{'				{ OpenL _ }
-    '}'				{ CloseL _ }        
-    '('				{ ParenOpen _ }   
+    on 				{ TrueTK $$ }      
+    off 			{ FalseTK $$ }     
+    '.' 			{ POINT $$ }       
+    ',' 			{ COMMA $$ }       
+    ':' 			{ COLONS  $$ }
+    ';'  			{ SEMICOLON $$ }   
+    '!' 			{ Neg  $$ }
+    '['				{ OpenC $$ }
+    ']'				{ CloseC $$ }   
+    '{'				{ OpenL $$ }
+    '}'				{ CloseL $$ }        
+    '('				{ ParenOpen $$ }   
     ')' 			{ ParenClose _ }  
-    '+'				{ Plus _ }        
-    '==' 			{ Equal _ }       
-    '*' 			{ Product _ }     
-    '-' 			{ Minus _ }       
-    '%' 			{ Mod _ }         
-    '/' 			{ DivExac _ }     
-    div 			{ DivFloat _ }
-    your 			{ Your _ }    
-    '/=' 			{ Dif _ }         
-    '=' 			{ Assign _ }      
-    '>=' 			{ GreaterEqual _ }
-    '->'			{ Arrow _ }
-    '<=' 			{ LessEqual _ }   
-    '>' 			{ Greater _ }     
-    '<' 			{ Less _ }        
-    '^' 			{ Pot _ }         
-    f 				{ FloatNumber _ $$ }
-    n 				{ IntegerNumber _  $$}
-    id 				{ Id _ $$ }
-    c 				{ Character _  $$ }
-    fid 			{ FuncId _ $$ }
+    '+'				{ Plus $$ }        
+    '==' 			{ Equal $$ }       
+    '*' 			{ Product $$ }     
+    '-' 			{ Minus $$ }       
+    '%' 			{ Mod $$ }         
+    '/' 			{ DivExac $$ }     
+    div 			{ DivFloat $$ }
+    your 			{ Your $$ }    
+    '/=' 			{ Dif $$ }         
+    '=' 			{ Assign $$ }      
+    '>=' 			{ GreaterEqual $$ }
+    '->'			{ Arrow $$ }
+    '<=' 			{ LessEqual $$ }   
+    '>' 			{ Greater $$ }     
+    '<' 			{ Less $$ }        
+    '^' 			{ Pot $$ }         
+    f 				{ FloatNumber _ _ }
+    n 				{ IntegerNumber _  _}
+    id 				{ Id _ _ }
+    c 				{ Character _  _ }
+    fid 			{ FuncId _ _ }
     s 				{ StringTK _  $$ }
 
 %left or
@@ -116,14 +116,14 @@ FBC : S '.' FBC   				{ FBCN $ $1 : ListFBCN $3 }
 RF : andThat E comes { REN $1 }
 
 -- Function Declaration
-DF  : '(' fBegin fid ',' thereWas T FB fEnd ')' { DFN (tokenValue $3) $6 $7 }
-	| '(' fBegin fid ',' thereWas T '(' from LP ')' FB fEnd ')' { PDFN (tokenValue $3) $6 $9 $11 }
+DF  : '(' fBegin fid ',' thereWas T FB fEnd ')' { DFN (tokenValue $3) $6 $7 $1 }
+	| '(' fBegin fid ',' thereWas T '(' from LP ')' FB fEnd ')' { PDFN (tokenValue $3) $6 $9 $11 $1 }
 
 -- List of params    
 LP : T id             { LPN [($1, (tokenValue $2),1)] }
    | T your id         { LPN [($1, (tokenValue $3),0)] }
    | T id ',' LP      { LPN $ ($1, (tokenValue $2),1) : listLPN $4 }
-   | T your id ',' LP      { LPN $ ($1, (tokenValue $3),1)) : listLPN $5 }
+   | T your id ',' LP      { LPN $ ($1, (tokenValue $3),0)) : listLPN $5 }
 
 --Types 
 T : intNum 						{ IntNumN }
@@ -162,59 +162,59 @@ LV : id '=' E  			 { LVN [(tokenValue $1,$3)] }
 
 -- List of Instructions
 I : E     									{ ExprN $1 }
-  | E '->' id   		 					{ GetPropN $1 $3 }
-  | id '=' E 			 					{ Assignment $1 $3 }
-  | id dreamsof B when E 					{ IfThenN $1 $3 $5 }
-  | id dreamsof B when E ';' otherwise B    { IfThenElseN $1 $3 $5 $8 }
-  | id keeps E B 							{ WhileN $1 $3 $4 }
-  | B id told E times                       { ForN $2 $1 $4 } 
-  | id made T 								{ CreatePointerN $1 $3 }
-  | id broke id  	                        { FreePointerN $1 $3 }
+  | E '->' id   		 					{ GetPropN $1 (tokenValue $3) $2 }
+  | id '=' E 			 					{ AssignN $1 $3 (tokenPos $1) }
+  | id dreamsof B when E 					{ IfThenN $1 $3 $5 (tokenPos $1) }
+  | id dreamsof B when E ';' otherwise B    { IfThenElseN $1 $3 $5 $8 (tokenPos $1) }
+  | id keeps E B 							{ WhileN $1 $3 $4 (tokenPos $1) }
+  | B id told E times                       { ForN $1 $2 $4 (tokenPos $2)} 
+  | id made T 								{ CreatePointerN $1 $3 (tokenPos $1)}
+  | id broke id  	                        { FreePointerN $1 $3 (tokenPos $1) }
 
 -- Constructor Array 
 LCA : E 			{ LCAN $ [$1] }
 	| E ',' LCA     { LCAN $ $1: listLCA $3 }
 
 -- Constructor Struct
-LCS : id ':' E 				{ LCSN $ [($1,$3)] }
-	| id ':' E ',' LCS      { LCSN $ ($1,$3): listLCA $5 }
+LCS : id ':' E 				{ LCSN $ [(tokenValue $1,$3)] }
+	| id ':' E ',' LCS      { LCSN $ (tokenValue $1,$3): listLCA $5 }
 
 -- Function call parameters xd  
 FP : E   		{ FPN [$1] }
-   | E ',' FP 	{ FPN $ $1: ListFPN $3 }
+   | E ',' FP 	{ FPN $ $1: listFPN $3 }
 
 -- Expressions
 E : id 					 { IdN (tokenValue $1) (tokenPos $1) }
   | '[' LCA ']' 		 { CN $2 }
   | '{' LCS '}' 		 { CN $2 }
-  | fid 				 { FCN $1 [] }
-  | fid '(' with FP ')'  { FCN $1 $4 }
-  | '!' E  				 { NotN $2 }
-  | '-' E  				 { MinusN $2 }
-  |	'*' E   	 		{ DeferenceN $2 }
-  | E '+' E 			 { BinaryN $1 "+" $3 }
-  | E '-' E 			 { BinaryN $1 "-" $3 }
-  | E '*' E 			 { BinaryN $1 "*" $3 }
-  | E '/' E 			 { BinaryN $1 "/" $3 }
-  | E div E 			 { BinaryN $1 "div" $3 }
-  | E '%' E 			 { BinaryN $1 "%" $3 }
-  | E '^' E 			 { BinaryN $1 "^" $3 }
-  |	E and E     		 { CompareN $1 "and" $3 } 
-  |	E or E      		 { CompareN $1 "or" $3 }
-  |	E '==' E    		 { CompareN $1 "==" $3 }
-  |	E '/=' E    		 { CompareN $1 "/=" $3 }
-  |	E '>=' E    		 { CompareN $1 ">=" $3 }
-  |	E '<=' E    		 { CompareN $1 "<=" $3 }
-  |	E '>' E     		 { CompareN $1 ">" $3 }
-  |	E '<' E     		 { CompareN $1 "<" $3 }
-  | id '[' E ']' 		 { GetArrayItem $1 $3 }
-  | '(' E ')' 			 { ParentExp $2 }
-  | n 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
-  |	f 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
-  | c 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
-  | s 					 { NumberLiteralN (tokenValue $1) (tokenPos $1) }
-  | on 					 { TrueN }
-  |	off 				 { FalseN }
+  | fid 				 { FCN (tokenValue $1) [] (tokenPos $1) }
+  | fid '(' with FP ')'  { FCN (tokenValue $1) $4 (tokenPos $1) }
+  | '!' E  				 { NotN $2 $1 }
+  | '-' E  				 { MinusN $2 $1 }
+  |	'*' E   	 		{ DeferenceN $2 $1 }
+  | E '+' E 			 { BinaryN $1 "+" $3 $2 }
+  | E '-' E 			 { BinaryN $1 "-" $3 $2 }
+  | E '*' E 			 { BinaryN $1 "*" $3 $2 }
+  | E '/' E 			 { BinaryN $1 "/" $3 $2 }
+  | E div E 			 { BinaryN $1 "div" $3 $2}
+  | E '%' E 			 { BinaryN $1 "%" $3 $2 }
+  | E '^' E 			 { BinaryN $1 "^" $3 $2}
+  |	E and E     		 { LogicN $1 "and" $3 $2 } 
+  |	E or E      		 { LogicN $1 "or" $3 $2}
+  |	E '==' E    		 { CompareN $1 "==" $3 $2}
+  |	E '/=' E    		 { CompareN $1 "/=" $3 $2 }
+  |	E '>=' E    		 { CompareN $1 ">=" $3 $2}
+  |	E '<=' E    		 { CompareN $1 "<=" $3 $2}
+  |	E '>' E     		 { CompareN $1 ">" $3 $2}
+  |	E '<' E     		 { CompareN $1 "<" $3 $2}
+  | id '[' E ']' 		 { GetArrayItem (tokenValue $1) $3 }
+  | '(' E ')' 			 { ParentExp $2 $1 }
+  | n 					 { IntegerLiteralN (tokenValue $1) (tokenPos $1) }
+  |	f 					 { FloatLiteralN (tokenValue $1) (tokenPos $1) }
+  | c 					 { CharLiteralN (tokenValue $1) (tokenPos $1) }
+  | s 					 { StringLiteralN (tokenValue $1) (tokenPos $1) }
+  | on 					 { TrueN (tokenPos $1) }
+  |	off 				 { FalseN (tokenPos $1) }
 
 
 {
