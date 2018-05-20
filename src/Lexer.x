@@ -396,7 +396,4 @@ alexEOF :: Alex Token
 alexEOF = return (Token undefined EOF)
 
 runAlexScan s = scanner s
-
-}
-runAlexScan s = scanner s
 }
