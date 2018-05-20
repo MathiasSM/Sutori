@@ -2,6 +2,7 @@
 module Parser where
 
 import Lexer
+import AST
 }
 
 %name      calc
@@ -97,182 +98,181 @@ import Lexer
 
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                   : PROGRAM_INI ID Block PROGRAM_FIN EOF                                                 { putStrLn "Source" }
+Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                      { PT $2 $3 }
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
-Expression               : ID                                                                                   { putStrLn "Expression" }
-                         | Literal                                                                              { putStrLn "Expression" }
-                         | Constructor                                                                          { putStrLn "Expression" }
-                         | FunctionCall                                                                         { putStrLn "Expression" }
-                         | Operation                                                                            { putStrLn "Expression" }
-                         | '(' Expression ')'                                                                   { putStrLn "Expression" }
+Expression               : ID                                                       { IdT $1 }
+                         | Literal                                                  { LitT $1 }
+                         | Constructor                                              { ConsT $1 }
+                         | Operation                                                { OpT $1 }
+                         | FunctionCall                                             { FunCT $1 }
+                         | '(' Expression ')'                                       { PET $2 }
 
-Literal                  : LITERAL_INT                                                                          { putStrLn "NoTerminal" }
-                         | LITERAL_CHAR                                                                         { putStrLn "NoTerminal" }
-                         | LITERAL_FLOAT                                                                        { putStrLn "NoTerminal" }
-                         | LITERAL_STRING                                                                       { putStrLn "NoTerminal" }
-                         | TRUE                                                                                 { putStrLn "NoTerminal" }
-                         | FALSE                                                                                { putStrLn "NoTerminal" }
+Literal                  : LITERAL_INT                                              { IT $1 }
+                         | LITERAL_CHAR                                             { CT $1 }
+                         | LITERAL_FLOAT                                            { FT $1 }
+                         | LITERAL_STRING                                           { ST $1 }
+                         | TRUE                                                     { TBT }
+                         | FALSE                                                    { FBT }
+
 
 -- Constructors
 -----------------------------------------------------------------------------------------------------------------------
-Constructor              : ConstructorArray                                                                     { putStrLn "NoTerminal" }
-                         | ConstructorStruct                                                                    { putStrLn "NoTerminal" }
+Constructor              : ConstructorArray                                         { $1 }
+                         | ConstructorStruct                                        { $1 }
 
-ConstructorArray         : '[' ConstructorArrayList ']'                                                         { putStrLn "NoTerminal" }
-ConstructorArrayList     : Expression                                                                           { putStrLn "NoTerminal" }
-                         | Expression ';' ConstructorArrayList                                                  { putStrLn "NoTerminal" }
+ConstructorArray         : '[' ConstructorArrayList ']'                             { $2 }
+ConstructorArrayList     : Expression                                               { LCAT [ $1 ] }
+                         | Expression ';' ConstructorArrayList                      { LCAT $ $1: listLCAT $3 }
 
-ConstructorStruct        : '{' ConstructorStructList '}'                                                        { putStrLn "NoTerminal" }
-ConstructorStructList    : ID ':' Expression                                                                    { putStrLn "NoTerminal" }
-                         | ID ':' Expression ';' ConstructorStructList                                          { putStrLn "NoTerminal" }
+ConstructorStruct        : '{' ConstructorStructList '}'                            { $2 }
+ConstructorStructList    : ID ':' Expression                                        { LCST [ ($1,$3) ] }
+                         | ID ':' Expression ';' ConstructorStructList              { LCST $ ($1,$3): listLCST $5 }
 
 
 -- Operators
 -----------------------------------------------------------------------------------------------------------------------
-Operation                : UnaryOperation                                                                       { putStrLn "NoTerminal" }
-                         | BinaryOperation                                                                      { putStrLn "NoTerminal" }
+Operation                : UnaryOperation                                           { $1 }
+                         | BinaryOperation                                          { $1 }
 
-UnaryOperation           : NumericalUnaryOperation                                                              { putStrLn "NoTerminal" }
-                         | LogicalUnaryOperation                                                                { putStrLn "NoTerminal" }
-                         | Dereference                                                                          { putStrLn "NoTerminal" }
+UnaryOperation           : NumericalUnaryOperation                                  { $1 }
+                         | LogicalUnaryOperation                                    { $1 }
+                         | Dereference                                              { $1 }
 
-BinaryOperation          : NumericalBinaryOperation                                                             { putStrLn "NoTerminal" }
-                         | LogicalBinaryOperation                                                               { putStrLn "NoTerminal" }
-                         | GetProp                                                                              { putStrLn "NoTerminal" }
-                         | GetArrayItem                                                                         { putStrLn "NoTerminal" }
-                         | Assignment                                                                           { putStrLn "NoTerminal" }
+BinaryOperation          : NumericalBinaryOperation                                 { $1 }
+                         | LogicalBinaryOperation                                   { $1 }
+                         | GetProp                                                  { $1 }
+                         | GetArrayItem                                             { $1 }
+                         | Assignment                                               { $1 }
 
-NumericalUnaryOperation  : '+' Expression %prec POS                                                             { putStrLn "NoTerminal" }
-                         | '-' Expression %prec NEG                                                             { putStrLn "NoTerminal" }
+NumericalUnaryOperation  : '+' Expression %prec POS                                 { PUT $2 }
+                         | '-' Expression %prec NEG                                 { MUT $2 }
 
-LogicalUnaryOperation    : '!' Expression                                                                       { putStrLn "NoTerminal" }
+LogicalUnaryOperation    : '!' Expression                                           { NUT $2 }
 
-Dereference              : '*' Expression %prec IND                                                             { putStrLn "NoTerminal" }
+Dereference              : '*' Expression %prec IND                                 { DUT $2 }
 
-NumericalBinaryOperation : Expression '+' Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression '-' Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression '*' Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression '/' Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression div Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression '%' Expression                                                            { putStrLn "NoTerminal" }
-                         | Expression '^' Expression                                                            { putStrLn "NoTerminal" }
+NumericalBinaryOperation : Expression '+' Expression                                { ABT $1 "+" $3 }
+                         | Expression '-' Expression                                { ABT $1 "-" $3 }
+                         | Expression '*' Expression                                { ABT $1 "*" $3 }
+                         | Expression '/' Expression                                { ABT $1 "/" $3 }
+                         | Expression div Expression                                { ABT $1 "div" $3 }
+                         | Expression '%' Expression                                { ABT $1 "%" $3 }
+                         | Expression '^' Expression                                { ABT $1 "^" $3 }
 
-LogicalBinaryOperation   : Expression and  Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression or   Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '==' Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '/=' Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '>=' Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '<=' Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '>'  Expression                                                           { putStrLn "NoTerminal" }
-                         | Expression '<'  Expression                                                           { putStrLn "NoTerminal" }
+LogicalBinaryOperation   : Expression and  Expression                               { LBT $1 "and" $3 }
+                         | Expression or   Expression                               { LBT $1 "or" $3 }
+                         | Expression '==' Expression                               { LBT $1 "==" $3 }
+                         | Expression '/=' Expression                               { LBT $1 "/=" $3 }
+                         | Expression '>=' Expression                               { LBT $1 ">=" $3 }
+                         | Expression '<=' Expression                               { LBT $1 "<=" $3 }
+                         | Expression '>'  Expression                               { LBT $1 ">" $3 }
+                         | Expression '<'  Expression                               { LBT $1 "<" $3 }
 
-GetArrayItem             : ID '[' Expression ']'                                                                { putStrLn "NoTerminal" }
+GetArrayItem             : ID '[' Expression ']'                                    { GAT $1 $3 }
 
-GetProp                  : Expression '->' ID                                                                   { putStrLn "NoTerminal" }
+GetProp                  : Expression '->' ID                                       { GPT $1 $3 }
 
-Assignment               : ID '=' Expression                                                                    { putStrLn "NoTerminal" }
+Assignment               : ID '=' Expression                                        { AT $1 $3 }
 
-FunctionCall             : ID_FUNCTION                                                                          { putStrLn "NoTerminal" }
-                         | ID_FUNCTION '(' WITH FunctionActualParams ')'                                        { putStrLn "NoTerminal" }
+FunctionCall             : ID_FUNCTION                                              { FCAT $1 }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'            { FCNT $1 $4 }
 
-FunctionActualParams     : Expression                                                                           { putStrLn "NoTerminal" }
-                         | Expression ',' FunctionActualParams                                                  { putStrLn "NoTerminal" }
+FunctionActualParams     : Expression                                               { LFCP [$1] }
+                         | Expression ',' FunctionActualParams                      { LFCP $ $1: listLFCP $3 }
 
 
 -- Declaration
 -----------------------------------------------------------------------------------------------------------------------
-Declaration              : PersonDeclaration                                                                    { putStrLn "NoTerminal" }
-                         | FunctionDeclaration                                                                  { putStrLn "NoTerminal" }
-                         | VariableDeclaration                                                                  { putStrLn "NoTerminal" }
+Declaration              : PersonDeclaration                                        { PDT $1 }
+                         | FunctionDeclaration                                      { $1 }
+                         | VariableDeclaration                                      { $1 }
 
-PersonDeclaration        : S_Therewas PersonNames                                                               { putStrLn "NoTerminal" }
+PersonDeclaration        : S_Therewas PersonNames                                   { $2 }
 
-PersonNames              : ID                                                                            { putStrLn "NoTerminal" }
-                         | ID ',' PersonNames                                                            { putStrLn "NoTerminal" }
-                         | ID and PersonNames                                                            { putStrLn "NoTerminal" }
+PersonNames              : ID                                                       { LPD [$1] }
+                         | ID ',' PersonNames                                       { LPD $ $1: listLPD $3 }
+                         | ID and PersonNames                                       { LPD $ $1: listLPD $3 }
+
+FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type FunctionBlock FUNCTION_FIN                                        { FDT $2 $5 $6  }
+                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  { FDAT $2 $5 $8 $10 }
+
+FunctionFormalParams     : Type ID                                                  { LFDP [($1,$2,0)] }
+                         | Type ID ',' FunctionFormalParams                         { LFDP $ ($1,$2,0): listLFDP $4 }
+                         | YOUR Type ID                                             { LFDP [($2,$3,1)] }
+                         | YOUR Type ID ',' FunctionFormalParams                    { LFDP $ ($2,$3,1): listLFDP $5 }
 
 
-FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type FunctionBlock FUNCTION_FIN             { putStrLn "NoTerminal" }
-                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  { putStrLn "NoTerminal" }
+VariableDeclaration      : ID S_broughta Type ':' VariableList                      { VDT $1 $3 $5 }
 
-FunctionFormalParams     : Type ID                                                                              { putStrLn "NoTerminal" }
-                         | Type ID ',' FunctionFormalParams                                                     { putStrLn "NoTerminal" }
-                         | YOUR Type ID                                                                         { putStrLn "NoTerminal" }
-                         | YOUR Type ID ',' FunctionFormalParams                                                { putStrLn "NoTerminal" }
-
-VariableDeclaration      : ID S_broughta Type ':' VariableList                                           { putStrLn "NoTerminal" }
-
-VariableList             : ID ',' VariableList                                                                  { putStrLn "NoTerminal" }
-                         | ID '=' Expression ',' VariableList                                                   { putStrLn "NoTerminal" }
-                         | ID '=' Expression                                                                    { putStrLn "NoTerminal" }
-                         | ID                                                                                   { putStrLn "NoTerminal" }
-
+VariableList             : ID ',' VariableList                                      { LDV $ ($1,Nothing): listLDV $3 }
+                         | ID '=' Expression ',' VariableList                       { LDV $ ($1,Just $3): listLDV $5 }
+                         | ID '=' Expression                                        { LDV [($1,Just $3)] }
+                         | ID                                                       { LDV [($1,Nothing)] }
 -- Types
 -----------------------------------------------------------------------------------------------------------------------
-Type                     : TYPE_INT                                                                             { putStrLn "NoTerminal" }
-                         | TYPE_FLOAT                                                                           { putStrLn "NoTerminal" }
-                         | TYPE_CHAR                                                                            { putStrLn "NoTerminal" }
-                         | TYPE_BOOL                                                                            { putStrLn "NoTerminal" }
-                         | TYPE_STRING                                                                          { putStrLn "NoTerminal" }
-                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                               { putStrLn "NoTerminal" }
-                         | TYPE_STRUCT '(' WITH StructTyping ')'                                                { putStrLn "NoTerminal" }
-                         | TYPE_UNION '(' EITHER UnionTyping ')'                                                { putStrLn "NoTerminal" }
-                         | TYPE_POINTER '(' TO Type ')'                                                         { putStrLn "NoTerminal" }
-                         | ID                                                                                   { putStrLn "NoTerminal" }
+Type                     : TYPE_INT                                                 { TI }
+                         | TYPE_FLOAT                                               { TF }
+                         | TYPE_CHAR                                                { TC }
+                         | TYPE_BOOL                                                { TB }
+                         | TYPE_STRING                                              { TS }
+                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                   { TA $4 $5 }
+                         | TYPE_STRUCT '(' WITH StructTyping ')'                    { TST $4 }
+                         | TYPE_UNION '(' EITHER UnionTyping ')'                    { TU $4 }
+                         | TYPE_POINTER '(' TO Type ')'                             { TP $4 }
+                         | ID                                                       { TID $1 }
 
-StructTyping             : Type ID                                                                              { putStrLn "NoTerminal" }
-                         | Type ID and StructTyping                                                             { putStrLn "NoTerminal" }
+StructTyping             : Type ID                                                  { LSRT [($1,$2)] }
+                         | Type ID and StructTyping                                 { LSRT $ ($1,$2): listLSRT $4 }
 
-UnionTyping              : Type ID                                                                              { putStrLn "NoTerminal" }
-                         | Type ID or UnionTyping                                                               { putStrLn "NoTerminal" }
+UnionTyping              : Type ID                                                  { LUT [($1,$2)] }
+                         | Type ID or UnionTyping                                   { LUT $ ($1,$2): listLUT $4 }
 
 
 -- Blocks
 -----------------------------------------------------------------------------------------------------------------------
-Block                    : BLOCK_OPEN BlockContent BLOCK_CLOSE                                                  { putStrLn "NoTerminal" }
+Block                    : BLOCK_OPEN BlockContent BLOCK_CLOSE                      { $2 }
 
-BlockContent             : Statement '.' BlockContent                                                           { putStrLn "NoTerminal" }
-                         | {-empty-}                                                                            { putStrLn "NoTerminal" }
+BlockContent             : Statement '.' BlockContent                               { LST $ $1: listLST $3 }
+                         | {-empty-}                                                { LST [] }
 
-FunctionBlock            : BLOCK_OPEN FunctionBlockContent BLOCK_CLOSE                                          { putStrLn "NoTerminal" }
+FunctionBlock            : BLOCK_OPEN FunctionBlockContent BLOCK_CLOSE              { $2 }
 
-FunctionBlockContent     : Statement '.' FunctionBlockContent                                                   { putStrLn "NoTerminal" }
-                         | ReturnStatement '.' FunctionBlockContent                                             { putStrLn "NoTerminal" }
-                         | {-empty-}                                                                            { putStrLn "NoTerminal" }
+FunctionBlockContent     : Statement '.' FunctionBlockContent                       { LFBT $ (StaT $1): listLFBT $3 }
+                         | ReturnStatement '.' FunctionBlockContent                 { LFBT $ $1: listLFBT $3 }
+                         | {-empty-}                                                { LFBT [] }
 
-Statement                : Instruction                                                                          { putStrLn "NoTerminal" }
-                         | Declaration                                                                          { putStrLn "NoTerminal" }
-                         | {-empty-}                                                                            { putStrLn "NoTerminal" }
+Statement                : Instruction                                              { InsT $1 }
+                         | Declaration                                              { DecT $1 }
 
-ReturnStatement          : S_Andthatswhere Expression S_comesfrom                                               { putStrLn "NoTerminal" }
 
+ReturnStatement          : S_Andthatswhere Expression S_comesfrom                   { RT $2 }
 
 
 -- Instructions
 -----------------------------------------------------------------------------------------------------------------------
-Instruction              : Expression                                                                           { putStrLn "NoTerminal" }
-                         | Selection                                                                            { putStrLn "NoTerminal" }
-                         | UnboundedIteration                                                                   { putStrLn "NoTerminal" }
-                         | BoundedIteration                                                                     { putStrLn "NoTerminal" }
-                         | ManageMemory                                                                         { putStrLn "NoTerminal" }
-                         | Print                                                                                { putStrLn "NoTerminal" }
+Instruction              : Expression                                               { ExprT $1 }
+                         | Selection                                                { $1 }
+                         | UnboundedIteration                                       { $1 }
+                         | BoundedIteration                                         { $1 }
+                         | ManageMemory                                             { $1 }
+                         | Print                                                    { $1 }
 
-ManageMemory             : CreatePointer                                                                        { putStrLn "NoTerminal" }
-                         | FreePointer                                                                          { putStrLn "NoTerminal" }
+ManageMemory             : CreatePointer                                            { $1 }
+                         | FreePointer                                              { $1 }
 
-CreatePointer            : ID S_madea Type                                                                      { putStrLn "NoTerminal" }
-FreePointer              : ID S_brokea ID                                                                       { putStrLn "NoTerminal" }
+CreatePointer            : ID S_madea Type                                          { CPT $1 $3 }
+FreePointer              : ID S_brokea ID                                           { FPT $1 $3 }
 
-Selection                : ID S_dreamsof Block WHEN Expression                                           { putStrLn "NoTerminal" }
-                         | ID S_dreamsof Block WHEN Expression ';' OTHERWISE Block                       { putStrLn "NoTerminal" }
+Selection                : ID S_dreamsof Block WHEN Expression                      { IFT $1 $3 $5 }
+                         | ID S_dreamsof Block WHEN Expression ';' OTHERWISE Block  { IFET $1 $3 $5 $8 }
 
-UnboundedIteration       : ID S_keepsdreamingof Expression Block                                         { putStrLn "NoTerminal" }
+UnboundedIteration       : ID S_keepsdreamingof Expression Block                    { UIT $1 $3 $4 }
 
-BoundedIteration         : Block ID S_toldthatstory Expression TIMES                                     { putStrLn "NoTerminal" }
+BoundedIteration         : Block ID S_toldthatstory Expression TIMES                { BIT $1 $2 $4 }
 
-Print                    : ID ':' Expression                                                             { putStrLn "NoTerminal" }
+Print                    : ID ':' Expression                                        { PRT $1 $3 }
 
 
 {

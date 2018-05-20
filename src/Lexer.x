@@ -84,7 +84,6 @@ tokens :-
 <0>                "^"                                  { mkL POWER }
 <0>                "and"                                { mkL AND }
 <0>                "or"                                 { mkL OR }
-
 <0>                "with"                               { mkL WITH }
 <0>                "your"                               { mkL YOUR }
 <0>                "of"                                 { mkL OF }
@@ -94,7 +93,6 @@ tokens :-
 <0>                "when"                               { mkL WHEN }
 <0>                "otherwise"                          { mkL OTHERWISE }
 <0>                "times"                              { mkL TIMES }
-
 <0>                "--|"                                { enterNewComment `andBegin` state_comment }
 <state_comment>    "--|"                                { embedComment }
 <state_comment>    "|--"                                { unembedComment }
@@ -114,21 +112,16 @@ tokens :-
 <state_string>     .                                    { addCurrentToString }
 <state_string>     \n                                   { skip }
 <0>                \n                                   { skip }
-
 <0>                [A-Z][A-Z\_0-9]*                     { getTkFuncId }
 <0>                [a-zA-Z][a-zA-Z\-\_]*                { getTkId }
-
 <0>                [$digit \_]+                         { getError }
 <0>                .                                    { getError }
 
 
 {
-
 -- Data definitions
 type Action = AlexInput -> Int -> Alex Token
-
 data Token = Token AlexPosn TokenClass
-
 instance Show Token where
   show (Token _ EOF)   = "Token EOF"
   show (Token p cl) = "Token class = " ++ show cl ++ " posn = " ++ showPosn p
@@ -146,7 +139,7 @@ data TokenClass =
     S_brokea            |
     S_broughta          |
     S_comesfrom         |
-    S_dreamsof           |
+    S_dreamsof          |
     S_keepsdreamingof   |
     S_madea             |
     S_madeof            |
@@ -217,7 +210,6 @@ state_initial = 0
 
 showPosn :: AlexPosn -> String
 showPosn (AlexPn _ line col) = "(" ++ show line ++ "," ++ show col ++ ")"
-
 
 -- Token getters
 getTkChar (p, _, _, str) len     = return (Token p (Character (take len str)))
@@ -369,7 +361,6 @@ scanner str = let loop = do (t, m) <- alexComplementError alexMonadScan
                                           else if (f1)
                                                then alexError "String not closed at end of file"
                                                else alexError "Comment not closed at end of file"
-
                                else do toks <- loop
                                        return (tok : toks)
               in  runAlex str loop
@@ -406,4 +397,6 @@ alexEOF = return (Token undefined EOF)
 
 runAlexScan s = scanner s
 
+}
+runAlexScan s = scanner s
 }
