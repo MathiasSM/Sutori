@@ -13,6 +13,7 @@ copyright:
   - (c) 2018 Génesis Kufatty
 
 extra-source-files:
+  - src/Parser.y
   - src/Lexer.x
   - README.md
   - GRAMMAR.md
