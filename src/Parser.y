@@ -4,317 +4,283 @@ import Lexer
 import AST
 }
 
-%name calc
-%tokentype { Lexema }
+%name      calc
+%tokentype { Token }
 
 %token
-    begin   		{ INI _ } 
-    end 			{ END _ }
-    fBegin			{ F_INI $$ }
-    fEnd 			{ F_FIN  _ }
-    thereWas 		{ THEREWAS _ }
-    broughta 		{ BROUGHTA _ }
-    dreamsof 		{ DREAMSOF _ }      
-    keeps 			{ KEEPSDREAMINGOF  _ }
-    andThat			{ ANDTHAT _ }
-    told 			{ TOLDTHESTORY _ }
-    comes			{ COMESFROM _ }
-    made 			{ MADEA  _ }
-    broke			{ BROKEA _ }
-    intNum 			{ INT_TYPE  _ }
-    floatNum 		{ FLOAT_TYPE  _ }
-    charc 			{ CHAR_TYPE  _ }
-   	boolean 		{ BOOL_TYPE _ }
-    arrayT 			{ ARRAY_TYPE _ }  
-    structT 		{ STRUCT_TYPE  _ }
-    unionT 			{ UNION_TYPE  _ } 
-    pointerT 		{ POINTER_TYPE  _ } 
-    and 			{ AND  $$ }        
-    or 				{ OR   $$ }       
-    of 				{ OF   _ }        
-    with 			{ WITH  _ }       
-    either 			{ EITHER _ }      
-    to 				{ TO _ }          
-    when 			{ WHEN  _ }       
-    otherwise 		{ OTHERWISE _ }   
-    from 			{ FROM  _ }
-    times           { TIMES _ }       
-    '...(' 			{ OPEN  _ }       
-    ')...' 			{ CLOSE  _ }     
-    on 				{ TrueTK $$ }      
-    off 			{ FalseTK $$ }     
-    '.' 			{ POINT $$ }       
-    ',' 			{ COMMA $$ }       
-    ':' 			{ COLONS  $$ }
-    ';'  			{ SEMICOLON $$ }   
-    '!' 			{ Neg  $$ }
-    '['				{ OpenC $$ }
-    ']'				{ CloseC $$ }   
-    '{'				{ OpenL $$ }
-    '}'				{ CloseL $$ }        
-    '('				{ ParenOpen $$ }   
-    ')' 			{ ParenClose _ }  
-    '+'				{ Plus $$ }        
-    '==' 			{ Equal $$ }       
-    '*' 			{ Product $$ }     
-    '-' 			{ Minus $$ }       
-    '%' 			{ Mod $$ }         
-    '/' 			{ DivExac $$ }     
-    div 			{ DivFloat $$ }
-    your 			{ Your $$ }    
-    '/=' 			{ Dif $$ }         
-    '=' 			{ Assign $$ }      
-    '>=' 			{ GreaterEqual $$ }
-    '->'			{ Arrow $$ }
-    '<=' 			{ LessEqual $$ }   
-    '>' 			{ Greater $$ }     
-    '<' 			{ Less $$ }        
-    '^' 			{ Pot $$ }         
-    f 				{ FloatNumber _ _ }
-    n 				{ IntegerNumber _  _}
-    id 				{ Id _ _ }
-    c 				{ Character _  _ }
-    fid 			{ FuncId _ _ }
-    s 				{ StringTK _  $$ }
+    EOF                 { Token _ EOF               }
+    PROGRAM_INI         { Token _ PROGRAM_INI       }
+    PROGRAM_FIN         { Token _ PROGRAM_FIN       }
+    FUNCTION_INI        { Token _ FUNCTION_INI      }
+    FUNCTION_FIN        { Token _ FUNCTION_FIN      }
+    S_Andthatswhere     { Token _ S_Andthatswhere   }
+    S_Therewas          { Token _ S_Therewas        }
+    S_brokea            { Token _ S_brokea          }
+    S_broughta          { Token _ S_broughta        }
+    S_comesfrom         { Token _ S_comesfrom       }
+    S_dreamsof          { Token _ S_dreamsof        }
+    S_keepsdreamingof   { Token _ S_keepsdreamingof }
+    S_madeof            { Token _ S_madeof          }
+    S_madea             { Token _ S_madea           }
+    S_therewasa         { Token _ S_therewasa       }
+    S_toldthatstory     { Token _ S_toldthatstory   }
+    TYPE_INT            { Token _ TYPE_INT          }
+    TYPE_FLOAT          { Token _ TYPE_FLOAT        }
+    TYPE_CHAR           { Token _ TYPE_CHAR         }
+    TYPE_BOOL           { Token _ TYPE_BOOL         }
+    TYPE_ARRAY          { Token _ TYPE_ARRAY        }
+    TYPE_STRUCT         { Token _ TYPE_STRUCT       }
+    TYPE_UNION          { Token _ TYPE_UNION        }
+    TYPE_STRING         { Token _ TYPE_STRING       }
+    TYPE_POINTER        { Token _ TYPE_POINTER      }
+    WITH                { Token _ WITH              }
+    YOUR                { Token _ YOUR              }
+    OF                  { Token _ OF                }
+    EITHER              { Token _ EITHER            }
+    TO                  { Token _ TO                }
+    WHEN                { Token _ WHEN              }
+    OTHERWISE           { Token _ OTHERWISE         }
+    TIMES               { Token _ TIMES             }
+    TRUE                { Token _ TRUE              }
+    FALSE               { Token _ FALSE             }
+    BLOCK_OPEN          { Token _ BLOCK_OPEN        }
+    BLOCK_CLOSE         { Token _ BLOCK_CLOSE       }
+    '('                 { Token _ OPEN_PAREN        }
+    '['                 { Token _ OPEN_BRACKETS     }
+    '{'                 { Token _ OPEN_BRACES       }
+    ')'                 { Token _ CLOSE_PAREN       }
+    ']'                 { Token _ CLOSE_BRACKETS    }
+    '}'                 { Token _ CLOSE_BRACES      }
+    '.'                 { Token _ PERIOD            }
+    ','                 { Token _ COMMA             }
+    ':'                 { Token _ COLON             }
+    ';'                 { Token _ SEMICOLON         }
+    '!'                 { Token _ EXCLAMATION       }
+    '->'                { Token _ ARROW_RIGHT       }
+    '+'                 { Token _ PLUS              }
+    '-'                 { Token _ MINUS             }
+    '=='                { Token _ EQUAL             }
+    '='                 { Token _ ASSIGNMENT        }
+    '*'                 { Token _ ASTERISK          }
+    '%'                 { Token _ PERCENT           }
+    '/'                 { Token _ SLASH             }
+    div                 { Token _ DIV               }
+    '/='                { Token _ NOT_EQUAL         }
+    '>='                { Token _ GREATER_EQUAL     }
+    '<='                { Token _ LESS_EQUAL        }
+    '>'                 { Token _ GREATER           }
+    '<'                 { Token _ LESS              }
+    '^'                 { Token _ POWER             }
+    and                 { Token _ AND               }
+    or                  { Token _ OR                }
+    LITERAL_CHAR        { Token _ (Character $$)    }
+    LITERAL_FLOAT       { Token _ (Float' $$)       }
+    LITERAL_INT         { Token _ (Integer' $$)     }
+    LITERAL_STRING      { Token _ (String' $$)      }
+    ID_FUNCTION         { Token _ (FunctionID $$)   }
+    ID                  { Token _ (ID $$)           }
 
+
+%right '='
 %left or
 %left and
-%nonassoc '>' '<' '==' '/=' '>=' '<=' 
+%left '==' '/='
+%nonassoc '>' '<' '>=' '<='
 %left '+' '-'
-%left '*' '/' '%' mod div
+%left '*' '/' '%' div
 %left '^'
-%nonassoc '!'
+%right '!' IND POS NEG
 %left '->'
 
 
 %% 
 
 -- Program
-P : begin id B end { PN $1 }
-
-B : '...(' BC ')...' { BN $2 }
-
--- List of Blocks
-BC  : {-empty-}         { BCN [] }
-    | S '.' BC          { BCN $ $1 : listBCN $2}
-
--- Statement 
-S : DF  { SN $1 }
-  | PD  { SN $1 }
-  | VD  { SN $1 }
-  | I   { SN $1 }
-
--- Function Block
-FB : '...(' FBC ')...' { FBN $1 }
-
--- Function Block Content
-FBC : S '.' FBC   				{ FBCN $ $1 : ListFBCN $3 } 
-	| RF '.' FBC 				{ FBCN $ $1 : ListFBCN $3 }
-	| {-empty-}  				{ FBCN [] }
-
--- Return Function
-RF : andThat E comes { REN $1 }
-
--- Function Declaration
-DF  : '(' fBegin fid ',' thereWas T FB fEnd ')' { DFN (tokenValue $3) $6 $7 $1 }
-	| '(' fBegin fid ',' thereWas T '(' from LP ')' FB fEnd ')' { PDFN (tokenValue $3) $6 $9 $11 $1 }
-
--- List of params    
-LP : T id             { LPN [($1, (tokenValue $2),1)] }
-   | T your id         { LPN [($1, (tokenValue $3),0)] }
-   | T id ',' LP      { LPN $ ($1, (tokenValue $2),1) : listLPN $4 }
-   | T your id ',' LP      { LPN $ ($1, (tokenValue $3),0)) : listLPN $5 }
-
---Types 
-T : intNum 						{ IntNumN }
-  | floatNum 					{ FloatNumN }
-  | charc 						{ CharcN }
-  | boolean 					{ BooleanN }
-  |	arrayT '(' of n T ')'		{ ArrayN $4 $5 }
-  | structT '(' with ST ')'		{ StructN $4 }
-  | unionT '(' either UT ')'    { UnionN $4 }
-  | pointerT '(' to T ')'       { PointerN $4 }
-
---Struct Type
-ST : T id 	 		{ STN [($1, (tokenValue $2))]} 
-   | T id and ST 	{ STN $ ($1, (tokenValue $2)) : listSTN $4 }
-
---Union Type
-UT : T id 	 		{ UTN [($1, (tokenValue $2))] } 
-   | T id or UT 	{ UTN $ ($1, (tokenValue $2)) : listUTN $4 }
-
--- Person Declaration
-PD : thereWas LPD   { PDN $ 1 }
-
--- List of Person Declaration
-LPD : id 		  { LDPN [tokenValue $1] }  		  
-	| id ',' LPD  { LPDN $ (tokenValue $1) : listLDPN $3 }
-	| id and LPD  { LPDN $ (tokenValue $1) : listLDPN $3 }
-
--- Variable Declaration
-VD : id broughta T ':' LV  { VDN $3 $5 }
-
--- List of Variable Declaration
-LV : id '=' E  			 { LVN [(tokenValue $1,$3)] }
-   | id 	   			 { LVN [(tokenValue $1,undefined)] }
-   | id '=' E ',' LV   { LVN $ (tokenValue $1,$3) : listLVN $5 } 
-   | id E ',' LV       { LVN $ (tokenValue $1,undefined) : listLVN $4 }
-
--- List of Instructions
-I : E     									{ ExprN $1 }
-  | E '->' id   		 					{ GetPropN $1 (tokenValue $3) $2 }
-  | id '=' E 			 					{ AssignN $1 $3 (tokenPos $1) }
-  | id dreamsof B when E 					{ IfThenN $1 $3 $5 (tokenPos $1) }
-  | id dreamsof B when E ';' otherwise B    { IfThenElseN $1 $3 $5 $8 (tokenPos $1) }
-  | id keeps E B 							{ WhileN $1 $3 $4 (tokenPos $1) }
-  | B id told E times                       { ForN $1 $2 $4 (tokenPos $2)} 
-  | id made T 								{ CreatePointerN $1 $3 (tokenPos $1)}
-  | id broke id  	                        { FreePointerN $1 $3 (tokenPos $1) }
-
--- Constructor Array 
-LCA : E 			{ LCAN $ [$1] }
-	| E ',' LCA     { LCAN $ $1: listLCA $3 }
-
--- Constructor Struct
-LCS : id ':' E 				{ LCSN $ [(tokenValue $1,$3)] }
-	| id ':' E ',' LCS      { LCSN $ (tokenValue $1,$3): listLCA $5 }
-
--- Function call parameters xd  
-FP : E   		{ FPN [$1] }
-   | E ',' FP 	{ FPN $ $1: listFPN $3 }
+-----------------------------------------------------------------------------------------------------------------------
+Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                                  { PT $2 $3 }
 
 -- Expressions
-E : id 					 { IdN (tokenValue $1) (tokenPos $1) }
-  | '[' LCA ']' 		 { CN $2 }
-  | '{' LCS '}' 		 { CN $2 }
-  | fid 				 { FCN (tokenValue $1) [] (tokenPos $1) }
-  | fid '(' with FP ')'  { FCN (tokenValue $1) $4 (tokenPos $1) }
-  | '!' E  				 { NotN $2 $1 }
-  | '-' E  				 { MinusN $2 $1 }
-  |	'*' E   	 		{ DeferenceN $2 $1 }
-  | E '+' E 			 { BinaryN $1 "+" $3 $2 }
-  | E '-' E 			 { BinaryN $1 "-" $3 $2 }
-  | E '*' E 			 { BinaryN $1 "*" $3 $2 }
-  | E '/' E 			 { BinaryN $1 "/" $3 $2 }
-  | E div E 			 { BinaryN $1 "div" $3 $2}
-  | E '%' E 			 { BinaryN $1 "%" $3 $2 }
-  | E '^' E 			 { BinaryN $1 "^" $3 $2}
-  |	E and E     		 { LogicN $1 "and" $3 $2 } 
-  |	E or E      		 { LogicN $1 "or" $3 $2}
-  |	E '==' E    		 { CompareN $1 "==" $3 $2}
-  |	E '/=' E    		 { CompareN $1 "/=" $3 $2 }
-  |	E '>=' E    		 { CompareN $1 ">=" $3 $2}
-  |	E '<=' E    		 { CompareN $1 "<=" $3 $2}
-  |	E '>' E     		 { CompareN $1 ">" $3 $2}
-  |	E '<' E     		 { CompareN $1 "<" $3 $2}
-  | id '[' E ']' 		 { GetArrayItem (tokenValue $1) $3 }
-  | '(' E ')' 			 { ParentExp $2 $1 }
-  | n 					 { IntegerLiteralN (tokenValue $1) (tokenPos $1) }
-  |	f 					 { FloatLiteralN (tokenValue $1) (tokenPos $1) }
-  | c 					 { CharLiteralN (tokenValue $1) (tokenPos $1) }
-  | s 					 { StringLiteralN (tokenValue $1) (tokenPos $1) }
-  | on 					 { TrueN (tokenPos $1) }
-  |	off 				 { FalseN (tokenPos $1) }
+----------------------------------------------------------------------------------------------------------------------
+Expression               : ID                                                                                   { IdT $1 }
+                         | Literal                                                                              { LitT $1 }
+                         | Constructor                                                                          { ConsT $1 }
+                         | Operation                                                                            { OpT $1 }
+                         | FunctionCall                                                                         { FunCT $1 }
+                         | '(' Expression ')'                                                                   { PET $2 }
+
+Literal                  : LITERAL_INT                                                                          { IT $1 }
+                         | LITERAL_CHAR                                                                         { CT $1 }
+                         | LITERAL_FLOAT                                                                        { FT $1 }
+                         | LITERAL_STRING                                                                       { ST $1 }
+                         | TRUE                                                                                 { TBT }
+                         | FALSE                                                                                { FBT }
+
+
+-- Constructors
+-----------------------------------------------------------------------------------------------------------------------
+Constructor              : ConstructorArray                                                                     { $1 }
+                         | ConstructorStruct                                                                    { $1 }
+
+ConstructorArray         : '[' ConstructorArrayList ']'                                                         { $2 }
+ConstructorArrayList     : Expression                                                                           { LCAT [ $1 ] }
+                         | Expression ';' ConstructorArrayList                                                  { LCAT $ $1: listLCAT $3 }
+
+ConstructorStruct        : '{' ConstructorStructList '}'                                                        { $2 }
+ConstructorStructList    : ID ':' Expression                                                                    { LCST [ ($1,$3) ] }
+                         | ID ':' Expression ';' ConstructorStructList                                          { LCST $ ($1,$3): listLCST $5 }
+
+
+-- Operators
+-----------------------------------------------------------------------------------------------------------------------
+Operation                : UnaryOperation                                                                       { $1 }
+                         | BinaryOperation                                                                      { $1 }
+
+UnaryOperation           : NumericalUnaryOperation                                                              { $1 }
+                         | LogicalUnaryOperation                                                                { $1 }
+                         | Dereference                                                                          { $1 }
+
+BinaryOperation          : NumericalBinaryOperation                                                             { $1 }
+                         | LogicalBinaryOperation                                                               { $1 }
+                         | GetProp                                                                              { $1 }
+                         | GetArrayItem                                                                         { $1 }
+                         | Assignment                                                                           { $1 }
+
+NumericalUnaryOperation  : '+' Expression %prec POS                                                             { PUT $2 }
+                         | '-' Expression %prec NEG                                                             { MUT $2 }
+
+LogicalUnaryOperation    : '!' Expression                                                                       { NUT $2 }
+
+Dereference              : '*' Expression %prec IND                                                             { DUT $2 }
+
+NumericalBinaryOperation : Expression '+' Expression                                                            { ABT $1 "+" $3 }
+                         | Expression '-' Expression                                                            { ABT $1 "-" $3 }
+                         | Expression '*' Expression                                                            { ABT $1 "*" $3 }
+                         | Expression '/' Expression                                                            { ABT $1 "/" $3 }
+                         | Expression div Expression                                                            { ABT $1 "div" $3 }
+                         | Expression '%' Expression                                                            { ABT $1 "%" $3 }
+                         | Expression '^' Expression                                                            { ABT $1 "^" $3 }
+
+LogicalBinaryOperation   : Expression and  Expression                                                           { LBT $1 "and" $3 }
+                         | Expression or   Expression                                                           { LBT $1 "or" $3 }
+                         | Expression '==' Expression                                                           { LBT $1 "==" $3 }
+                         | Expression '/=' Expression                                                           { LBT $1 "/=" $3 }
+                         | Expression '>=' Expression                                                           { LBT $1 ">=" $3 }
+                         | Expression '<=' Expression                                                           { LBT $1 "<=" $3 }
+                         | Expression '>'  Expression                                                           { LBT $1 ">" $3 }
+                         | Expression '<'  Expression                                                           { LBT $1 "<" $3 }
+
+GetArrayItem             : ID '[' Expression ']'                                                                { GAT $1 $3 }
+
+GetProp                  : Expression '->' ID                                                                   { GPT $1 $3 }
+
+Assignment               : ID '=' Expression                                                                    { AT $1 $3 }
+
+FunctionCall             : ID_FUNCTION                                                                          { FCAT $1 }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'                                        { FCNT $1 $4 }
+
+FunctionActualParams     : Expression                                                                           { LFCP [$1] }
+                         | Expression ',' FunctionActualParams                                                  { LFCP $ $1: listLFCP $3 }  
+
+
+-- Declaration
+-----------------------------------------------------------------------------------------------------------------------
+Declaration              : PersonDeclaration                                                                    { PDT $1 }
+                         | FunctionDeclaration                                                                  { $1 }
+                         | VariableDeclaration                                                                  { $1 }
+
+PersonDeclaration        : S_Therewas PersonNames                                                               { $2 }
+
+PersonNames              : ID                                                                            { LPD [$1] }
+                         | ID ',' PersonNames                                                            { LPD $ $1: listLPD $3 }
+                         | ID and PersonNames                                                            { LPD $ $1: listLPD $3 }
+
+FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type FunctionBlock FUNCTION_FIN             { FDT $2 $5 $6  }
+                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  { FDAT $2 $5 $8 $10 }
+
+FunctionFormalParams     : Type ID                                                                       { LFDP [($1,$2,0)] }
+                         | Type ID ',' FunctionFormalParams                                              { LFDP $ ($1,$2,0): listLFDP $4 }
+                         | YOUR Type ID                                                                  { LFDP [($2,$3,1)] }
+                         | YOUR Type ID ',' FunctionFormalParams                                         { LFDP $ ($2,$3,1): listLFDP $5 }  
+
+
+VariableDeclaration      : ID S_broughta Type ':' VariableList                                           { VDT $1 $3 $5 }
+
+VariableList             : ID ',' VariableList                                                         { LDV $ ($1,Nothing): listLDV $3 }
+                         | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }
+                         | ID '=' Expression                                                           { LDV [($1,Just $3)] }
+                         | ID                                                                          { LDV [($1,Nothing)] }
+-- Types
+-----------------------------------------------------------------------------------------------------------------------
+Type                     : TYPE_INT                                                                             { TI }
+                         | TYPE_FLOAT                                                                           { TF }
+                         | TYPE_CHAR                                                                            { TC }
+                         | TYPE_BOOL                                                                            { TB }
+                         | TYPE_STRING                                                                          { TS }
+                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                               { TA $4 $5 }
+                         | TYPE_STRUCT '(' WITH StructTyping ')'                                                { TST $4 }
+                         | TYPE_UNION '(' EITHER UnionTyping ')'                                                { TU $4 }
+                         | TYPE_POINTER '(' TO Type ')'                                                         { TP $4 }
+                         | ID                                                                                   { TID $1 }
+
+StructTyping             : Type ID                                                                              { LSRT [($1,$2)] }
+                         | Type ID and StructTyping                                                             { LSRT $ ($1,$2): listLSRT $4 }
+
+UnionTyping              : Type ID                                                                              { LUT [($1,$2)] }
+                         | Type ID or UnionTyping                                                               { LUT $ ($1,$2): listLUT $4 }
+
+
+-- Blocks
+-----------------------------------------------------------------------------------------------------------------------
+Block                    : BLOCK_OPEN BlockContent BLOCK_CLOSE                                                  { $2 }
+
+BlockContent             : Statement '.' BlockContent                                                           { LST $ $1: listLST $3 }
+                         | {-empty-}                                                                            { LST [] }
+
+FunctionBlock            : BLOCK_OPEN FunctionBlockContent BLOCK_CLOSE                                          { $2 }
+
+FunctionBlockContent     : Statement '.' FunctionBlockContent                                                   { LFBT $ (StaT $1): listLFBT $3 }
+                         | ReturnStatement '.' FunctionBlockContent                                             { LFBT $ $1: listLFBT $3 }
+                         | {-empty-}                                                                            { LFBT [] }
+
+Statement                : Instruction                                                                          { InsT $1 }
+                         | Declaration                                                                          { DecT $1 }
+
+
+ReturnStatement          : S_Andthatswhere Expression S_comesfrom                                               { RT $2 }
+
+
+-- Instructions
+-----------------------------------------------------------------------------------------------------------------------
+Instruction              : Expression                                                                           { ExprT $1 }
+                         | Selection                                                                            { $1 }
+                         | UnboundedIteration                                                                   { $1 }
+                         | BoundedIteration                                                                     { $1 }
+                         | ManageMemory                                                                         { $1 }
+                         | Print                                                                                { $1 }
+
+ManageMemory             : CreatePointer                                                                        { $1 }
+                         | FreePointer                                                                          { $1 }
+
+CreatePointer            : ID S_madea Type                                                                      { CPT $1 $3 }
+FreePointer              : ID S_brokea ID                                                                       { FPT $1 $3 }
+
+Selection                : ID S_dreamsof Block WHEN Expression                                           { IFT $1 $3 $5 }
+                         | ID S_dreamsof Block WHEN Expression ';' OTHERWISE Block                       { IFET $1 $3 $5 $8 }
+
+UnboundedIteration       : ID S_keepsdreamingof Expression Block                                         { UIT $1 $3 $4 }
+
+BoundedIteration         : Block ID S_toldthatstory Expression TIMES                                     { BIT $1 $2 $4 }
+
+Print                    : ID ':' Expression                                                             { PRT $1 $3 }
+
 
 
 {
 
-main:: IO ()
-main = interact (show.runCalc)
 
-trans :: [Token] -> [Lexema]
-trans [Token (EOF _)] = []
-trans ((Token p (FloatNumber f)):toks) = (FloatNumber (np p) f):(trans toks)
-trans ((Token p (IntegerNumber f)):toks) = (IntegerNumber (np p) f):(trans toks)
-trans ((Token p (Id f)):toks) = (Id (np p) f):(trans toks)
-trans ((Token p (FuncId f)):toks) = (FuncId (np p) f):(trans toks)
-trans ((Token p (String f)):toks) = (String (np p) f):(trans toks)
-trans ((Token p cl):toks) = (cl (np p)):(trans toks) 
-	where np (AlexPn _ f c) = (f,c)
-
-
-runCalc :: String -> Exp
-runCalc = calc . trans .  alexScanTokens
-
-data Lexema =
-    INI 					{  tokenPos :: (Int, Int) } 
-	END 					{  tokenPos :: (Int, Int) }
-   	F_INI 					{  tokenPos :: (Int, Int) }
-  	F_FIN  					{  tokenPos :: (Int, Int) }
-    THEREWAS 				{  tokenPos :: (Int, Int) }
-    BROUGHTA 				{  tokenPos :: (Int, Int) }
-    DREAMSOF 				{  tokenPos :: (Int, Int) }      
-   	KEEPSDREAMINGOF  		{  tokenPos :: (Int, Int) }
-    ANDTHAT 				{  tokenPos :: (Int, Int) }
-  	TOLDTHESTORY 			{  tokenPos :: (Int, Int) }
-  	COMESFROM 				{  tokenPos :: (Int, Int) }
-  	MADEA  					{  tokenPos :: (Int, Int) }
-  	BROKEA 					{  tokenPos :: (Int, Int) }
-    INT_TYPE  				{  tokenPos :: (Int, Int) }
-    FLOAT_TYPE  			{  tokenPos :: (Int, Int) }
-   	CHAR_TYPE  				{  tokenPos :: (Int, Int) }
-    BOOL_TYPE 				{  tokenPos :: (Int, Int) }
-    ARRAY_TYPE 				{  tokenPos :: (Int, Int) }  
-    STRUCT_TYPE  		    {  tokenPos :: (Int, Int) }
-    UNION_TYPE  			{  tokenPos :: (Int, Int) } 
-    POINTER_TYPE  			{  tokenPos :: (Int, Int) } 
- 	AND  					{  tokenPos :: (Int, Int) }        
- 	OR    					{  tokenPos :: (Int, Int) }       
- 	OF   					{  tokenPos :: (Int, Int) }        
-  	WITH  					{  tokenPos :: (Int, Int) }       
-    EITHER 					{  tokenPos :: (Int, Int) }      
- 	TO 						{  tokenPos :: (Int, Int) }          
-  	WHEN  					{  tokenPos :: (Int, Int) }       
-    OTHERWISE 				{  tokenPos :: (Int, Int) }   
- 	FROM  					{  tokenPos :: (Int, Int) }
-    TIMES 					{  tokenPos :: (Int, Int) }       
-   	OPEN  					{  tokenPos :: (Int, Int) }       
-   	CLOSE  					{  tokenPos :: (Int, Int) }     
- 	TrueTK 					{  tokenPos :: (Int, Int) }      
- 	FalseTK 				{  tokenPos :: (Int, Int) }     
- 	POINT 					{  tokenPos :: (Int, Int) }       
- 	COMMA 					{  tokenPos :: (Int, Int) }       
- 	COLONS  				{  tokenPos :: (Int, Int) }
-  	SEMICOLON 				{  tokenPos :: (Int, Int) }   
- 	Neg  					{  tokenPos :: (Int, Int) }
- 	OpenC 					{  tokenPos :: (Int, Int) }
- 	CloseC 					{  tokenPos :: (Int, Int) }   
- 	OpenL 					{  tokenPos :: (Int, Int) }
- 	CloseL 					{  tokenPos :: (Int, Int) }        
- 	ParenOpen 				{  tokenPos :: (Int, Int) }   
- 	ParenClose 				{  tokenPos :: (Int, Int) }  
- 	Plus 					{  tokenPos :: (Int, Int) }        
-  	Equal 					{  tokenPos :: (Int, Int) }       
- 	Product 				{  tokenPos :: (Int, Int) }     
- 	Minus 					{  tokenPos :: (Int, Int) }       
- 	Mod 					{  tokenPos :: (Int, Int) }         
- 	DivExac 				{  tokenPos :: (Int, Int) }     
- 	DivFloat 				{  tokenPos :: (Int, Int) }
-  	Your 					{  tokenPos :: (Int, Int) }    
-  	Dif 					{  tokenPos :: (Int, Int) }         
- 	Assign 					{  tokenPos :: (Int, Int) }      
-  	GreaterEqual 			{  tokenPos :: (Int, Int) }
- 	Arrow 					{  tokenPos :: (Int, Int) }
-  	LessEqual 				{  tokenPos :: (Int, Int) }   
- 	Greater 				{  tokenPos :: (Int, Int) }     
- 	Less 					{  tokenPos :: (Int, Int) }        
- 	Pot 					{  tokenPos :: (Int, Int) }         
-	FloatNumber 			{ tokenPos :: (Int, Int), tokenValue :: Float } 
-	IntegerNumber 			{ tokenPos :: (Int, Int), tokenValue :: Int } 
- 	Id 						{ tokenPos :: (Int, Int), tokenValue :: String }
-	Character 				{ tokenPos :: (Int, Int), tokenValue :: String }
- 	FuncId 					{ tokenPos :: (Int, Int), tokenValue :: String }
-	String 					{ tokenPos :: (Int, Int), tokenValue :: String }
-
-  deriving (Eq)
-
-
-happyError :: [Lexema] -> a
 happyError tks = error ("Parse error at " ++ lcn ++ "\n")
-	where
-	lcn = 	case tks of
-		  [] -> "end of file"
-		  tk:_ -> "line " ++ show l ++ ", column " ++ show c
-			where
-			AlexPn _ l c = token_posn tk
+  where
+  lcn = case tks of
+          []    -> "end of file"
+          ((Token (AlexPn _ l c) _):_)  -> "line " ++ show l ++ ", column " ++ show c
 }
