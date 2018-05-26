@@ -2,77 +2,79 @@
 module Parser where
 import Lexer
 import AST
+import OurMonad
 }
 
 %name      calc
 %tokentype { Token }
+%monad { OurMonad } 
 
 %token
-    EOF                 { Token _ EOF               }
-    PROGRAM_INI         { Token _ PROGRAM_INI       }
-    PROGRAM_FIN         { Token _ PROGRAM_FIN       }
-    FUNCTION_INI        { Token _ FUNCTION_INI      }
-    FUNCTION_FIN        { Token _ FUNCTION_FIN      }
-    S_Andthatswhere     { Token _ S_Andthatswhere   }
-    S_Therewas          { Token _ S_Therewas        }
-    S_brokea            { Token _ S_brokea          }
-    S_broughta          { Token _ S_broughta        }
-    S_comesfrom         { Token _ S_comesfrom       }
-    S_dreamsof          { Token _ S_dreamsof        }
-    S_keepsdreamingof   { Token _ S_keepsdreamingof }
-    S_madeof            { Token _ S_madeof          }
-    S_madea             { Token _ S_madea           }
-    S_therewasa         { Token _ S_therewasa       }
-    S_toldthatstory     { Token _ S_toldthatstory   }
-    TYPE_INT            { Token _ TYPE_INT          }
-    TYPE_FLOAT          { Token _ TYPE_FLOAT        }
-    TYPE_CHAR           { Token _ TYPE_CHAR         }
-    TYPE_BOOL           { Token _ TYPE_BOOL         }
-    TYPE_ARRAY          { Token _ TYPE_ARRAY        }
-    TYPE_STRUCT         { Token _ TYPE_STRUCT       }
-    TYPE_UNION          { Token _ TYPE_UNION        }
-    TYPE_STRING         { Token _ TYPE_STRING       }
-    TYPE_POINTER        { Token _ TYPE_POINTER      }
-    WITH                { Token _ WITH              }
-    YOUR                { Token _ YOUR              }
-    OF                  { Token _ OF                }
-    EITHER              { Token _ EITHER            }
-    TO                  { Token _ TO                }
-    WHEN                { Token _ WHEN              }
-    OTHERWISE           { Token _ OTHERWISE         }
-    TIMES               { Token _ TIMES             }
-    TRUE                { Token _ TRUE              }
-    FALSE               { Token _ FALSE             }
-    BLOCK_OPEN          { Token _ BLOCK_OPEN        }
-    BLOCK_CLOSE         { Token _ BLOCK_CLOSE       }
-    '('                 { Token _ OPEN_PAREN        }
-    '['                 { Token _ OPEN_BRACKETS     }
-    '{'                 { Token _ OPEN_BRACES       }
-    ')'                 { Token _ CLOSE_PAREN       }
-    ']'                 { Token _ CLOSE_BRACKETS    }
-    '}'                 { Token _ CLOSE_BRACES      }
-    '.'                 { Token _ PERIOD            }
-    ','                 { Token _ COMMA             }
-    ':'                 { Token _ COLON             }
-    ';'                 { Token _ SEMICOLON         }
-    '!'                 { Token _ EXCLAMATION       }
-    '->'                { Token _ ARROW_RIGHT       }
-    '+'                 { Token _ PLUS              }
-    '-'                 { Token _ MINUS             }
-    '=='                { Token _ EQUAL             }
-    '='                 { Token _ ASSIGNMENT        }
-    '*'                 { Token _ ASTERISK          }
-    '%'                 { Token _ PERCENT           }
-    '/'                 { Token _ SLASH             }
-    div                 { Token _ DIV               }
-    '/='                { Token _ NOT_EQUAL         }
-    '>='                { Token _ GREATER_EQUAL     }
-    '<='                { Token _ LESS_EQUAL        }
-    '>'                 { Token _ GREATER           }
-    '<'                 { Token _ LESS              }
-    '^'                 { Token _ POWER             }
-    and                 { Token _ AND               }
-    or                  { Token _ OR                }
+    EOF                 { Token $$ EOF               }
+    PROGRAM_INI         { Token $$ PROGRAM_INI       }
+    PROGRAM_FIN         { Token $$ PROGRAM_FIN       }
+    FUNCTION_INI        { Token $$ FUNCTION_INI      }
+    FUNCTION_FIN        { Token $$ FUNCTION_FIN      }
+    S_Andthatswhere     { Token $$ S_Andthatswhere   }
+    S_Therewas          { Token $$ S_Therewas        }
+    S_brokea            { Token $$ S_brokea          }
+    S_broughta          { Token $$ S_broughta        }
+    S_comesfrom         { Token $$ S_comesfrom       }
+    S_dreamsof          { Token $$ S_dreamsof        }
+    S_keepsdreamingof   { Token $$ S_keepsdreamingof }
+    S_madeof            { Token $$ S_madeof          }
+    S_madea             { Token $$ S_madea           }
+    S_therewasa         { Token $$ S_therewasa       }
+    S_toldthatstory     { Token $$ S_toldthatstory   }
+    TYPE_INT            { Token $$ TYPE_INT          }
+    TYPE_FLOAT          { Token $$ TYPE_FLOAT        }
+    TYPE_CHAR           { Token $$ TYPE_CHAR         }
+    TYPE_BOOL           { Token $$ TYPE_BOOL         }
+    TYPE_ARRAY          { Token $$ TYPE_ARRAY        }
+    TYPE_STRUCT         { Token $$ TYPE_STRUCT       }
+    TYPE_UNION          { Token $$ TYPE_UNION        }
+    TYPE_STRING         { Token $$ TYPE_STRING       }
+    TYPE_POINTER        { Token $$ TYPE_POINTER      }
+    WITH                { Token $$ WITH              }
+    YOUR                { Token $$ YOUR              }
+    OF                  { Token $$ OF                }
+    EITHER              { Token $$ EITHER            }
+    TO                  { Token $$ TO                }
+    WHEN                { Token $$ WHEN              }
+    OTHERWISE           { Token $$ OTHERWISE         }
+    TIMES               { Token $$ TIMES             }
+    TRUE                { Token $$ TRUE              }
+    FALSE               { Token $$ FALSE             }
+    BLOCK_OPEN          { Token $$ BLOCK_OPEN        }
+    BLOCK_CLOSE         { Token $$ BLOCK_CLOSE       }
+    '('                 { Token $$ OPEN_PAREN        }
+    '['                 { Token $$ OPEN_BRACKETS     }
+    '{'                 { Token $$ OPEN_BRACES       }
+    ')'                 { Token $$ CLOSE_PAREN       }
+    ']'                 { Token $$ CLOSE_BRACKETS    }
+    '}'                 { Token $$ CLOSE_BRACES      }
+    '.'                 { Token $$ PERIOD            }
+    ','                 { Token $$ COMMA             }
+    ':'                 { Token $$ COLON             }
+    ';'                 { Token $$ SEMICOLON         }
+    '!'                 { Token $$ EXCLAMATION       }
+    '->'                { Token $$ ARROW_RIGHT       }
+    '+'                 { Token $$ PLUS              }
+    '-'                 { Token $$ MINUS             }
+    '=='                { Token $$ EQUAL             }
+    '='                 { Token $$ ASSIGNMENT        }
+    '*'                 { Token $$ ASTERISK          }
+    '%'                 { Token $$ PERCENT           }
+    '/'                 { Token $$ SLASH             }
+    div                 { Token $$ DIV               }
+    '/='                { Token $$ NOT_EQUAL         }
+    '>='                { Token $$ GREATER_EQUAL     }
+    '<='                { Token $$ LESS_EQUAL        }
+    '>'                 { Token $$ GREATER           }
+    '<'                 { Token $$ LESS              }
+    '^'                 { Token $$ POWER             }
+    and                 { Token $$ AND               }
+    or                  { Token $$ OR                }
     LITERAL_CHAR        { Token _ (Character $$)    }
     LITERAL_FLOAT       { Token _ (Float' $$)       }
     LITERAL_INT         { Token _ (Integer' $$)     }
@@ -184,9 +186,9 @@ FunctionActualParams     : Expression                                           
 
 -- Declaration
 -----------------------------------------------------------------------------------------------------------------------
-Declaration              : PersonDeclaration                                                                    { PDT $1 }
-                         | FunctionDeclaration                                                                  { $1 }
-                         | VariableDeclaration                                                                  { $1 }
+Declaration              : PersonDeclaration                                                                    { % addToSymTable $ PDT $1}
+                         | FunctionDeclaration                                                                  { % return $1 }
+                         | VariableDeclaration                                                                  { % return $1 }
 
 PersonDeclaration        : S_Therewas PersonNames                                                               { $2 }
 
@@ -195,7 +197,7 @@ PersonNames              : ID                                                   
                          | ID and PersonNames                                                            { LPD $ $1: listLPD $3 }
 
 FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type FunctionBlock FUNCTION_FIN             { FDT $2 $5 $6  }
-                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  { FDAT $2 $5 $8 $10 }
+                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  {FDAT $2 $5 $8 $10 }
 
 FunctionFormalParams     : Type ID                                                                       { LFDP [($1,$2,0)] }
                          | Type ID ',' FunctionFormalParams                                              { LFDP $ ($1,$2,0): listLFDP $4 }
@@ -203,7 +205,7 @@ FunctionFormalParams     : Type ID                                              
                          | YOUR Type ID ',' FunctionFormalParams                                         { LFDP $ ($2,$3,1): listLFDP $5 }  
 
 
-VariableDeclaration      : ID S_broughta Type ':' VariableList                                           { VDT $1 $3 $5 }
+VariableDeclaration      : ID S_broughta Type ':' VariableList                                           { % addToSymTable $ VDT $1 $3 $5 }
 
 VariableList             : ID ',' VariableList                                                         { LDV $ ($1,Nothing): listLDV $3 }
                          | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }
