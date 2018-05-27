@@ -99,37 +99,37 @@ import OurMonad
 
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                                  { PT $2 $3 }
+Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                   { PT $2 $3 }
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
-Expression               : ID                                                                                   { IdT $1 }
-                         | Literal                                                                              { LitT $1 }
-                         | Constructor                                                                          { ConsT $1 }
-                         | Operation                                                                            { OpT $1 }
-                         | FunctionCall                                                                         { FunCT $1 }
-                         | '(' Expression ')'                                                                   { PET $2 }
+Expression               : ID                                                                    { % checkId $1 Var >> return (IdT $1) }
+                         | Literal                                                               { LitT $1 }
+                         | Constructor                                                           { ConsT $1 }
+                         | Operation                                                             { OpT $1 }
+                         | FunctionCall                                                          { FunCT $1 }
+                         | '(' Expression ')'                                                    { PET $2 }
 
-Literal                  : LITERAL_INT                                                                          { IT $1 }
-                         | LITERAL_CHAR                                                                         { CT $1 }
-                         | LITERAL_FLOAT                                                                        { FT $1 }
-                         | LITERAL_STRING                                                                       { ST $1 }
-                         | TRUE                                                                                 { TBT }
-                         | FALSE                                                                                { FBT }
+Literal                  : LITERAL_INT                                                           { IT $1 }
+                         | LITERAL_CHAR                                                          { CT $1 }
+                         | LITERAL_FLOAT                                                         { FT $1 }
+                         | LITERAL_STRING                                                        { ST $1 }
+                         | TRUE                                                                  { TBT }
+                         | FALSE                                                                 { FBT }
 
 
 -- Constructors
 -----------------------------------------------------------------------------------------------------------------------
-Constructor              : ConstructorArray                                                                     { $1 }
-                         | ConstructorStruct                                                                    { $1 }
+Constructor              : ConstructorArray                                                      { $1 }
+                         | ConstructorStruct                                                     { $1 }
 
-ConstructorArray         : '[' ConstructorArrayList ']'                                                         { $2 }
-ConstructorArrayList     : Expression                                                                           { LCAT [ $1 ] }
-                         | Expression ';' ConstructorArrayList                                                  { LCAT $ $1: listLCAT $3 }
+ConstructorArray         : '[' ConstructorArrayList ']'                                          { $2 }
+ConstructorArrayList     : Expression                                                            { LCAT [ $1 ] }
+                         | Expression ';' ConstructorArrayList                                   { LCAT $ $1: listLCAT $3 }
 
-ConstructorStruct        : '{' ConstructorStructList '}'                                                        { $2 }
-ConstructorStructList    : ID ':' Expression                                                                    { LCST [ ($1,$3) ] }
-                         | ID ':' Expression ';' ConstructorStructList                                          { LCST $ ($1,$3): listLCST $5 }
+ConstructorStruct        : '{' ConstructorStructList '}'                                         { $2 }
+ConstructorStructList    : ID ':' Expression                                                     { LCST [ ($1,$3) ] }
+                         | ID ':' Expression ';' ConstructorStructList                           { LCST $ ($1,$3): listLCST $5 }
 
 
 -- Operators
@@ -171,14 +171,14 @@ LogicalBinaryOperation   : Expression and  Expression                           
                          | Expression '>'  Expression                                                           { LBT $1 ">" $3 }
                          | Expression '<'  Expression                                                           { LBT $1 "<" $3 }
 
-GetArrayItem             : ID '[' Expression ']'                                                                { GAT $1 $3 }
+GetArrayItem             : ID '[' Expression ']'                                              { % checkId $1 Var >> return (GAT $1 $3) }
 
-GetProp                  : Expression '->' ID                                                                   { GPT $1 $3 }
+GetProp                  : Expression '->' ID                                                 { % checkId $3 Var >> return (GPT $1 $3) }
 
-Assignment               : ID '=' Expression                                                                    { AT $1 $3 }
+Assignment               : ID '=' Expression                                                  { % checkId $1 Var >> return (AT $1 $3) }
 
-FunctionCall             : ID_FUNCTION                                                                          { FCAT $1 }
-                         | ID_FUNCTION '(' WITH FunctionActualParams ')'                                        { FCNT $1 $4 }
+FunctionCall             : ID_FUNCTION                                                        { % checkId $1 Function >> return (FCAT $1) }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'                      { % checkId $1 Function >> return (FCNT $1 $4) }
 
 FunctionActualParams     : Expression                                                                           { LFCP [$1] }
                          | Expression ',' FunctionActualParams                                                  { LFCP $ $1: listLFCP $3 }  
@@ -186,11 +186,11 @@ FunctionActualParams     : Expression                                           
 
 -- Declaration
 -----------------------------------------------------------------------------------------------------------------------
-Declaration              : PersonDeclaration                                                                    { % addToSymTable $ PDT $1}
-                         | FunctionDeclaration                                                                  { % return $1 }
-                         | VariableDeclaration                                                                  { % return $1 }
+Declaration              : PersonDeclaration                                                             { % addToSymTablePerson PDT $1}
+                         | FunctionDeclaration                                                           { % return $1 }
+                         | VariableDeclaration                                                           { % return $1 }
 
-PersonDeclaration        : S_Therewas PersonNames                                                               { $2 }
+PersonDeclaration        : S_Therewas PersonNames                                                        { $2 }
 
 PersonNames              : ID                                                                            { LPD [$1] }
                          | ID ',' PersonNames                                                            { LPD $ $1: listLPD $3 }
@@ -198,9 +198,9 @@ PersonNames              : ID                                                   
 
 FunctionDeclaration      :: { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> return (FDT $2 $5 $6) }
+                                        { % removeLastScope >> return FDT }
                          | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> return (FDAT $2 $5 $8 $10) }
+                                        { % removeLastScope >> return FDAT }
 
 IdentificadorFun : ID_FUNCTION                                                                           { % addFuncToSymTable $1 }
 
@@ -212,7 +212,7 @@ FunctionFormalParams     : Type ID                                              
                          | YOUR Type ID ',' FunctionFormalParams                                         { LFDP $ ($2,$3,1): listLFDP $5 }  
 
 
-VariableDeclaration      : ID S_broughta Type ':' VariableList                                           { % addToSymTable $ VDT $1 $3 $5 }
+VariableDeclaration      : ID S_broughta Type ':' VariableList                  { % checkId $1 Person >> addToSymTableVar VDT $3 $5 }
 
 VariableList             : ID ',' VariableList                                                         { LDV $ ($1,Nothing): listLDV $3 }
                          | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }
@@ -270,17 +270,24 @@ Instruction              : Expression                                           
 ManageMemory             : CreatePointer                                                                        { $1 }
                          | FreePointer                                                                          { $1 }
 
-CreatePointer            : ID S_madea Type                                                                      { CPT $1 $3 }
-FreePointer              : ID S_brokea ID                                                                       { FPT $1 $3 }
+CreatePointer            : ID S_madea Type                                  { % checkId $1 Var >> return (CPT $1 $3) }
+FreePointer              : ID S_brokea ID                                   { % checkId $1 Var >> checkId $3 Var >> return (FPT $1 $3) }
 
-Selection                : ID S_dreamsof Block WHEN Expression                                           { IFT $1 $3 $5 }
-                         | ID S_dreamsof Block WHEN Expression ';' OTHERWISE Block                       { IFET $1 $3 $5 $8 }
+Selection                : IdToken S_dreamsof Block WHEN Expression                            { % removeLastScope >> return (IFT $1 $3 $5) }
+                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block     { % removeLastScope >> return (IFET $1 $3 $5 $8) }
 
-UnboundedIteration       : ID S_keepsdreamingof Expression Block                                         { UIT $1 $3 $4 }
+OtherwiseTok             : OTHERWISE   { % removeLastScope >> addInstructionScope }
 
-BoundedIteration         : Block ID S_toldthatstory Expression TIMES                                     { BIT $1 $2 $4 }
 
-Print                    : ID ':' Expression                                                             { PRT $1 $3 }
+IdToken                  : ID                                              { % checkId $1 Person >> addInstructionScope >> return $1 }
+
+UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % removeLastScope >> return (UIT $1 $3 $4) }
+
+BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % removeLastScope >> checkId $3 Person >> return (BIT $2 $3 $5) }
+
+AddScope                 : {-empty-}                        { % addInstructionScope }
+
+Print                    : ID ':' Expression                {  % checkId $1 Person >>  return (PRT $1 $3) }
 
 
 

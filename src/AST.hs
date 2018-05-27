@@ -45,10 +45,10 @@ data Operation = PUT Expression                   |
                  FCNT String Lists                 
 
 
-data Declaration = FDT String Type Lists                   |
-                   FDAT String Type Lists Lists            |
-                   PDT Lists                               |
-                   VDT String Type Lists                          
+data Declaration = FDT   |
+                   FDAT  |
+                   PDT   |
+                   VDT                           
 
 data FuntionBC = StaT Statement          |
                  RT Expression 
@@ -268,33 +268,15 @@ printInst n (BIT l s exp) = do
 printInst n (ExprT exp) = printExp n exp                   
  
 printDecl :: Int -> Declaration -> IO()
-printDecl n (FDT s t l) = do
-    putStrLnWithIdent n "Definicion de funcion:"
-    printId (n+1) s
-    putStrLnWithIdent n "Tipo de retorno de la funcion"
-    printType (n+1) t
-    putStrLnWithIdent (n+1) "Cuerpo de la funcion:"
-    printLists (n+2) l 
+printDecl n (FDT) = do
+    putStrLnWithIdent n "Definicion de funcion sin argumentos."
 
-printDecl n (FDAT s t p l) = do
-    putStrLnWithIdent n "Definicion de funcion:"
-    printId (n+1) s
-    putStrLnWithIdent n "Tipo de retorno de la funcion"
-    printType (n+1) t
-    putStrLnWithIdent n "Lista de parametros de la funcion:"
-    printLists (n+1) p
-    putStrLnWithIdent (n+1) "Cuerpo de la funcion:"
-    printLists (n+2) l 
+printDecl n (FDAT) = do
+    putStrLnWithIdent n "Definicion de funcion con argumentos."
 
-printDecl n (PDT l) = do 
-    putStrLnWithIdent n "Definicion de Personas:"
-    printLists (n+1) l
+printDecl n (PDT) = do 
+    putStrLnWithIdent n "Definicion de Personas."
 
-printDecl n (VDT s t l) = do
-    putStrLnWithIdent n "Persona que define las variables:"
-    printId (n+1) s 
-    putStrLnWithIdent n "Tipo de las variables:"
-    printType (n+1) t 
-    putStrLnWithIdent n "Definicion de Variables:"
-    printLists (n+2) l
+printDecl n (VDT) = do
+    putStrLnWithIdent n "Definicion de Variables."
 

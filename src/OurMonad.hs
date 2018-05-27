@@ -49,8 +49,8 @@ filterByLength p = filter (p . length) . group . sort
 repeated :: Ord a => [a] -> [a]
 repeated = map head . filterByLength (>1)
 
-addToSymTable :: Declaration -> OurMonad Declaration
-addToSymTable (VDT e t (LDV l)) = do
+addToSymTableVar :: Declaration ->  Type -> Lists -> OurMonad Declaration
+addToSymTableVar VDT t (LDV l) = do
     oldState <- get
     let oldSymTable = getSymTable oldState
         aScope = head $ getStack oldState 
@@ -67,14 +67,14 @@ addToSymTable (VDT e t (LDV l)) = do
     when (notGood) $ 
         mapM_ (\(vs,_) -> tell $ OurLog $ "Variable '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
     put $ oldState { getSymTable = newSymTable }
-    return (VDT e t (LDV l))
+    return VDT
     where addToMap aScope mp (s,_) = let newSymbol = Symbol s Var aScope (Just t) Nothing
                                          newList = newSymbol:(extract $ Map.lookup s mp)
                                          newMap = Map.insert s newList mp
                                      in newMap
 
-
-addToSymTable (PDT (LPD l)) = do
+addToSymTablePerson :: Declaration -> Lists -> OurMonad Declaration 
+addToSymTablePerson PDT (LPD l) = do
     oldState <- get
     let oldSymTable = getSymTable oldState
         aScope = head $ getStack oldState 
@@ -90,23 +90,11 @@ addToSymTable (PDT (LPD l)) = do
     when (notGood) $ 
         mapM_ (\(vs,_) -> tell $ OurLog $ "Persona '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
     put $ oldState { getSymTable = newSymTable }
-    return (PDT (LPD l))
+    return PDT
     where addToMap aScope mp s = let newSymbol = Symbol s Person aScope Nothing Nothing
                                      newList = newSymbol:(extract $ Map.lookup s mp)
                                      newMap = Map.insert s newList mp
                                  in newMap
-
-lookVarInSymTableInScope :: Int -> String -> OurMonad Bool 
-lookVarInSymTableInScope sc s = do 
-    oldState <- get  
-    let hash = getHash.getSymTable $ oldState
-        symb = map getScope (extract $ Map.lookup s hash)
-        xs = filter (==sc) symb 
-        ans = case xs of 
-            [] -> False
-            _ -> True
-    return ans
-
 
 addFuncToSymTable :: String -> OurMonad String
 addFuncToSymTable s = do
@@ -147,11 +135,45 @@ addParamsFuncToSymTable (LFDP l) = do
                                              newMap = Map.insert sf newList mp
                                          in newMap 
 
+lookVarInSymTableInScope :: Int -> String -> OurMonad Bool 
+lookVarInSymTableInScope sc s = do 
+    oldState <- get  
+    let hash = getHash.getSymTable $ oldState
+        symb = map getScope (extract $ Map.lookup s hash)
+        xs = filter (==sc) symb 
+        ans = case xs of 
+            [] -> False
+            _ -> True
+    return ans
+
 
 removeLastScope :: OurMonad ()
 removeLastScope = do
     oldState <- get
     let oldStack = getStack oldState
         newStack = tail oldStack
-        newSet = Set.delete (newStack !! 0) (getSet oldState)
+        newSet = Set.delete (oldStack !! 0) (getSet oldState)
     put $ oldState { getStack = newStack, getSet = newSet }
+
+
+checkId :: String -> Category -> OurMonad String
+checkId s cat = do 
+    state <- get
+    let hash = getHash $ getSymTable state
+        set = getSet state 
+        listSymb = Map.lookup s hash
+        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
+    when (length good == 0) $ 
+        tell $ OurLog $ "Id '"++s++"' no definido anteriormente\n"
+    return s 
+
+
+addInstructionScope :: OurMonad ()
+addInstructionScope = do
+    oldState <- get
+    let oldStack = getStack oldState
+        idScope = getIdScope oldState
+        aScope = idScope + 1 
+        newSet = Set.insert aScope (getSet oldState)
+        newStack = aScope:oldStack
+    put $ oldState { getStack = newStack, getIdScope = aScope, getSet = newSet}
