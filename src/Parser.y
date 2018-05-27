@@ -196,8 +196,15 @@ PersonNames              : ID                                                   
                          | ID ',' PersonNames                                                            { LPD $ $1: listLPD $3 }
                          | ID and PersonNames                                                            { LPD $ $1: listLPD $3 }
 
-FunctionDeclaration      : FUNCTION_INI ID_FUNCTION ',' S_therewasa Type FunctionBlock FUNCTION_FIN             { FDT $2 $5 $6  }
-                         | FUNCTION_INI ID_FUNCTION ',' S_therewasa Type '(' S_madeof FunctionFormalParams ')' FunctionBlock FUNCTION_FIN  {FDAT $2 $5 $8 $10 }
+FunctionDeclaration      :: { Declaration }
+FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN 
+                                        { % removeLastScope >> return (FDT $2 $5 $6) }
+                         | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN 
+                                        { % removeLastScope >> return (FDAT $2 $5 $8 $10) }
+
+IdentificadorFun : ID_FUNCTION                                                                           { % addFuncToSymTable $1 }
+
+StackParams              : FunctionFormalParams                                                          {% addParamsFuncToSymTable $1 }
 
 FunctionFormalParams     : Type ID                                                                       { LFDP [($1,$2,0)] }
                          | Type ID ',' FunctionFormalParams                                              { LFDP $ ($1,$2,0): listLFDP $4 }

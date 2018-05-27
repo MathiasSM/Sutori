@@ -108,62 +108,45 @@ lookVarInSymTableInScope sc s = do
     return ans
 
 
-{-}
-
-
-
-addFuncToSymTable :: String -> Type -> [(Type,String,Int)] -> OurMonad ()
-addFuncToSymTable s t l = do
+addFuncToSymTable :: String -> OurMonad String
+addFuncToSymTable s = do
     oldState <- get
     let oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
         oldStack = getStack oldState
         idScope = getIdScope oldState
         aScope = idScope + 1 
-        funcSymbol = Symbol s Function (head $ getStack oldState) (Just t) (Just $ length l)
+        funcSymbol = Symbol s Function (head $ getStack oldState) Nothing Nothing
         newL = funcSymbol:(extract $ Map.lookup s oldHash)
-        hashM = Map.insert s newL oldHash
-        newSymTable = SymTable $ foldl (addToMap aScope) hashM l
+        newSymTable = SymTable $ Map.insert s newL oldHash
         newSet = Set.insert aScope (getSet oldState)
         newStack = aScope:oldStack
+    notGood <- lookVarInSymTableInScope (head $ getStack oldState) s
+    when (notGood) $ 
+        tell $ OurLog $ "Identificador '"++s++"' de la funci'on definido dos veces en el mismo Scope.\n"
     put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = aScope, getSet = newSet}
+    return s
+
+
+
+addParamsFuncToSymTable :: Lists -> OurMonad Lists
+addParamsFuncToSymTable (LFDP l) = do
+    oldState <- get
+    let oldSymTable = getSymTable oldState
+        oldHash = getHash oldSymTable
+        aScope = head $ getStack oldState 
+        newSymTable = SymTable $ foldl (addToMap aScope) oldHash l
+        sl = map (\(_,s,_) -> s) l
+        newl = nub sl
+    when (length l /= length newl) $ 
+        mapM_ (\vs -> tell $ OurLog $ "Id '"++vs++"' definido dos veces en la misma lista de parametros de la funci'on\n") (repeated sl)
+    put $ oldState { getSymTable = newSymTable }
+    return $ LFDP l
     where addToMap aScope mp (tf,sf,f) = let newSymbol = Symbol sf Param aScope (Just tf) (Just f)
                                              newList = newSymbol:(extract $ Map.lookup sf mp)
                                              newMap = Map.insert sf newList mp
                                          in newMap 
 
-lookPersonInSymTable :: String -> OurMonad Bool 
-lookPersonInSymTable s = do 
-    oldState <- get  
-    let hash = getHash.getSymTable $ oldState
-        symb = map getCategory (extract $ Map.lookup s hash)
-        xs = filter (==Person) symb 
-        ans = case xs of 
-            [] -> False
-            _ -> True
-    return ans
-
-lookVarInSymTable :: String -> OurMonad Bool 
-lookVarInSymTable s = do 
-    oldState <- get  
-    let hash = getHash.getSymTable $ oldState
-        symb = map getCategory (extract $ Map.lookup s hash)
-        xs = filter (==Var) symb 
-        ans = case xs of 
-            [] -> False
-            _ -> True
-    return ans
-
-lookFunctionInSymTable :: String -> OurMonad Bool 
-lookFunctionInSymTable s = do 
-    oldState <- get  
-    let hash = getHash.getSymTable $ oldState
-        symb = map getCategory (extract $ Map.lookup s hash)
-        xs = filter (==Function) symb 
-        ans = case xs of 
-            [] -> False
-            _ -> True
-    return ans
 
 removeLastScope :: OurMonad ()
 removeLastScope = do
@@ -172,5 +155,3 @@ removeLastScope = do
         newStack = tail oldStack
         newSet = Set.delete (newStack !! 0) (getSet oldState)
     put $ oldState { getStack = newStack, getSet = newSet }
-
-    -}
