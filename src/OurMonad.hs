@@ -153,7 +153,16 @@ addParamsFuncToSymTable (LFDP l) = do
                                          in newMap 
 
 addTypeToSymTable :: Declaration -> String -> OurMonad Declaration
-addTypeToSymTable TDT s = return TDT 
+addTypeToSymTable TDT s = do
+    oldState <- get
+    let oldSymTable = getSymTable oldState
+        aScope = head $ getStack oldState 
+        oldHash = getHash oldSymTable
+        newSymbol = Symbol s TypeD aScope Nothing Nothing
+        newList = newSymbol:(extract $ Map.lookup s oldHash)
+        newSymTable = SymTable $ Map.insert s newList oldHash
+    put $ oldState { getSymTable = newSymTable }
+    return TDT 
 
 lookVarInSymTableInScope :: Int -> String -> OurMonad Bool 
 lookVarInSymTableInScope sc s = do 
