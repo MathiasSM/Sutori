@@ -99,7 +99,7 @@ import OurMonad
 
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                   { PT $2 $3 }
+Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                   { % addInitialTypes >> return (PT $2 $3) }
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
@@ -180,8 +180,8 @@ Assignment               : ID '=' Expression                                    
 FunctionCall             : ID_FUNCTION                                                        { % checkId $1 Function >> return (FCAT $1) }
                          | ID_FUNCTION '(' WITH FunctionActualParams ')'                      { % checkId $1 Function >> return (FCNT $1 $4) }
 
-FunctionActualParams     : Expression                                                                           { LFCP [$1] }
-                         | Expression ',' FunctionActualParams                                                  { LFCP $ $1: listLFCP $3 }  
+FunctionActualParams     : Expression                                                         { LFCP [$1] }
+                         | Expression ',' FunctionActualParams                                { LFCP $ $1: listLFCP $3 }  
 
 
 -- Declaration
@@ -212,7 +212,7 @@ FunctionFormalParams     : Type ID                                              
                          | YOUR Type ID ',' FunctionFormalParams                                         { LFDP $ ($2,$3,1): listLFDP $5 }  
 
 
-VariableDeclaration      : ID S_broughta Type ':' VariableList                  { % checkId $1 Person >> addToSymTableVar VDT $3 $5 }
+VariableDeclaration      : ID S_broughta Type ':' VariableList      { % checkId $1 Person >> checkType $3 >> addToSymTableVar VDT $3 $5 }
 
 VariableList             : ID ',' VariableList                                                         { LDV $ ($1,Nothing): listLDV $3 }
                          | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }

@@ -13,7 +13,7 @@ import AST
 
 type Stack = [Int]
 type Scope = Int
-data Category = Module | Function | Person | Var | Param | Type  deriving (Eq,Show) 
+data Category = Module | Function | Person | Var | Param | TypeD  deriving (Eq,Show) 
 data Symbol = Symbol {getId::String, getCategory::Category, getScope::Scope, getType::(Maybe Type), getOther::(Maybe Int)}
 data SymTable = SymTable {getHash::Map.Map String [Symbol]}
 data OurState = OurState {getSymTable::SymTable, getStack::Stack, getIdScope :: Int, getSet :: Set.Set Int, getError :: [String]}
@@ -28,12 +28,15 @@ instance Monoid OurLog where
 instance Show OurLog where
   show (OurLog a) = "Errores:\n"++a++"\n"
 
+instance Show Symbol where
+  show (Symbol id cat sc t other) = "Simbolo: "++id++"\n Tipo: "++(show cat)++"\n Scope: "++(show sc)++"\n"
+
 type OurMonad a = StateT OurState (WriterT OurLog (Either OurError)) a
 
 runOurMonad :: OurMonad a -> OurState -> Either OurError ((a, OurState), OurLog)
 runOurMonad f a = runWriterT $ runStateT f a
 
-emptyState = OurState (SymTable Map.empty) [1] 1 (Set.insert 1 Set.empty) []
+emptyState = OurState (SymTable Map.empty) [0] 0 (Set.insert 0 Set.empty) []
 
 getTuple f a = getTuple $ getRight $ runOurMonad f a `catchError` (\(OurError pos) -> error $ "\nError en linea "++show pos++"\n")
     where
@@ -43,11 +46,25 @@ getTuple f a = getTuple $ getRight $ runOurMonad f a `catchError` (\(OurError po
 extract Nothing = []
 extract (Just a) = a
 
+
 filterByLength :: Ord a => (Int -> Bool) -> [a] -> [[a]]
 filterByLength p = filter (p . length) . group . sort
 
 repeated :: Ord a => [a] -> [a]
 repeated = map head . filterByLength (>1)
+
+addInitialTypes :: OurMonad ()
+addInitialTypes = do 
+    oldState <- get
+    let oldSymTable = getSymTable oldState
+        aScope = head $ getStack oldState 
+        oldHash = getHash oldSymTable
+        newSymTable = SymTable $ foldl (addToMap aScope) oldHash ["bag","wallet","book" ,"lightb","chain" ,"machine","thing" ,"phrase","direction"]
+    put $ oldState { getSymTable = newSymTable }
+    where addToMap aScope mp s = let newSymbol = Symbol s TypeD aScope Nothing Nothing
+                                     newList = newSymbol:(extract $ Map.lookup s mp)
+                                     newMap = Map.insert s newList mp
+                                 in newMap
 
 addToSymTableVar :: Declaration ->  Type -> Lists -> OurMonad Declaration
 addToSymTableVar VDT t (LDV l) = do
@@ -164,9 +181,20 @@ checkId s cat = do
         listSymb = Map.lookup s hash
         good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
     when (length good == 0) $ 
-        tell $ OurLog $ "Id '"++s++"' no definido anteriormente\n"
+        tell $ OurLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
     return s 
 
+checkType :: Type -> OurMonad ()
+checkType (TID s) = do 
+    state <- get
+    let hash = getHash $ getSymTable state
+        set = getSet state 
+        listSymb = Map.lookup s hash
+        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == TypeD))  (extract listSymb)
+    when (length good == 0) $ 
+        tell $ OurLog $ "Tipo '"++s++"' no definido anteriormente\n"
+
+checkType _ = return ()
 
 addInstructionScope :: OurMonad ()
 addInstructionScope = do
@@ -177,3 +205,6 @@ addInstructionScope = do
         newSet = Set.insert aScope (getSet oldState)
         newStack = aScope:oldStack
     put $ oldState { getStack = newStack, getIdScope = aScope, getSet = newSet}
+
+printSymTable :: OurState -> IO ()
+printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))

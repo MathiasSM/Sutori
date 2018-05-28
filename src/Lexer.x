@@ -1,5 +1,5 @@
 {
-module Lexer(Token(..), TokenClass(..), isInvalid, runAlexScan, AlexUserState(..), AlexPosn(..)) where
+module Lexer(Token(..), TokenClass(..), isInvalid, runAlexScan, printToken, AlexUserState(..), AlexPosn(..)) where
 
 import Control.Monad
 import Data.Maybe
@@ -211,6 +211,9 @@ getError (p, _, _, input) len =
     do setLexerError True
        return (Token p (InvalidToken s))
     where s = take len input
+
+printToken tk = show tk
+
 -- Token generator
 mkL :: TokenClass -> AlexInput -> Int -> Alex Token
 mkL c (p, _, _, str) len = return (Token p c)
