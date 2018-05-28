@@ -48,6 +48,7 @@ data Operation = PUT Expression                   |
 data Declaration = FDT   |
                    FDAT  |
                    PDT   |
+                   TDT   |
                    VDT                           
 
 data FuntionBC = StaT Statement          |

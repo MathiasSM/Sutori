@@ -24,6 +24,7 @@ import OurMonad
     S_keepsdreamingof   { Token $$ S_keepsdreamingof }
     S_madeof            { Token $$ S_madeof          }
     S_madea             { Token $$ S_madea           }
+    Invented            { Token $$ Invented          }
     S_therewasa         { Token $$ S_therewasa       }
     S_toldthatstory     { Token $$ S_toldthatstory   }
     TYPE_INT            { Token $$ TYPE_INT          }
@@ -189,6 +190,8 @@ FunctionActualParams     : Expression                                           
 Declaration              : PersonDeclaration                                                             { % addToSymTablePerson PDT $1}
                          | FunctionDeclaration                                                           { % return $1 }
                          | VariableDeclaration                                                           { % return $1 }
+                         | TypeDeclaration                                                               { % return $1 }
+
 
 PersonDeclaration        : S_Therewas PersonNames                                                        { $2 }
 
@@ -198,9 +201,9 @@ PersonNames              : ID                                                   
 
 FunctionDeclaration      :: { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> return FDT }
+                                        { % removeLastScope >> checkType $5 >> return FDT }
                          | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> return FDAT }
+                                        { % removeLastScope >> checkType $5 >> return FDAT }
 
 IdentificadorFun : ID_FUNCTION                                                                           { % addFuncToSymTable $1 }
 
@@ -218,6 +221,9 @@ VariableList             : ID ',' VariableList                                  
                          | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }
                          | ID '=' Expression                                                           { LDV [($1,Just $3)] }
                          | ID                                                                          { LDV [($1,Nothing)] }
+
+TypeDeclaration          : ID Invented ID                           { % checkId $1 Person >> addTypeToSymTable TDT $3 }
+
 -- Types
 -----------------------------------------------------------------------------------------------------------------------
 Type                     : TYPE_INT                                                                             { TI }
@@ -231,8 +237,8 @@ Type                     : TYPE_INT                                             
                          | TYPE_POINTER '(' TO Type ')'                                                         { TP $4 }
                          | ID                                                                                   { TID $1 }
 
-StructTyping             : Type ID                                                                              { LSRT [($1,$2)] }
-                         | Type ID and StructTyping                                                             { LSRT $ ($1,$2): listLSRT $4 }
+StructTyping             : Type ID                                                                           { LSRT [($1,$2)] }
+                         | Type ID and StructTyping                                                          { LSRT $ ($1,$2): listLSRT $4 }
 
 UnionTyping              : Type ID                                                                              { LUT [($1,$2)] }
                          | Type ID or UnionTyping                                                               { LUT $ ($1,$2): listLUT $4 }
@@ -270,7 +276,7 @@ Instruction              : Expression                                           
 ManageMemory             : CreatePointer                                                                        { $1 }
                          | FreePointer                                                                          { $1 }
 
-CreatePointer            : ID S_madea Type                                  { % checkId $1 Var >> return (CPT $1 $3) }
+CreatePointer            : ID S_madea Type                                  { % checkId $1 Var >> checkType $3 >> return (CPT $1 $3) }
 FreePointer              : ID S_brokea ID                                   { % checkId $1 Var >> checkId $3 Var >> return (FPT $1 $3) }
 
 Selection                : IdToken S_dreamsof Block WHEN Expression                            { % removeLastScope >> return (IFT $1 $3 $5) }

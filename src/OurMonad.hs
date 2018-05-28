@@ -152,6 +152,9 @@ addParamsFuncToSymTable (LFDP l) = do
                                              newMap = Map.insert sf newList mp
                                          in newMap 
 
+addTypeToSymTable :: Declaration -> String -> OurMonad Declaration
+addTypeToSymTable TDT s = return TDT 
+
 lookVarInSymTableInScope :: Int -> String -> OurMonad Bool 
 lookVarInSymTableInScope sc s = do 
     oldState <- get  

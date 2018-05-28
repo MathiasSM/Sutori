@@ -36,6 +36,7 @@ tokens :-
 <0>                "made of"                            { mkL S_madeof }
 <0>                "there was a"                        { mkL S_therewasa     }
 <0>                "told that story"                    { mkL S_toldthatstory }
+<0>                "invented"                           { mkL Invented        }
 
 <0>                "bag"                                { mkL TYPE_INT }
 <0>                "wallet"                             { mkL TYPE_FLOAT }
@@ -132,7 +133,8 @@ data TokenClass =
     S_brokea            |
     S_broughta          |
     S_comesfrom         |
-    S_dreamsof           |
+    Invented            |
+    S_dreamsof          |
     S_keepsdreamingof   |
     S_madea             |
     S_madeof            |
