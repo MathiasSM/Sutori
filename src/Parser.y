@@ -2,6 +2,7 @@
 module Parser where
 import Lexer
 import AST
+import Data.Maybe
 import OurMonad
 }
 
@@ -93,8 +94,8 @@ import OurMonad
 %left '*' '/' '%' div
 %left '^'
 %right '!' IND POS NEG
-%left '->'
-
+%left '['
+%left '->' 
 
 %% 
 
@@ -104,19 +105,20 @@ Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                  
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
-Expression               : ID                                                                    { % checkId $1 Var >> return (IdT $1) }
-                         | Literal                                                               { LitT $1 }
-                         | Constructor                                                           { ConsT $1 }
+Expression               : LeftSide                                                             { $1 }
+                         | Literal                            { LitT $1 }
+                         | Constructor                        { ConsT $1 }
                          | Operation                                                             { OpT $1 }
                          | FunctionCall                                                          { FunCT $1 }
-                         | '(' Expression ')'                                                    { PET $2 }
+                         | '(' Expression ')'                                                    { $2 }
+
 
 Literal                  : LITERAL_INT                                                           { IT $1 }
                          | LITERAL_CHAR                                                          { CT $1 }
                          | LITERAL_FLOAT                                                         { FT $1 }
                          | LITERAL_STRING                                                        { ST $1 }
-                         | TRUE                                                                  { TBT }
-                         | FALSE                                                                 { FBT }
+                         | TRUE                                                                  { TBT   }
+                         | FALSE                                                                 { FBT   }
 
 
 -- Constructors
@@ -140,46 +142,50 @@ Operation                : UnaryOperation                                       
 
 UnaryOperation           : NumericalUnaryOperation                                                              { $1 }
                          | LogicalUnaryOperation                                                                { $1 }
-                         | Dereference                                                                          { $1 }
 
 BinaryOperation          : NumericalBinaryOperation                                                             { $1 }
                          | LogicalBinaryOperation                                                               { $1 }
-                         | GetProp                                                                              { $1 }
-                         | GetArrayItem                                                                         { $1 }
                          | Assignment                                                                           { $1 }
 
-NumericalUnaryOperation  : '+' Expression %prec POS                                                             { PUT $2 }
-                         | '-' Expression %prec NEG                                                             { MUT $2 }
+NumericalUnaryOperation  : '+' Expression %prec POS           { % getNumericType "+" $2 $2 >>= (\x -> return (PUT $2 x)) }
+                         | '-' Expression %prec NEG           { % getNumericType "-" $2 $2 >>= (\x -> return (MUT $2 x)) }
 
-LogicalUnaryOperation    : '!' Expression                                                                       { NUT $2 }
+LogicalUnaryOperation    : '!' Expression                     { % getLogicalType "!" $2 $2 >>= (\x -> return (NUT $2 x)) }
 
-Dereference              : '*' Expression %prec IND                                                             { DUT $2 }
 
-NumericalBinaryOperation : Expression '+' Expression                                                            { ABT $1 "+" $3 }
-                         | Expression '-' Expression                                                            { ABT $1 "-" $3 }
-                         | Expression '*' Expression                                                            { ABT $1 "*" $3 }
-                         | Expression '/' Expression                                                            { ABT $1 "/" $3 }
-                         | Expression div Expression                                                            { ABT $1 "div" $3 }
-                         | Expression '%' Expression                                                            { ABT $1 "%" $3 }
-                         | Expression '^' Expression                                                            { ABT $1 "^" $3 }
+NumericalBinaryOperation : Expression '+' Expression          { % getNumericType "+" $1 $3 >>= (\x -> return (ABT $1 "+" $3 x ) ) }
+                         | Expression '-' Expression          { % getNumericType "-" $1 $3 >>= (\x -> return (ABT $1 "-" $3 x ) ) }
+                         | Expression '*' Expression          { % getNumericType "*" $1 $3 >>= (\x -> return (ABT $1 "*" $3 x ) ) }
+                         | Expression '/' Expression          { % getNumericType "/" $1 $3 >>= (\x -> return (ABT $1 "/" $3 x ) ) }
+                         | Expression div Expression          { % getNumericType "div" $1 $3 >>= (\x -> return (ABT $1 "div" $3  x )) }
+                         | Expression '%' Expression          { % getNumericType "%" $1 $3 >>= (\x -> return (ABT $1 "%" $3 x )) }
+                         | Expression '^' Expression          { % getNumericType "^" $1 $3 >>= (\x -> return (ABT $1 "^" $3 x )) }
 
-LogicalBinaryOperation   : Expression and  Expression                                                           { LBT $1 "and" $3 }
-                         | Expression or   Expression                                                           { LBT $1 "or" $3 }
-                         | Expression '==' Expression                                                           { LBT $1 "==" $3 }
-                         | Expression '/=' Expression                                                           { LBT $1 "/=" $3 }
-                         | Expression '>=' Expression                                                           { LBT $1 ">=" $3 }
-                         | Expression '<=' Expression                                                           { LBT $1 "<=" $3 }
-                         | Expression '>'  Expression                                                           { LBT $1 ">" $3 }
-                         | Expression '<'  Expression                                                           { LBT $1 "<" $3 }
+LogicalBinaryOperation   : Expression and  Expression         { % getLogicalType "and" $1 $3 >>= (\x -> return (LBT $1 "and" $3 x )) }
+                         | Expression or   Expression         { % getLogicalType "or" $1 $3 >>= (\x -> return (LBT $1 "or" $3 x )) }
+                         | Expression '==' Expression         { % getEqualityType "==" $1 $3 >>= (\x -> return (LBT $1 "==" $3 x )) }
+                         | Expression '/=' Expression         { % getEqualityType "/=" $1 $3 >>= (\x -> return (LBT $1 "/=" $3 x )) }
+                         | Expression '>=' Expression         { % getComparisonType ">=" $1 $3 >>= (\x -> return (LBT $1 ">=" $3 x )) }
+                         | Expression '<=' Expression         { % getComparisonType "<=" $1 $3 >>= (\x -> return (LBT $1 "<=" $3 x )) }
+                         | Expression '>'  Expression         { % getComparisonType ">" $1 $3 >>= (\x -> return (LBT $1 ">" $3 x )) }
+                         | Expression '<'  Expression         { % getComparisonType "<" $1 $3 >>= (\x -> return (LBT $1 "<" $3 x )) }
 
-GetArrayItem             : ID '[' Expression ']'                                              { % checkId $1 Var >> return (GAT $1 $3) }
 
-GetProp                  : Expression '->' ID                                                 { % checkId $3 Var >> return (GPT $1 $3) }
+--Dereference              : '*' Expression %prec IND           { % getPointerType $2 >>= (\x -> return (DUT $2 x)) }
 
-Assignment               : ID '=' Expression                                                  { % checkId $1 Var >> return (AT $1 $3) }
+GetArrayItem             : LeftSide '[' Expression ']'              { % checkIndexType $3 >> extArrayType $1 >>= (\x -> return (GAT $1 $3 x)) }
 
-FunctionCall             : ID_FUNCTION                                                        { % checkId $1 Function >> return (FCAT $1) }
-                         | ID_FUNCTION '(' WITH FunctionActualParams ')'                      { % checkId $1 Function >> return (FCNT $1 $4) }
+GetProp                  : LeftSide '->' ID                 { GPT $1 $3 }
+
+Assignment               : LeftSide '=' Expression              { % getEqualityType "=" $1 $3 >>= (\x -> return (AT $1 $3 (getExpressionType $1))) }
+
+LeftSide                 : ID                                   { % checkId $1 Var >>= (\s -> return (IdT $1 (fromJust (getType s)))) }
+                         | GetArrayItem                         { OpT $1 }
+                         | GetProp                              { OpT $1 }
+--                         | Dereference                        { OpT $1 }
+
+FunctionCall             : ID_FUNCTION                                         { % checkId $1 Function >>= (\s -> return (FCAT $1 (fromJust (getType s)))) }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'       { % checkId $1 Function >>= (\s -> checkParams $4 s  >> return (FCNT $1 $4 (fromJust (getType s)))) }
 
 FunctionActualParams     : Expression                                                         { LFCP [$1] }
                          | Expression ',' FunctionActualParams                                { LFCP $ $1: listLFCP $3 }  
@@ -201,9 +207,9 @@ PersonNames              : ID                                                   
 
 FunctionDeclaration      :: { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> checkType $5 >> return FDT }
+                            { % removeLastScope >> checkType $5 >> modifyFunction $2 $6 (LFDP []) $5 >> return FDT }
                          | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN 
-                                        { % removeLastScope >> checkType $5 >> return FDAT }
+                            { % removeLastScope >> checkType $5 >> modifyFunction $2 $10 $8 $5 >> return FDAT }
 
 IdentificadorFun : ID_FUNCTION                                                                           { % addFuncToSymTable $1 }
 
@@ -279,17 +285,17 @@ ManageMemory             : CreatePointer                                        
 CreatePointer            : ID S_madea Type                                  { % checkId $1 Var >> checkType $3 >> return (CPT $1 $3) }
 FreePointer              : ID S_brokea ID                                   { % checkId $1 Var >> checkId $3 Var >> return (FPT $1 $3) }
 
-Selection                : IdToken S_dreamsof Block WHEN Expression                            { % removeLastScope >> return (IFT $1 $3 $5) }
-                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block     { % removeLastScope >> return (IFET $1 $3 $5 $8) }
+Selection                : IdToken S_dreamsof Block WHEN Expression                            { % getLogicalType "condition" $5 $5 >> removeLastScope >> return (IFT $1 $3 $5) }
+                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block     { % getLogicalType "condition" $5 $5 >> removeLastScope >> return (IFET $1 $3 $5 $8) }
 
 OtherwiseTok             : OTHERWISE   { % removeLastScope >> addInstructionScope }
 
 
 IdToken                  : ID                                              { % checkId $1 Person >> addInstructionScope >> return $1 }
 
-UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % removeLastScope >> return (UIT $1 $3 $4) }
+UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 >> removeLastScope >> return (UIT $1 $3 $4) }
 
-BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % removeLastScope >> checkId $3 Person >> return (BIT $2 $3 $5) }
+BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % checkIndexType $5 >> removeLastScope >> checkId $3 Person >> return (BIT $2 $3 $5) }
 
 AddScope                 : {-empty-}                        { % addInstructionScope }
 

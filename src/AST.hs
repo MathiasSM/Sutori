@@ -11,48 +11,48 @@ data Lists = LST { listLST :: [Statement] }               |
              LFDP { listLFDP :: [(Type,String,Int)] }     |
              LDV { listLDV :: [(String,Maybe Expression)] }     |
              LSRT { listLSRT :: [(Type,String)] }         |         
-             LUT { listLUT :: [(Type,String)] }
+             LUT { listLUT :: [(Type,String)] } deriving (Show,Eq)
 
 
-data Expression = IdT String              |
+data Expression = IdT String Type              |
                   LitT Literal            |
                   ConsT Constructor       |
                   FunCT Operation         |
                   OpT Operation           |
-                  PET Expression    
+                  PET Expression    deriving (Show,Eq)
 
 
 data Literal = IT Int           |
                CT String        |
                FT Float         |
-               TBT              |
-               FBT              |
-               ST String
+               TBT             |
+               FBT             |
+               ST String deriving (Show,Eq)
 
 data Constructor = LCAT { listLCAT :: [Expression] }            |
-                   LCST { listLCST :: [(String,Expression)] }  
+                   LCST { listLCST :: [(String,Expression)] }  deriving (Show,Eq)
 
-data Operation = PUT Expression                   |
-                 MUT Expression                   |
-                 NUT Expression                   | 
-                 DUT Expression                   |
-                 ABT Expression String Expression |                 
-                 LBT Expression String Expression |
-                 GAT String Expression            |
+data Operation = PUT Expression Type                   |
+                 MUT Expression Type                  |
+                 NUT Expression Type                | 
+                 DUT Expression Type                  |
+                 ABT Expression String Expression Type |                 
+                 LBT Expression String Expression Type |
+                 GAT Expression Expression Type           |
                  GPT Expression String            |
-                 AT String Expression             |
-                 FCAT String                      |
-                 FCNT String Lists                 
+                 AT Expression Expression Type             |
+                 FCAT String Type                      |
+                 FCNT String Lists Type                deriving (Show,Eq) 
 
 
 data Declaration = FDT   |
                    FDAT  |
                    PDT   |
                    TDT   |
-                   VDT                           
+                   VDT     deriving (Show,Eq)                      
 
 data FuntionBC = StaT Statement          |
-                 RT Expression 
+                 RT Expression deriving (Show,Eq)
 
 data Type = TI                           |
             TF                           |
@@ -63,10 +63,11 @@ data Type = TI                           |
             TST Lists                    |
             TU Lists                     |
             TP Type                      |
-            TID String   
+            TE                           |
+            TID String   deriving (Show,Eq)
 
 data Statement = InsT Instruction        |
-                 DecT Declaration
+                 DecT Declaration deriving (Show,Eq)
 
 
 data Instruction = IFT String Lists Expression         |
@@ -76,7 +77,7 @@ data Instruction = IFT String Lists Expression         |
                    CPT String Type                     |
                    FPT String String                   |
                    ExprT Expression                    |
-                   PRT String Expression 
+                   PRT String Expression deriving (Show,Eq)
 
 
 ident = "|  "
@@ -89,7 +90,7 @@ putStrLnWithIdent n s = (replicateM_ n $ putStr ident) >> putStrLn s
 printId n s = putStrLnWithIdent n $ "Identificador: " ++ s
 
 printExp :: Int -> Expression -> IO()
-printExp n (IdT s) = do
+printExp n (IdT s _) = do
     printId n s
 
 printExp n (LitT l) = do
@@ -160,25 +161,25 @@ printLists n (LUT ls) = do
 printLit :: Int -> Literal -> IO()
 printLit n (IT num) = putStrLnWithIdent n $ "Literal numerico: " ++ (show num) 
 printLit n (CT s) = putStrLnWithIdent n $ "Literal de Caracter : " ++ s
-printLit n (FT num) = putStrLnWithIdent n $ "Literal numerico: " ++ (show num) 
-printLit n (TBT) = putStrLnWithIdent n $ "Booleano: On"
+printLit n (FT  num) = putStrLnWithIdent n $ "Literal numerico: " ++ (show num) 
+printLit n (TBT ) = putStrLnWithIdent n $ "Booleano: On"
 printLit n (FBT) = putStrLnWithIdent n $ "Booleano: Off"
 printLit n (ST s) = putStrLnWithIdent n $ "String : " ++ s
 
-printOperation n (PUT exp) = do
+printOperation n (PUT exp _) = do
     putStrLnWithIdent n "Mas unario:"
     printExp (n+1) exp
-printOperation n (MUT exp) = do
+printOperation n (MUT exp _) = do
     putStrLnWithIdent n "Menos unario:"
     printExp (n+1) exp
-printOperation n (NUT exp) = do
+printOperation n (NUT exp _) = do
     putStrLnWithIdent n "Negacion booleana:"
     printExp (n+2) exp
-printOperation n (DUT exp) = do
+printOperation n (DUT exp _) = do
     putStrLnWithIdent n "Deferencia unaria:"
     printExp (n+1) exp
 
-printOperation n (ABT exp s exp1) = do
+printOperation n (ABT exp s exp1 _) = do
     putStrLnWithIdent n "Operacion de comparacion:"
     putStrLnWithIdent (n+1) $ "Comparador: " ++ s
     putStrLnWithIdent (n+1) "Lado izquierdo:"
@@ -186,7 +187,7 @@ printOperation n (ABT exp s exp1) = do
     putStrLnWithIdent (n+1) "Lado derecho:"
     printExp (n+2) exp1
     
-printOperation n (LBT exp s exp1) = do
+printOperation n (LBT exp s exp1 _) = do
     putStrLnWithIdent n "Operacion binaria logica:"
     putStrLnWithIdent (n+1) $ "Operador: " ++ s
     putStrLnWithIdent (n+1) "Lado izquierdo:"
@@ -194,19 +195,19 @@ printOperation n (LBT exp s exp1) = do
     putStrLnWithIdent (n+1) "Lado derecho:"
     printExp (n+2) exp1
 
-printOperation n (GAT s exp) = do 
+printOperation n (GAT exp1 exp2 _) = do 
     putStrLnWithIdent n "Get item array:"
-    putStrLnWithIdent (n+1) "Identificador:"
-    printId (n+1) s
-    putStrLnWithIdent (n+1) "Pos a agarrar:"
-    printExp (n+1) exp   
+    putStrLnWithIdent (n+1) "L-Value:"
+    printExp (n+1) exp1
+    putStrLnWithIdent (n+1) "Indice:"
+    printExp (n+1) exp2   
 
-printOperation n (AT s exp) = do 
+printOperation n (AT exp1 exp2 _) = do 
     putStrLnWithIdent n "Asignacion :"
-    putStrLnWithIdent (n+1) "Identificador:"
-    printId (n+1) s
-    putStrLnWithIdent (n+1) "Valor a asignar:"
-    printExp (n+1) exp
+    putStrLnWithIdent (n+1) "L-Value:"
+    printExp (n+1) exp1
+    putStrLnWithIdent (n+1) "R-Value:"
+    printExp (n+1) exp2
 
 
 printFuntionBC :: Int -> FuntionBC -> IO()
@@ -280,4 +281,3 @@ printDecl n (PDT) = do
 
 printDecl n (VDT) = do
     putStrLnWithIdent n "Definicion de Variables."
-
