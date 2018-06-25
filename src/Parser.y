@@ -179,13 +179,13 @@ GetProp                  : LeftSide '->' ID                 { GPT $1 $3 }
 
 Assignment               : LeftSide '=' Expression              { % getEqualityType "=" $1 $3 >>= (\x -> return (AT $1 $3 (getExpressionType $1))) }
 
-LeftSide                 : ID                                   { % checkId $1 Var >>= (\s -> return (IdT $1 (fromJust (getType s)))) }
+LeftSide                 : ID                                   { % checkId $1 Var >>= (\s -> return (IdT $1 (fromJust (getType' s)))) }
                          | GetArrayItem                         { OpT $1 }
                          | GetProp                              { OpT $1 }
 --                         | Dereference                        { OpT $1 }
 
-FunctionCall             : ID_FUNCTION                                         { % checkId $1 Function >>= (\s -> return (FCAT $1 (fromJust (getType s)))) }
-                         | ID_FUNCTION '(' WITH FunctionActualParams ')'       { % checkId $1 Function >>= (\s -> checkParams $4 s  >> return (FCNT $1 $4 (fromJust (getType s)))) }
+FunctionCall             : ID_FUNCTION                                         { % checkId $1 Function >>= (\s -> return (FCAT $1 (fromJust (getType' s)))) }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'       { % checkId $1 Function >>= (\s -> checkParams $4 s  >> return (FCNT $1 $4 (fromJust (getType' s)))) }
 
 FunctionActualParams     : Expression                                                         { LFCP [$1] }
                          | Expression ',' FunctionActualParams                                { LFCP $ $1: listLFCP $3 }  

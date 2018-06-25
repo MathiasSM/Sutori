@@ -31,7 +31,7 @@ instance Show OurLog where
   show (OurLog a) = "Errores:\n"++a++"\n"
 
 instance Show Symbol where
-  show (Symbol id cat sc t other) = "Simbolo: "++id++"\n Tipo: "++(show cat)++"\n Scope: "++(show sc)++"\n"
+  show (Symbol id cat sc t other) = "Simbolo: "++id++"\n Tipo "++show t++"\n Categoria: "++(show cat)++"\n Scope: "++(show sc)++"\n"
 
 
 type OurMonad a = StateT OurState (WriterT OurLog (Either OurError)) a
@@ -188,7 +188,7 @@ removeLastScope = do
     put $ oldState { getStack = newStack, getSet = newSet }
 
 
-checkId :: String -> Category -> OurMonad Symbol
+checkId :: String -> Category -> OurMonad (Maybe Symbol)
 checkId s cat = do 
     state <- get
     let hash = getHash $ getSymTable state
@@ -197,7 +197,13 @@ checkId s cat = do
         good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
     when (length good == 0) $ 
         tell $ OurLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
-    return $ head good
+    return $ head' good
+
+head' [] = Nothing
+head' (x:xs) = Just x
+
+getType' Nothing = Just TE
+getType' (Just s) = getType s 
 
 checkType :: Type -> OurMonad ()
 checkType (TID s) = do 
@@ -228,19 +234,22 @@ modifyFunction s bf ps t = do
     let oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
         oldList = extract $ Map.lookup s oldHash 
-        funcSymbol = Symbol s Function (getScope oldSymbol) (Just t) (FunctionAST bf ps)
-        newList = foldr (\x acc -> (if (x/=oldSymbol) then x else funcSymbol):acc ) [] oldList
+        funcSymbol = Symbol s Function (getScope (fromJust oldSymbol)) (Just t) (FunctionAST bf ps)
+        newList = foldr (\x acc -> (if (x/=(fromJust oldSymbol)) then x else funcSymbol):acc ) [] oldList
         newSymTable = SymTable $ Map.insert s newList oldHash
     put $ oldState { getSymTable = newSymTable } 
 
-checkParams :: Lists -> Symbol -> OurMonad ()
-checkParams (LFCP l) s = do 
+checkParams :: Lists -> Maybe Symbol -> OurMonad ()
+checkParams _ Nothing = return ()
+checkParams (LFCP l) (Just s) = do 
     let actualTypes = map getExpressionType l 
         formalTypes = f (getParams $ getOther s) 
         list = zip actualTypes formalTypes
         bad = filter (\(x,y) -> x/=y ) list
+    when (length actualTypes /= length formalTypes) $ 
+        tell $ OurLog $ "N'umero de par'ametros de la funci'on '"++(getId s)++"' incorrecto.\n" 
     when (length bad /= 0) $ 
-        tell $ OurLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"    
+        tell $ OurLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"     
     where f (LFDP l) = map (\(x,_,_) -> x) l
 
 
