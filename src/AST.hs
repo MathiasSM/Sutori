@@ -4,17 +4,17 @@ import Control.Monad
 
 data Source  = PT String Lists            
 
-data Lists = LST { listLST :: [Statement] }               |
-             LPD { listLPD :: [String] }                  |
-             LFCP { listLFCP :: [Expression] }            |
-             LFBT { listLFBT :: [FuntionBC] }             |
-             LFDP { listLFDP :: [(Type,String,Int)] }     |
+data Lists = LST { listLST :: [Statement] }                     |
+             LPD { listLPD :: [String] }                        |
+             LFCP { listLFCP :: [Expression] }                  |
+             LFBT { listLFBT :: [FuntionBC] }                   |
+             LFDP { listLFDP :: [(Type,String,Int)] }           |
              LDV { listLDV :: [(String,Maybe Expression)] }     |
-             LSRT { listLSRT :: [(Type,String)] }         |         
+             LSRT { listLSRT :: [(Type,String)] }               |         
              LUT { listLUT :: [(Type,String)] } deriving (Show,Eq)
 
 
-data Expression = IdT String Type              |
+data Expression = IdT String Type         |
                   LitT Literal            |
                   ConsT Constructor       |
                   FunCT Operation         |

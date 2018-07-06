@@ -8,8 +8,8 @@ import qualified Data.Set as Set
 import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Zip
-import Data.Semigroup
 import AST 
+import Lexer
 
 
 type Scope = Int
@@ -69,8 +69,8 @@ addInitialTypes = do
                                      newMap = Map.insert s newList mp
                                  in newMap
 
-addToSymTableVar :: Declaration ->  Type -> Lists -> OurMonad Declaration
-addToSymTableVar VDT t (LDV l) = do
+addToSymTableVar :: Declaration ->  Type -> Lists -> AlexPosn -> OurMonad Declaration
+addToSymTableVar VDT t (LDV l) ap = do
     oldState <- get
     let oldSymTable = getSymTable oldState
         aScope = head $ getStack oldState 
@@ -83,9 +83,9 @@ addToSymTableVar VDT t (LDV l) = do
     notGood <- or <$> inSymTable
     isFalseL <- isFalse
     when (length l /= length newl) $ 
-        mapM_ (\vs -> tell $ OurLog $ "Variable '"++vs++"' definida dos veces en la misma lista de declaraci'on de variables.\n") (repeated sl)
+        mapM_ (\vs -> tell $ OurLog $ showAlex ap++"Redeclaration of '"++vs++"' in the same list of declarations\n") (repeated sl)
     when (notGood) $ 
-        mapM_ (\(vs,_) -> tell $ OurLog $ "Variable '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
+        mapM_ (\(vs,_) -> tell $ OurLog $ showAlex ap++"Redeclaration of '"++vs++"' in the same scope\n") isFalseL
     put $ oldState { getSymTable = newSymTable }
     return VDT
     where addToMap aScope mp (s,_) = let newSymbol = Symbol s Var aScope (Just t) NoOther
@@ -106,9 +106,9 @@ addToSymTablePerson PDT (LPD l) = do
     notGood <- or <$> inSymTable
     isFalseL <- isFalse
     when (length l /= length newl) $ 
-        mapM_ (\vs -> tell $ OurLog $ "Persona '"++vs++"' definida dos veces en la misma lista de declaraci'on de Personas.\n") (repeated l)
+        mapM_ (\vs -> tell $ OurLog $ "Redeclaration of '"++vs++"' in the same list of declarations\n") (repeated l)
     when (notGood) $ 
-        mapM_ (\(vs,_) -> tell $ OurLog $ "Persona '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
+        mapM_ (\(vs,_) -> tell $ OurLog $ "Redeclaration of '"++vs++"' in the same scope\n") isFalseL
     put $ oldState { getSymTable = newSymTable }
     return PDT
     where addToMap aScope mp s = let newSymbol = Symbol s Person aScope Nothing NoOther
@@ -131,7 +131,7 @@ addFuncToSymTable s = do
         newStack = aScope:oldStack
     notGood <- lookVarInSymTableInScope (head $ getStack oldState) s
     when (notGood) $ 
-        tell $ OurLog $ "Identificador '"++s++"' de la funci'on definido dos veces en el mismo Scope.\n"
+        tell $ OurLog $ "Redeclaration of the fucntion '"++s++"'\n"
     put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = aScope, getSet = newSet}
     return s
 
@@ -147,7 +147,7 @@ addParamsFuncToSymTable (LFDP l) = do
         sl = map (\(_,s,_) -> s) l
         newl = nub sl
     when (length l /= length newl) $ 
-        mapM_ (\vs -> tell $ OurLog $ "Id '"++vs++"' definido dos veces en la misma lista de parametros de la funci'on\n") (repeated sl)
+        mapM_ (\vs -> tell $ OurLog $ "Redeclaration of '"++vs++"' in the params of the function\n") (repeated sl)
     put $ oldState { getSymTable = newSymTable }
     return $ LFDP l
     where addToMap aScope mp (tf,sf,f) = let newSymbol = Symbol sf Param aScope (Just tf) (ReferenceOp f)
@@ -188,16 +188,20 @@ removeLastScope = do
     put $ oldState { getStack = newStack, getSet = newSet }
 
 
-checkId :: String -> Category -> OurMonad (Maybe Symbol)
-checkId s cat = do 
+checkId :: String -> Category -> Maybe AlexPosn -> OurMonad (Maybe Symbol)
+checkId s cat ap = do 
     state <- get
     let hash = getHash $ getSymTable state
         set = getSet state 
         listSymb = Map.lookup s hash
         good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
     when (length good == 0) $ 
-        tell $ OurLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
+        tell $ OurLog $ (showAlex $ fromJust' ap)++" '"++s++"' was not declared in this scope\n"
     return $ head' good
+
+fromJust' :: Maybe AlexPosn -> AlexPosn
+fromJust' (Just c) = c
+fromJust' Nothing = (AlexPn 2 2 2)
 
 head' [] = Nothing
 head' (x:xs) = Just x
@@ -205,17 +209,17 @@ head' (x:xs) = Just x
 getType' Nothing = Just TE
 getType' (Just s) = getType s 
 
-checkType :: Type -> OurMonad ()
-checkType (TID s) = do 
+checkType :: Type -> AlexPosn -> OurMonad ()
+checkType (TID s) ap = do 
     state <- get
     let hash = getHash $ getSymTable state
         set = getSet state 
         listSymb = Map.lookup s hash
         good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == TypeD))  (extract listSymb)
     when (length good == 0) $ 
-        tell $ OurLog $ "Tipo '"++s++"' no definido anteriormente\n"
+        tell $ OurLog $ show ap++"Type '"++s++"' was not declared in this scope\n"
 
-checkType _ = return ()
+checkType _ _ = return ()
 
 addInstructionScope :: OurMonad ()
 addInstructionScope = do
@@ -229,7 +233,7 @@ addInstructionScope = do
 
 modifyFunction :: String -> Lists -> Lists -> Type -> OurMonad ()
 modifyFunction s bf ps t = do 
-    oldSymbol <- checkId s Function
+    oldSymbol <- checkId s Function Nothing
     oldState <- get
     let oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
@@ -252,14 +256,16 @@ checkParams (LFCP l) (Just s) = do
         tell $ OurLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"     
     where f (LFDP l) = map (\(x,_,_) -> x) l
 
+showAlex :: AlexPosn -> String
+showAlex (AlexPn _ line col) = show line++":"++show col++": error: "
 
-getNumericType :: String -> Expression -> Expression -> OurMonad Type
-getNumericType sim e1 e2 = do
+getNumericType :: String -> Expression -> Expression -> AlexPosn -> OurMonad Type
+getNumericType sim e1 e2 ap = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ "Operaci'on num'erica "++sim++" no definida para tipos: \n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
     return $ finalType
     where joinTypes TI TI = TI
           joinTypes TI TC = TI
@@ -283,13 +289,13 @@ getNumericType sim e1 e2 = do
           
           joinTypes _ _ = TE
 
-getLogicalType :: String -> Expression -> Expression -> OurMonad Type
-getLogicalType sim e1 e2 = do
+getLogicalType :: String -> Expression -> Expression -> AlexPosn -> OurMonad Type
+getLogicalType sim e1 e2 ap = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ "Operaci'on logica"++sim++" no definida para tipos: \n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -421,6 +427,12 @@ getOperationType (GAT _ _ t) = t
 getOperationType (AT _ _ t) = t
 -- getOperationType (FCAT _) = t
 -- getOperationType (FCNT _ _) = t
+
+checkTypesExp :: Type -> Lists -> OurMonad ()
+checkTypesExp t (LDV l) = do 
+    let bad = filter (\(_,x) -> isJust x && ((getExpressionType $ fromJust x) /= t)) l
+    when (length bad /= 0) $
+        mapM_ (\(s,t2) -> tell $ OurLog $ "Variable '"++s++"' es de tipo: "++show (getExpressionType $ fromJust t2)++" y esperaba un tipo: "++show t++"\n") bad
 
 printSymTable :: OurState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
