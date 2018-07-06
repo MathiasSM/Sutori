@@ -13,13 +13,14 @@ copyright:
   - (c) 2018 Génesis Kufatty
 
 extra-source-files:
-  - src/Lexer.x
+  - src/Sutori/Lexer.x
+  - src/Sutori/Parser.y
   - README.md
   - GRAMMAR.md
   - ChangeLog.md
 
-synopsis: Front-end for Sutori language compiler
-category: Language
+synopsis: Sutori language compiler
+category: Compilers/Interpreters
 
 description: 'Please see the README on GitHub at <https://github.com/MathiasSM/Sutori#readme>'
 
@@ -28,6 +29,10 @@ dependencies:
   - array
   - mtl
   - containers
+
+build-tools:
+  - alex
+  - happy
 
 library:
   source-dirs: src

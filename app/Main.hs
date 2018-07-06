@@ -1,13 +1,14 @@
 module Main where
 
-import Lexer
-import Parser
-import AST
 import System.Environment
 import Control.Monad
-import OurMonad
 import Data.Maybe
 import Data.Either
+
+import Sutori.Lexer
+import Sutori.Parser
+import Sutori.AST
+import Sutori.Monad
 
 main = do
   args <- getArgs
