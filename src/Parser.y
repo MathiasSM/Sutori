@@ -164,29 +164,29 @@ NumericalBinaryOperation : Expression '+' Expression          { % getNumericType
 
 LogicalBinaryOperation   : Expression and  Expression         { % getLogicalType "and" $1 $3 $2 >>= (\x -> return (LBT $1 "and" $3 x )) }
                          | Expression or   Expression         { % getLogicalType "or" $1 $3 $2 >>= (\x -> return (LBT $1 "or" $3 x )) }
-                         | Expression '==' Expression         { % getEqualityType "==" $1 $3 >>= (\x -> return (LBT $1 "==" $3 x )) }
-                         | Expression '/=' Expression         { % getEqualityType "/=" $1 $3 >>= (\x -> return (LBT $1 "/=" $3 x )) }
-                         | Expression '>=' Expression         { % getComparisonType ">=" $1 $3 >>= (\x -> return (LBT $1 ">=" $3 x )) }
-                         | Expression '<=' Expression         { % getComparisonType "<=" $1 $3 >>= (\x -> return (LBT $1 "<=" $3 x )) }
-                         | Expression '>'  Expression         { % getComparisonType ">" $1 $3 >>= (\x -> return (LBT $1 ">" $3 x )) }
-                         | Expression '<'  Expression         { % getComparisonType "<" $1 $3 >>= (\x -> return (LBT $1 "<" $3 x )) }
+                         | Expression '==' Expression         { % getEqualityType "==" $1 $3 $2 >>= (\x -> return (LBT $1 "==" $3 x )) }
+                         | Expression '/=' Expression         { % getEqualityType "/=" $1 $3 $2 >>= (\x -> return (LBT $1 "/=" $3 x )) }
+                         | Expression '>=' Expression         { % getComparisonType ">=" $1 $3 $2 >>= (\x -> return (LBT $1 ">=" $3 x )) }
+                         | Expression '<=' Expression         { % getComparisonType "<=" $1 $3 $2 >>= (\x -> return (LBT $1 "<=" $3 x )) }
+                         | Expression '>'  Expression         { % getComparisonType ">" $1 $3 $2 >>= (\x -> return (LBT $1 ">" $3 x )) }
+                         | Expression '<'  Expression         { % getComparisonType "<" $1 $3 $2 >>= (\x -> return (LBT $1 "<" $3 x )) }
 
 
-Dereference              : '*' Expression %prec IND           { % getPointerType $2 >>= (\x -> return (DUT $2 x)) }
+--Dereference              : '*' Expression %prec IND           { % getPointerType $2 >>= (\x -> return (DUT $2 x)) }
 
 GetArrayItem             : LeftSide '[' Expression ']'              { % checkIndexType $3 >> extArrayType $1 >>= (\x -> return (GAT $1 $3 x)) }
 
 GetProp                  : LeftSide '->' ID                 { GPT $1 $3 }
 
-Assignment               : LeftSide '=' Expression              { % getEqualityType "=" $1 $3 >>= (\x -> return (AT $1 $3 (getExpressionType $1))) }
+Assignment               : LeftSide '=' Expression              { % getEqualityType "=" $1 $3 $2 >>= (\x -> return (AT $1 $3 (getExpressionType $1))) }
 
 LeftSide                 : ID                                   { % checkId $1 Var Nothing >>= (\s -> return (IdT $1 (fromJust (getType' s)))) }
                          | GetArrayItem                         { OpT $1 }
                          | GetProp                              { OpT $1 }
-                         | Dereference                        { OpT $1 }
+--                         | Dereference                        { OpT $1 }
 
 FunctionCall             : ID_FUNCTION                                         { % checkId $1 Function Nothing >>= (\s -> return (FCAT $1 (fromJust (getType' s)))) }
-                         | ID_FUNCTION '(' WITH FunctionActualParams ')'       { % checkId $1 Function (Just $2) >>= (\s -> checkParams $4 s  >> return (FCNT $1 $4 (fromJust (getType' s)))) }
+                         | ID_FUNCTION '(' WITH FunctionActualParams ')'       { % checkId $1 Function (Just $2) >>= (\s -> checkParams $4 s $2  >> return (FCNT $1 $4 (fromJust (getType' s)))) }
 
 FunctionActualParams     : Expression                                                         { LFCP [$1] }
                          | Expression ',' FunctionActualParams                                { LFCP $ $1: listLFCP $3 }  

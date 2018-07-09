@@ -15,7 +15,9 @@ Once upon a time in Santadila ...(
 
   )... or that is what they say.
 
-  as = C4R4C4S(with hi,hi,23.9).
+  as = C4R4C4S(with hi,hi,hi,23.9).
+  as = C4R4C4S(with 23.9).
+  as = C4R4C4S(with hi,23.9).
   --C4R4C4S(with hi,"string",23.9).
   --C4R4C4S(with hi,hi).
 

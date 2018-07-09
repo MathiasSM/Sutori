@@ -243,21 +243,24 @@ modifyFunction s bf ps t = do
         newSymTable = SymTable $ Map.insert s newList oldHash
     put $ oldState { getSymTable = newSymTable } 
 
-checkParams :: Lists -> Maybe Symbol -> OurMonad ()
-checkParams _ Nothing = return ()
-checkParams (LFCP l) (Just s) = do 
+checkParams :: Lists -> Maybe Symbol -> AlexPosn -> OurMonad ()
+checkParams _ Nothing _ = return ()
+checkParams (LFCP l) (Just s) ap = do 
     let actualTypes = map getExpressionType l 
         formalTypes = f (getParams $ getOther s) 
         list = zip actualTypes formalTypes
         bad = filter (\(x,y) -> x/=y ) list
     when (length actualTypes /= length formalTypes) $ 
-        tell $ OurLog $ "N'umero de par'ametros de la funci'on '"++(getId s)++"' incorrecto.\n" 
+        tell $ OurLog $ showAlex ap++showArg (length actualTypes) (length formalTypes)++"to function '"++(getId s)++"'.\n" 
     when (length bad /= 0) $ 
-        tell $ OurLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"     
+        tell $ OurLog $ showAlex ap++"Invalid conversion from '"++"show $ head bad"++"' to '"++"show $ head bad"++"' in function '"++(getId s)++"'\n"     
     where f (LFDP l) = map (\(x,_,_) -> x) l
 
 showAlex :: AlexPosn -> String
 showAlex (AlexPn _ line col) = show line++":"++show col++": error: "
+
+showArg :: Int -> Int -> String
+showArg a b = if (a>b) then "Too many arguments " else "Too few arguments "
 
 getNumericType :: String -> Expression -> Expression -> AlexPosn -> OurMonad Type
 getNumericType sim e1 e2 ap = do
@@ -313,13 +316,13 @@ getLogicalType sim e1 e2 ap = do
           joinTypes _ _ = TE
 
 
-getComparisonType :: String -> Expression -> Expression -> OurMonad Type
-getComparisonType sim e1 e2 = do
+getComparisonType :: String -> Expression -> Expression -> AlexPosn -> OurMonad Type
+getComparisonType sim e1 e2 ap = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ "Operaci'on de comparaci'on "++sim++" no definida para tipos: \n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -342,13 +345,13 @@ getComparisonType sim e1 e2 = do
           joinTypes TB TF = TB
           joinTypes _ _ = TE 
 
-getEqualityType :: String -> Expression -> Expression -> OurMonad Type
-getEqualityType sim e1 e2 = do
+getEqualityType :: String -> Expression -> Expression -> AlexPosn -> OurMonad Type
+getEqualityType sim e1 e2 ap = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ "Operaci'on de igualdad "++sim++" no definida para tipos: \n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
     return $ finalType
     where joinTypes TI TC = TB
           joinTypes TI TB = TB
