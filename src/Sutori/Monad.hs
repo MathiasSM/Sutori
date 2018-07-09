@@ -13,41 +13,78 @@ import Control.Monad.Writer
 import Control.Monad.Zip
 
 import Sutori.AST
+import Sutori.Types
+import Sutori.Utils
 
+-- Data types {{{1
+type SutParserM a = StateT SutParserState (WriterT SutParserLog (Either SutParserError)) a
 
+-- SymTable {{{2
 type Scope = Int
-type Stack = [Scope]
-data Other = FunctionAST {getBlock::Lists, getParams::Lists} | ReferenceOp Int | NoOther deriving (Eq,Show)
-data Category = Module | Function | Person | Var | Param | TypeD  deriving (Eq,Show)
-data Symbol = Symbol {getId::String, getCategory::Category, getScope::Scope, getType::(Maybe Type), getOther:: Other} deriving (Eq)
-data SymTable = SymTable {getHash::Map.Map String [Symbol]} deriving (Eq,Show)
-data OurState = OurState {getSymTable::SymTable, getStack::Stack, getIdScope :: Scope, getSet :: Set.Set Scope } deriving (Eq,Show)
-data OurError = OurError Int
 
-data OurLog = OurLog {getErrorsLog::String}
+newtype SymTable = SymTable {
+  getHash :: Map.Map String [Symbol]
+} deriving (Eq,Show)
 
-instance Monoid OurLog where
-  mempty = OurLog ""
-  mappend (OurLog a) (OurLog b) = OurLog (a++b)
+-- Symbol {{{3
+data Symbol = Symbol {
+  getId       :: String,
+  getCategory :: SymCategory,
+  getScope    :: Scope,
+  getType     :: Maybe SutType,
+  getOther    :: SymOther
+} deriving (Show, Eq)
 
-instance Show OurLog where
-  show (OurLog a) = "Errores:\n"++a++"\n"
+-- Symbol Category {{{3
+data SymCategory = ModuleSym
+                 | FunctionSym
+                 | PersonSym
+                 | VarSym
+                 | ParamSym
+                 | TypeSym
+                 deriving (Eq,Show)
 
-instance Show Symbol where
-  show (Symbol id cat sc t other) = "Simbolo: "++id++"\n Tipo "++show t++"\n Categoria: "++(show cat)++"\n Scope: "++(show sc)++"\n"
+-- Symbol Other {{{3
+data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParam]}
+               | IsReference Bool
+               | NoOther
+               deriving (Eq,Show)
+
+instance SutPrint Symbol where
+  printSut (Symbol id cat sc t other) = "Symbol "++id++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++")"
+
+data SutParserState = SutParserState {
+  getSymTable :: SymTable,
+  getStack    :: [Scope],
+  getIdScope  :: Scope,
+  getSet      :: Set.Set Scope
+} deriving (Eq,Show)
+getCurScope = head . getStack
+emptyParserState = SutParserState (SymTable Map.empty) [0] 0 (Set.insert 0 Set.empty)
+
+newtype SutParserError = SutParserError Int
+
+newtype SutParserLog = SutParserLog {getErrorsLog :: String}
+
+instance Monoid SutParserLog where
+  mempty = SutParserLog ""
+  mappend (SutParserLog a) (SutParserLog b) = SutParserLog (a++b)
+
+instance Show SutParserLog where
+  show (SutParserLog a) = "[ERROR]\n"++a++"\n"
 
 
-type OurMonad a = StateT OurState (WriterT OurLog (Either OurError)) a
 
-runOurMonad :: OurMonad a -> OurState -> Either OurError ((a, OurState), OurLog)
-runOurMonad f a = runWriterT $ runStateT f a
+-- SutParserM Actions {{{1
 
-emptyState = OurState (SymTable Map.empty) [0] 0 (Set.insert 0 Set.empty)
+runSutParserM :: SutParserM a -> SutParserState -> Either SutParserError ((a, SutParserState), SutParserLog)
+runSutParserM f a = runWriterT $ runStateT f a
 
-getTuple f a = getTuple $ getRight $ runOurMonad f a `catchError` (\(OurError pos) -> error $ "\nError en linea "++show pos++"\n")
-    where
-        getRight (Right x) = x
-        getTuple((ast,st),log) = (ast,st,log)
+
+getTuple f a = getTuple $ getRight $ runSutParserM f a `catchError` parseError
+    where getRight (Right x) = x
+          getTuple((ast,st),log) = (ast,st,log)
+          parseError (SutParserError pos) = error $ "\nError in line "++show pos
 
 extract Nothing = []
 extract (Just a) = a
@@ -59,119 +96,127 @@ filterByLength p = filter (p . length) . group . sort
 repeated :: Ord a => [a] -> [a]
 repeated = map head . filterByLength (>1)
 
-addInitialTypes :: OurMonad ()
-addInitialTypes = do
-    oldState <- get
-    let oldSymTable = getSymTable oldState
-        aScope = head $ getStack oldState
+insertToTable oldState insert xs = newSymTable
+  where oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
-        newSymTable = SymTable $ foldl (addToMap aScope) oldHash ["bag","wallet","book" ,"lightb","chain" ,"machine","thing" ,"phrase","direction"]
-    put $ oldState { getSymTable = newSymTable }
-    where addToMap aScope mp s = let newSymbol = Symbol s TypeD aScope Nothing NoOther
-                                     newList = newSymbol:(extract $ Map.lookup s mp)
-                                     newMap = Map.insert s newList mp
-                                 in newMap
+        curScope = getCurScope oldState
+        newSymTable = SymTable $ foldl (insert curScope) oldHash xs
 
-addToSymTableVar :: Declaration ->  Type -> Lists -> OurMonad Declaration
-addToSymTableVar VDT t (LDV l) = do
+updateSymTable :: SutParserState -> SymTable -> SutParserM ()
+updateSymTable oldState newSymTable = do
+    put $ oldState { getSymTable = newSymTable }
+
+
+logAlreadyDefined :: SymCategory -> String -> SutID -> SutParserM ()
+logAlreadyDefined thing place id = tell $ SutParserLog $ "\n"++printSut thing++" '"++id++"' already defined in the same "++place++"."
+
+-- Insert symbols to Symtable
+insertTags :: SymCategory -> SutParserM ()
+insertTags symCat = do
     oldState <- get
-    let oldSymTable = getSymTable oldState
-        aScope = head $ getStack oldState
-        oldHash = getHash oldSymTable
-        sl = map fst l
-        newl = nub sl
-        newSymTable = SymTable $ foldl (addToMap aScope) oldHash l
-        inSymTable = mapM (lookVarInSymTableInScope aScope) newl
-        isFalse = fmap (zip newl) inSymTable >>= return.filter (\(_,x) -> x==True)
-    notGood <- or <$> inSymTable
-    isFalseL <- isFalse
-    when (length l /= length newl) $
-        mapM_ (\vs -> tell $ OurLog $ "Variable '"++vs++"' definida dos veces en la misma lista de declaraci'on de variables.\n") (repeated sl)
-    when (notGood) $
-        mapM_ (\(vs,_) -> tell $ OurLog $ "Variable '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
-    put $ oldState { getSymTable = newSymTable }
-    return VDT
-    where addToMap aScope mp (s,_) = let newSymbol = Symbol s Var aScope (Just t) NoOther
-                                         newList = newSymbol:(extract $ Map.lookup s mp)
-                                         newMap = Map.insert s newList mp
-                                     in newMap
+    let newSymTable = insertToTable oldState insertTag predefinedTypeNames
+    updateSymTable olState newSymTable
+    where insertTag curScope hash tag = let newSymbol = Symbol tag symCat curScope Nothing NoOther
+                                            newList = newSymbol : extract (Map.lookup tag hash)
+                                         in Map.insert s newList mp
 
-addToSymTablePerson :: Declaration -> Lists -> OurMonad Declaration
-addToSymTablePerson PDT (LPD l) = do
+insertVars :: SutType -> [SutID] -> SutParserM ()
+insertVars t ids = do
     oldState <- get
-    let oldSymTable = getSymTable oldState
-        aScope = head $ getStack oldState
-        oldHash = getHash oldSymTable
-        newSymTable = SymTable $ foldl (addToMap aScope) oldHash l
-        newl = nub l
-        inSymTable = mapM (lookVarInSymTableInScope aScope) newl
-        isFalse = fmap (zip newl) inSymTable >>= return.filter (\(_,x) -> x==True)
-    notGood <- or <$> inSymTable
-    isFalseL <- isFalse
-    when (length l /= length newl) $
-        mapM_ (\vs -> tell $ OurLog $ "Persona '"++vs++"' definida dos veces en la misma lista de declaraci'on de Personas.\n") (repeated l)
-    when (notGood) $
-        mapM_ (\(vs,_) -> tell $ OurLog $ "Persona '"++vs++"' definida dos veces en el mismo Scope.\n") isFalseL
-    put $ oldState { getSymTable = newSymTable }
-    return PDT
-    where addToMap aScope mp s = let newSymbol = Symbol s Person aScope Nothing NoOther
-                                     newList = newSymbol:(extract $ Map.lookup s mp)
-                                     newMap = Map.insert s newList mp
-                                 in newMap
+    let newSymTable = insertToTable oldState addToMap ids
+        nubids = nub ids
+    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
+    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
+    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
+    updateSymTable oldState newSymTable
+    where logScopeError (vs, _)      = logAlreadyDefined "Variable" "scope" vs
+          logListError vs            = logAlreadyDefined "Variable" "declaration" vs
+          addToMap curScope mp (s,_) = let newSymbol = Symbol s VarSym curScope (Just t) NoOther
+                                           newList = newSymbol:(extract $ Map.lookup s mp)
+                                        in Map.insert s newList mp
 
-addFuncToSymTable :: String -> OurMonad String
-addFuncToSymTable s = do
+insertPerson :: [SutID] -> SutParserM ()
+insertPerson ids = do
+    oldState <- get
+    let newSymTable = insertToTable oldState addToMap ids
+        nubids = nub ids
+    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
+    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
+    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
+    updateSymTable oldState newSymTable
+    where logScopeError (vs, _)  = logAlreadyDefined "Person" "scope" vs
+          logListError vs        = logAlreadyDefined "Person" "declaration" vs
+          addToMap curScope mp s = let newSymbol = Symbol s PersonSym curScope Nothing NoOther
+                                       newList = newSymbol:(extract $ Map.lookup s mp)
+                                    in Map.insert s newList mp
+
+insertFunction :: SutID -> SutParserM ()
+insertFunction s = do
     oldState <- get
     let oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
         oldStack = getStack oldState
-        idScope = getIdScope oldState
-        aScope = idScope + 1
-        funcSymbol = Symbol s Function (head $ getStack oldState) Nothing NoOther
-        newL = funcSymbol:(extract $ Map.lookup s oldHash)
-        newSymTable = SymTable $ Map.insert s newL oldHash
-        newSet = Set.insert aScope (getSet oldState)
-        newStack = aScope:oldStack
-    notGood <- lookVarInSymTableInScope (head $ getStack oldState) s
-    when (notGood) $
-        tell $ OurLog $ "Identificador '"++s++"' de la funci'on definido dos veces en el mismo Scope.\n"
-    put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = aScope, getSet = newSet}
-    return s
+        oldList = extract $ Map.lookup s oldHash
+        curScope = getIdScope oldState + 1
+        funcSymbol = Symbol s FunctionSym (head $ getStack oldState) Nothing NoOther
+        newSymTable = SymTable $ Map.insert s (funcSymbol:oldList) oldHash
+        newSet = Set.insert curScope (getSet oldState)
+        newStack = curScope:oldStack
+    notGood <- lookupVarInScope (head $ getStack oldState) s
+    when (notGood) $ logAlreadyDefined "Function" "scope" id
+    put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = curScope, getSet = newSet}
 
 
-
-addParamsFuncToSymTable :: Lists -> OurMonad Lists
-addParamsFuncToSymTable (LFDP l) = do
+insertFunctionParams :: [SutParam] -> SutParserM ()
+insertFunctionParams ps = do
     oldState <- get
+    let newSymTable = insertToTable oldState addToMap ids
+        oldList = map (\(_, pid, _) -> pid) ps
+        newList = nub oldList
+    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
+    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
+    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
+    updateSymTable oldState newSymTable
+    where logScopeError (vs, _)  = logAlreadyDefined "Person" "scope" vs
+          logListError vs        = logAlreadyDefined "Person" "declaration" vs
+          addToMap curScope mp s = let newSymbol = Symbol s PersonSym curScope Nothing NoOther
+                                       newList = newSymbol:(extract $ Map.lookup s mp)
+                                    in Map.insert s newList mp
     let oldSymTable = getSymTable oldState
         oldHash = getHash oldSymTable
-        aScope = head $ getStack oldState
-        newSymTable = SymTable $ foldl (addToMap aScope) oldHash l
+        curScope = head $ getStack oldState
+        newSymTable = SymTable $ foldl (addToMap curScope) oldHash l
         sl = map (\(_,s,_) -> s) l
         newl = nub sl
     when (length l /= length newl) $
-        mapM_ (\vs -> tell $ OurLog $ "Id '"++vs++"' definido dos veces en la misma lista de parametros de la funci'on\n") (repeated sl)
-    put $ oldState { getSymTable = newSymTable }
+        mapM_ (\vs -> tell $ SutParserLog $ "Id '"++vs++"' definido dos veces en la misma lista de parametros de la funci'on\n") (repeated sl)
+    updateSymTable oldState newSymTable
     return $ LFDP l
-    where addToMap aScope mp (tf,sf,f) = let newSymbol = Symbol sf Param aScope (Just tf) (ReferenceOp f)
+    where addToMap curScope mp (tf,sf,f) = let newSymbol = Symbol sf Param curScope (Just tf) (ReferenceOp f)
                                              newList = newSymbol:(extract $ Map.lookup sf mp)
                                              newMap = Map.insert sf newList mp
                                          in newMap
 
-addTypeToSymTable :: Declaration -> String -> OurMonad Declaration
-addTypeToSymTable TDT s = do
+insertType :: Declaration -> String -> SutParserM Declaration
+insertType TDT s = do
     oldState <- get
     let oldSymTable = getSymTable oldState
-        aScope = head $ getStack oldState
+        curScope = head $ getStack oldState
         oldHash = getHash oldSymTable
-        newSymbol = Symbol s TypeD aScope Nothing NoOther
+        newSymbol = Symbol s TypeSym curScope Nothing NoOther
         newList = newSymbol:(extract $ Map.lookup s oldHash)
         newSymTable = SymTable $ Map.insert s newList oldHash
-    put $ oldState { getSymTable = newSymTable }
+    updateSymTable oldState newSymTable
     return TDT
 
-lookVarInSymTableInScope :: Int -> String -> OurMonad Bool
-lookVarInSymTableInScope sc s = do
+
+
+
+
+
+
+lookupVarInScope :: Int -> String -> SutParserM Bool
+lookupVarInScope sc s = do
     oldState <- get
     let hash = getHash.getSymTable $ oldState
         symb = map getScope (extract $ Map.lookup s hash)
@@ -182,7 +227,7 @@ lookVarInSymTableInScope sc s = do
     return ans
 
 
-removeLastScope :: OurMonad ()
+removeLastScope :: SutParserM ()
 removeLastScope = do
     oldState <- get
     let oldStack = getStack oldState
@@ -191,7 +236,7 @@ removeLastScope = do
     put $ oldState { getStack = newStack, getSet = newSet }
 
 
-checkId :: String -> Category -> OurMonad (Maybe Symbol)
+checkId :: String -> Category -> SutParserM (Maybe Symbol)
 checkId s cat = do
     state <- get
     let hash = getHash $ getSymTable state
@@ -199,7 +244,7 @@ checkId s cat = do
         listSymb = Map.lookup s hash
         good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
     when (length good == 0) $
-        tell $ OurLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
+        tell $ SutParserLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
     return $ head' good
 
 head' [] = Nothing
@@ -208,29 +253,29 @@ head' (x:xs) = Just x
 getType' Nothing = Just TE
 getType' (Just s) = getType s
 
-checkType :: Type -> OurMonad ()
+checkType :: Type -> SutParserM ()
 checkType (TID s) = do
     state <- get
     let hash = getHash $ getSymTable state
         set = getSet state
         listSymb = Map.lookup s hash
-        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == TypeD))  (extract listSymb)
+        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == TypeSym))  (extract listSymb)
     when (length good == 0) $
-        tell $ OurLog $ "Tipo '"++s++"' no definido anteriormente\n"
+        tell $ SutParserLog $ "Tipo '"++s++"' no definido anteriormente\n"
 
 checkType _ = return ()
 
-addInstructionScope :: OurMonad ()
+addInstructionScope :: SutParserM ()
 addInstructionScope = do
     oldState <- get
     let oldStack = getStack oldState
         idScope = getIdScope oldState
-        aScope = idScope + 1
-        newSet = Set.insert aScope (getSet oldState)
-        newStack = aScope:oldStack
-    put $ oldState { getStack = newStack, getIdScope = aScope, getSet = newSet}
+        curScope = idScope + 1
+        newSet = Set.insert curScope (getSet oldState)
+        newStack = curScope:oldStack
+    put $ oldState { getStack = newStack, getIdScope = curScope, getSet = newSet}
 
-modifyFunction :: String -> Lists -> Lists -> Type -> OurMonad ()
+modifyFunction :: String -> Lists -> Lists -> Type -> SutParserM ()
 modifyFunction s bf ps t = do
     oldSymbol <- checkId s Function
     oldState <- get
@@ -242,7 +287,7 @@ modifyFunction s bf ps t = do
         newSymTable = SymTable $ Map.insert s newList oldHash
     put $ oldState { getSymTable = newSymTable }
 
-checkParams :: Lists -> Maybe Symbol -> OurMonad ()
+checkParams :: Lists -> Maybe Symbol -> SutParserM ()
 checkParams _ Nothing = return ()
 checkParams (LFCP l) (Just s) = do
     let actualTypes = map getExpressionType l
@@ -250,19 +295,19 @@ checkParams (LFCP l) (Just s) = do
         list = zip actualTypes formalTypes
         bad = filter (\(x,y) -> x/=y ) list
     when (length actualTypes /= length formalTypes) $
-        tell $ OurLog $ "N'umero de par'ametros de la funci'on '"++(getId s)++"' incorrecto.\n"
+        tell $ SutParserLog $ "N'umero de par'ametros de la funci'on '"++(getId s)++"' incorrecto.\n"
     when (length bad /= 0) $
-        tell $ OurLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"
+        tell $ SutParserLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"
     where f (LFDP l) = map (\(x,_,_) -> x) l
 
 
-getNumericType :: String -> Expression -> Expression -> OurMonad Type
+getNumericType :: String -> Expression -> Expression -> SutParserM Type
 getNumericType sim e1 e2 = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $
-        tell $ OurLog $ "Operaci'on num'erica "++sim++" no definida para tipos: \n"
+        tell $ SutParserLog $ "Operaci'on num'erica "++sim++" no definida para tipos: \n"
     return $ finalType
     where joinTypes TI TI = TI
           joinTypes TI TC = TI
@@ -286,13 +331,13 @@ getNumericType sim e1 e2 = do
 
           joinTypes _ _ = TE
 
-getLogicalType :: String -> Expression -> Expression -> OurMonad Type
+getLogicalType :: String -> Expression -> Expression -> SutParserM Type
 getLogicalType sim e1 e2 = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $
-        tell $ OurLog $ "Operaci'on logica"++sim++" no definida para tipos: \n"
+        tell $ SutParserLog $ "Operaci'on logica"++sim++" no definida para tipos: \n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -310,13 +355,13 @@ getLogicalType sim e1 e2 = do
           joinTypes _ _ = TE
 
 
-getComparisonType :: String -> Expression -> Expression -> OurMonad Type
+getComparisonType :: String -> Expression -> Expression -> SutParserM Type
 getComparisonType sim e1 e2 = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $
-        tell $ OurLog $ "Operaci'on de comparaci'on "++sim++" no definida para tipos: \n"
+        tell $ SutParserLog $ "Operaci'on de comparaci'on "++sim++" no definida para tipos: \n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -339,13 +384,13 @@ getComparisonType sim e1 e2 = do
           joinTypes TB TF = TB
           joinTypes _ _ = TE
 
-getEqualityType :: String -> Expression -> Expression -> OurMonad Type
+getEqualityType :: String -> Expression -> Expression -> SutParserM Type
 getEqualityType sim e1 e2 = do
     let type1 = getExpressionType e1
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $
-        tell $ OurLog $ "Operaci'on de igualdad "++sim++" no definida para tipos: \n"
+        tell $ SutParserLog $ "Operaci'on de igualdad "++sim++" no definida para tipos: \n"
     return $ finalType
     where joinTypes TI TC = TB
           joinTypes TI TB = TB
@@ -367,34 +412,34 @@ getEqualityType sim e1 e2 = do
 
           joinTypes a b = if (a==b) then TB else TE
 
-checkIndexType :: Expression -> OurMonad ()
+checkIndexType :: Expression -> SutParserM ()
 checkIndexType e = do
     let t = getExpressionType e
         i = toInt t
     when (i == TE) $
-        tell $ OurLog $ "Indice no convertible a entero\n"
+        tell $ SutParserLog $ "Indice no convertible a entero\n"
     where toInt TI = TI
           toInt TC = TI
           toInt TB = TI
           toInt _  = TE
 
-extArrayType :: Expression -> OurMonad Type
+extArrayType :: Expression -> SutParserM Type
 extArrayType e = do
     let pt = getExpressionType e
     case pt of
         (TA _ t) -> return t
         TE -> return TE
-        _ -> do tell $ OurLog $ "Operaci'on de indexaci'on no definida para tipo: \n"
+        _ -> do tell $ SutParserLog $ "Operaci'on de indexaci'on no definida para tipo: \n"
                 return TE
 
 
-getPointerType :: Expression -> OurMonad Type
+getPointerType :: Expression -> SutParserM Type
 getPointerType e = do
     let pt = getExpressionType e
     case pt of
         (TP t) -> return t
         TE -> return TE
-        _ -> do tell $ OurLog $ "Operaci'on de deferencia no definida para tipo: \n"
+        _ -> do tell $ SutParserLog $ "Operaci'on de deferencia no definida para tipo: \n"
                 return TE
 
 
@@ -425,5 +470,5 @@ getOperationType (AT _ _ t) = t
 -- getOperationType (FCAT _) = t
 -- getOperationType (FCNT _ _) = t
 
-printSymTable :: OurState -> IO ()
+printSymTable :: SutParserState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))

@@ -11,3 +11,15 @@ data SutType  = SutTypeInt
               | SutTypeUnion [SutMember]
               | SutTypeArray SutType Int
               deriving (Show, Eq)
+
+predefinedTypeNames =
+  [
+    "bag",
+    "wallet",
+    "phrase",
+    "light",
+    "direction",
+    "machine",
+    "thing",
+    "chain"
+  ]

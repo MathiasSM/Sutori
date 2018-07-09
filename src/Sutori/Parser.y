@@ -195,8 +195,8 @@ LeftSide                 : ID                          { % checkId $1 Var >>= (\
 FunctionCall             : ID                                   { % checkId $1 Function >>= (\s -> return (SutCall (fromJust (getType' s)) $1 [])) }
                          | ID '(' WITH FunctionActualParams ')' { % checkId $1 Function >>= (\s -> checkParams $4 s  >> return (SutCall (fromJust (getType' s)) $1 $4)) }
 
-FunctionActualParams     : Expression                                    { [$1] }
-                         | Expression ',' FunctionActualParams           { $1:$3 }
+FunctionActualParams     : Expression                           { [$1] }
+                         | Expression ',' FunctionActualParams  { $1:$3 }
 
 
 -- Declaration
@@ -215,12 +215,12 @@ PersonNames              : ID                                    { [$1] }
 
 FunctionDeclaration      ::                                      { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN
-                           { % removeLastScope >> checkType $5 >> modifyFunction $2 $6 (LFDP []) $5 >> return () }
+                           { % checkType $5 >> modifyFunction $2 $6 (LFDP []) $5 >> return () }
 
                          | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN
-                           { % removeLastScope >> checkType $5 >> modifyFunction $2 $10 $8 $5 >> return () }
+                           { % checkType $5 >> modifyFunction $2 $10 $8 $5 >> return () }
 
-IdentificadorFun         : ID                           { % addFuncToSymTable $1 }
+IdentificadorFun         : ID                                    { % addFuncToSymTable $1 }
 
 StackParams              : FunctionFormalParams                  { % addParamsFuncToSymTable $1 }
 
@@ -237,7 +237,7 @@ VariableList             : ID ',' VariableList                   { ($1,Nothing):
                          | ID '=' Expression                     { [($1,Just $3)] }
                          | ID                                    { [($1,Nothing)] }
 
-TypeDeclaration          : ID S_invented ID                        { % checkId $1 Person >> addTypeToSymTable TDT $3 }
+TypeDeclaration          : ID S_invented ID                      { % checkId $1 Person >> addTypeToSymTable TDT $3 }
 
 -- Types
 -----------------------------------------------------------------------------------------------------------------------
@@ -261,15 +261,18 @@ UnionTyping              : Type ID                                     { [($1,$2
 
 -- Blocks
 -----------------------------------------------------------------------------------------------------------------------
-Block                    : BLOCK_OPEN BlockContent BLOCK_CLOSE         { $2 }
+AddScope                 : {-empty-}                                   { % addInstructionScope }
+RemoveScope              : {-empty-}                                   { % removeLastScope }
 
-BlockContent             : Statement '.' BlockContent                  { $1: $3 }
+Block                    : BLOCK_OPEN AddScope BlockContent RemoveScope BLOCK_CLOSE         { $3 }
+
+BlockContent             : Statement BlockContent                      { $1: $2 }
                          | {-empty-}                                   { [] }
 
-FunctionBlock            : BLOCK_OPEN FunctionBlockContent BLOCK_CLOSE { $2 }
+FunctionBlock            : BLOCK_OPEN AddScope FunctionBlockContent RemoveScope BLOCK_CLOSE { $3 }
 
-FunctionBlockContent     : Statement '.' FunctionBlockContent          { $1:$3 }
-                         | ReturnStatement '.' FunctionBlockContent    { $1:$3 }
+FunctionBlockContent     : Statement FunctionBlockContent              { $1:$2 }
+                         | ReturnStatement FunctionBlockContent        { $1:$2 }
                          | {-empty-}                                   { [] }
 
 Statement                : Instruction                                 { $1 }
@@ -281,12 +284,12 @@ ReturnStatement          : S_andthatswhere Expression S_comesfrom      { SutRetu
 
 -- Instructions
 -----------------------------------------------------------------------------------------------------------------------
-Instruction              : Expression                                                      { SutInstExpression $1 }
+Instruction              : Expression '.'                                                  { SutInstExpression $1 }
                          | Selection                                                       { $1 }
                          | UnboundedIteration                                              { $1 }
                          | BoundedIteration                                                { $1 }
-                         | ManageMemory                                                    { $1 }
-                         | Print                                                           { $1 }
+                         | ManageMemory '.'                                                { $1 }
+                         | Print '.'                                                       { $1 }
 
 ManageMemory             : CreatePointer                                                   { $1 }
                          | FreePointer                                                     { $1 }
@@ -294,19 +297,18 @@ ManageMemory             : CreatePointer                                        
 CreatePointer            : ID S_madea Type                                                 { % checkId $1 Var >> checkType $3 >> return (SutCreatePointer $1 $3) }
 FreePointer              : ID S_brokea ID                                                  { % checkId $1 Var >> checkId $3 Var >> return (SutFreePointer $1 $3) }
 
-Selection                : IdToken S_dreamsof Block WHEN Expression                        { % getLogicalType "condition" $5 $5 >> removeLastScope >> return (SutSelection $1 $3 $5 []) }
-                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block { % getLogicalType "condition" $5 $5 >> removeLastScope >> return (SutSelection $1 $3 $5 $8) }
+Selection                : IdToken S_dreamsof Block WHEN Expression                        { % getLogicalType "condition" $5 $5 >> return (SutSelection $1 $3 $5 []) }
+                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block { % getLogicalType "condition" $5 $5 >> return (SutSelection $1 $3 $5 $8) }
 
-OtherwiseTok             : OTHERWISE                                                       { % removeLastScope >> addInstructionScope }
+OtherwiseTok             : OTHERWISE                                                       { % addInstructionScope }
 
 
 IdToken                  : ID                                                              { % checkId $1 Person >> addInstructionScope >> return $1 }
 
-UnboundedIteration       : IdToken S_keepsdreamingof Expression Block                      { % getLogicalType "condition" $3 $3 >> removeLastScope >> return (SutIterationU $1 $3 $4) }
+UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 >> return (SutIterationU $1 $3 $4) }
 
-BoundedIteration         : Action_AddScope Block ID S_toldthatstory Expression TIMES              { % checkIndexType $5 >> removeLastScope >> checkId $3 Person >> return (SutIterationB $2 $3 $5) }
+BoundedIteration         : Block ID S_toldthatstory Expression TIMES       { % checkIndexType $5 >> checkId $3 Person >> return (SutIterationB $2 $3 $5) }
 
-Action_AddScope                 : {-empty-}                                                       { % addInstructionScope }
 
 Print                    : ID ':' Expression                                               { % checkId $1 Person >>  return (SutPrintVal $1 $3) }
 

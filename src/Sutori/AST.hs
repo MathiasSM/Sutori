@@ -1,5 +1,6 @@
 module Sutori.AST where
 
+import System.IO
 import Data.Maybe
 import Control.Monad
 import Control.Monad.State
@@ -10,6 +11,7 @@ import Sutori.Types
 type SutID = String
 type SutModule = (SutID, SutBlock)
 type SutBlock = [SutInstruction]
+type SutParam = (SutType, SutID)
 
 data SutInstruction = SutInstExpression SutExpression
                     | SutSelection      SutID SutExpression SutBlock SutBlock
@@ -43,13 +45,13 @@ data SutConstructor = SutArray [SutExpression]
                     | SutStruct [(SutID, SutExpression)]
                     deriving (Show, Eq)
 
-data SutBiOp = SutOpPos
+data SutUnOp = SutOpPos
              | SutOpNeg
              | SutOpNot
              | SutOpDer
              deriving (Show, Eq)
 
-data SutUnOp  = SutOpAdd
+data SutBiOp  = SutOpAdd
               | SutOpSub
               | SutOpMul
               | SutOpDiv
@@ -80,17 +82,21 @@ putStrLnWithIdent n s = ident n >> putStrLn s
 
 logByPerson n p = putStrWithIdent (n+1) "By Person: " >> putStrLn p
 
+logID :: Int -> SutID -> IO()
 logID n s = putStrLnWithIdent n $ "ID: " ++ s
 
+logModule :: Int -> SutModule -> IO()
 logModule n (s, b) = do
   putStrLnWithIdent n "Module"
   logID (n+1) s
   putStrLnWithIdent (n+1) "Block:"
   logBlock (n+2) b
 
+logBlock :: Int -> SutBlock -> IO()
 logBlock n [] = putStrLnWithIdent n "Code block (empty)"
-logBlock n = foldr ((>>) . logInstruction n) (return IO ())
+logBlock n is = foldr ((>>) . logInstruction n) (return ()) is
 
+logInstruction :: Int -> SutInstruction -> IO()
 logInstruction n (SutInstExpression e) = do
   putStrLnWithIdent n "Expression Instruction"
   logExpression (n+1) e
@@ -104,50 +110,50 @@ logInstruction n (SutIterationU p e b) = do
   putStrLnWithIdent n "Iteration (Unbounded)"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "While:" >> logExpression (n+2) e
-  putStrLnWithIdent (n+1) "Block:" >> logBlock (n+2) i
+  putStrLnWithIdent (n+1) "Block:" >> logBlock (n+2) b
 logInstruction n (SutIterationB p e b) = do
   putStrLnWithIdent n "Iteration (Bounded)"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Repetitions:" >> logExpression (n+2) e
-  putStrLnWithIdent (n+1) "Block:" >> logBlock (n+2) i
+  putStrLnWithIdent (n+1) "Block:" >> logBlock (n+2) b
 logInstruction n (SutCreatePointer p t) = do
   putStrLnWithIdent n "Pointer creation"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Type:"
-
-logInstruction n (SutFreePointer i e) = do
+logInstruction n (SutFreePointer p e) = do
   putStrLnWithIdent n "Pointer freeing"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Pointer:"
   logExpression (n+2) e
-logInstruction n (SutPrintVal i e) = do
+logInstruction n (SutPrintVal p e) = do
   putStrLnWithIdent n "Print Instruction"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Expression to print:"
   logExpression (n+2) e
-logInstruction n (SutReadVal i e) = do
+logInstruction n (SutReadVal p e) = do
   putStrLnWithIdent n "Read Instruction"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Read into:"
   logExpression (n+2) e
-logInstruction n (SutReturn i e) = do
+logInstruction n (SutReturn p e) = do
   putStrLnWithIdent n "Return Instruction"
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Returns:"
   logExpression (n+2) e
 
+logExpression :: Int -> SutExpression -> IO()
 logExpression n (SutExprLiteral t l) = logLiteral n l
 logExpression n (SutExprConstructor t c) = do
   putStrLnWithIdent n "Constructor"
   putStrLnWithIdent (n+1) "Type:"
-  logConstructor (n+1)
+  logConstructor (n+1) c
 logExpression n (SutBinaryOp t o e1 e2) = do
   putStrLnWithIdent n $ "Binary Operation (" ++ printSut o ++ ")"
   putStrLnWithIdent (n+1) "Type:"
   putStrLnWithIdent (n+1) "First operand:"
   logExpression (n+2) e1
   putStrLnWithIdent (n+1) "Second operand:"
-  logExpression (n+2) e2c
+  logExpression (n+2) e2
 logExpression n (SutUnaryOp t o e) = do
   putStrLnWithIdent n $ "Unary Operation (" ++ printSut o ++ ")"
   putStrLnWithIdent (n+1) "Type:"
@@ -158,7 +164,7 @@ logExpression n (SutCall t i es) = do
   putStrLnWithIdent (n+1) "Type:"
   logID (n+1) i
   putStrLnWithIdent (n+1) "Arguments:"
-  foldr ((>>) . logExpression (n+2)) (return IO ()) es
+  foldr ((>>) . logExpression (n+2)) (return ()) es
 logExpression n (SutExprID t i) = do
   putStrLnWithIdent n "Variable"
   putStrLnWithIdent (n+1) "Type:"
@@ -169,32 +175,34 @@ logExpression n (SutArrayItem t a i) = do
   putStrLnWithIdent (n+1) "Array:"
   logExpression (n+2) a
   putStrLnWithIdent (n+1) "Index:"
-  logExpression (n+2) ii
+  logExpression (n+2) i
 logExpression n (SutStructMember t e i) = do
   putStrLnWithIdent n "Structure member"
   putStrLnWithIdent (n+1) "Type:"
   putStrLnWithIdent (n+1) "Structure:"
-  logExpression (n+2) a
+  logExpression (n+2) e
   logID (n+1) i
 
-logLiteral n (SutString s)  = putStrLnWithIdent n "Literal string: \"" ++ show s ++ "\""
-logLiteral n (SutInt i)     = putStrLnWithIdent n "Literal integer: " ++ show i
-logLiteral n (SutFloat f)   = putStrLnWithIdent n "Literal float: " ++ show f
-logLiteral n (SutChar c)    = putStrLnWithIdent n "Literal character: '" ++ show c ++ "'"
-logLiteral n (SutBool b)    = putStrLnWithIdent n "Literal boolean: " ++ show b
+logLiteral :: Int -> SutLiteral -> IO()
+logLiteral n (SutString s)  = putStrLnWithIdent n $ "Literal string: \"" ++ show s ++ "\""
+logLiteral n (SutInt i)     = putStrLnWithIdent n $ "Literal integer: " ++ show i
+logLiteral n (SutFloat f)   = putStrLnWithIdent n $ "Literal float: " ++ show f
+logLiteral n (SutChar c)    = putStrLnWithIdent n $ "Literal character: '" ++ show c ++ "'"
+logLiteral n (SutBool b)    = putStrLnWithIdent n $ "Literal boolean: " ++ show b
 
+logConstructor :: Int -> SutConstructor -> IO()
 logConstructor n (SutArray es) = do
-  printStrLnWithIdent n "Constructed Array"
-  foldr ((>>) . logExpression (n+1)) (return IO ()) es
+  putStrLnWithIdent n "Constructed Array"
+  foldr ((>>) . logExpression (n+1)) (return ()) es
 logConstructor n (SutStruct nes) = do
-  printStrLnWithIdent n "Constructed Structure"
-  foldr ((>>) . logNamedExpression) (return IO ()) nes
+  putStrLnWithIdent n "Constructed Structure"
+  foldr ((>>) . logNamedExpression) (return ()) nes
     where
-      logNamedExpression (i,e) = do
-        printStrLnWithIdent (n+1) "Member"
+      logNamedExpression (i, e) = do
+        putStrLnWithIdent (n+1) "Member"
         logID (n+2) i
-        printStrLnWithIdent (n+1) "Value:"
-        logExpression (n+2)
+        putStrLnWithIdent (n+1) "Value:"
+        logExpression (n+2) e
 
 
 instance SutPrint SutUnOp where
