@@ -135,9 +135,9 @@ tokens :-
 type GetTokenAction = AlexInput -> Int -> Alex SutToken
 
 data SutToken = SutToken AlexPosn SutTokenClass deriving Show
-instance SutPrint SutToken where
-  printSut (SutToken _ SutTkEOF) = "Token EOF"
-  printSut (SutToken p cl)  = "Token (" ++ printSut cl ++ "): " ++ printSut p
+instance SutShow SutToken where
+  showSut (SutToken _ SutTkEOF) = "Token EOF"
+  showSut (SutToken p cl)  = "Token (" ++ showSut cl ++ "): " ++ showSut p
 
 alexEOF :: Alex SutToken
 alexEOF = return $ SutToken undefined SutTkEOF
@@ -225,8 +225,8 @@ data SutTokenClass =
     SutTkId     String
   deriving (Eq,Show)
 
-instance SutPrint SutTokenClass where
-  printSut = show
+instance SutShow SutTokenClass where
+  showSut = show
 
 
 data AlexUserState = AlexUserState {
@@ -243,8 +243,8 @@ alexInitUserState = AlexUserState {
   lexerStringValue   = ""
 }
 
-instance SutPrint AlexPosn where
-  printSut (AlexPn _ line col) = show line ++ ":" ++ show col
+instance SutShow AlexPosn where
+  showSut (AlexPn _ line col) = show line ++ ":" ++ show col
 
 
 -- ## Actions
@@ -344,7 +344,7 @@ lexerError msg =
   do (p, c, _, input) <- alexGetInput
      let cleanInput   = clean input
          errorPrefix  = if null msg then "Lexer error" else trim msg
-     alexError (errorPrefix ++ " at " ++ printSut p ++ placeError input cleanInput c)
+     alexError (errorPrefix ++ " at " ++ showSut p ++ placeError input cleanInput c)
   where
     clean       = shorten . removeBr . trim
     trim        = dropWhileEnd isSpace . dropWhile isSpace

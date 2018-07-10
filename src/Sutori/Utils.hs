@@ -1,7 +1,7 @@
 module Sutori.Utils
 (
-  SutPrint(..)
+  SutShow(..)
 ) where
 
-class SutPrint a where
-  printSut :: a -> String
+class SutShow a where
+  showSut :: a -> String

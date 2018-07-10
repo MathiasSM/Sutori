@@ -112,7 +112,7 @@ import Sutori.Types
 Source                   : PROGRAM_INI ID Block PROGRAM_FIN EOF  { % addInitialTypes >> return (SutModule $2 $3) }
 
 -- Expressions
-----------------------------------------------------------------------------------------------------------------------
+-- ====================================================================================================================
 Expression               : LeftSide           { $1 }
                          | Literal            { SutExprLiteral $1 }
                          | Constructor        { SutExprConstructor $1 }
@@ -199,8 +199,10 @@ FunctionActualParams     : Expression                           { [$1] }
                          | Expression ',' FunctionActualParams  { $1:$3 }
 
 
+
+
 -- Declaration
------------------------------------------------------------------------------------------------------------------------
+-- =====================================================================================================================
 Declaration              : PersonDeclaration                     { % addToSymTablePerson $1}
                          | FunctionDeclaration                   { $1 }
                          | VariableDeclaration                   { $1 }
@@ -213,7 +215,6 @@ PersonNames              : ID                                    { [$1] }
                          | ID ',' PersonNames                    { $1:$3 }
                          | ID and PersonNames                    { $1:$3 }
 
-FunctionDeclaration      ::                                      { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN
                            { % checkType $5 >> modifyFunction $2 $6 (LFDP []) $5 >> return () }
 
@@ -239,8 +240,10 @@ VariableList             : ID ',' VariableList                   { ($1,Nothing):
 
 TypeDeclaration          : ID S_invented ID                      { % checkId $1 Person >> addTypeToSymTable TDT $3 }
 
+
+
 -- Types
------------------------------------------------------------------------------------------------------------------------
+-- ====================================================================================================================
 Type                     : TYPE_INT                                    { SutInt }
                          | TYPE_FLOAT                                  { SutFloat }
                          | TYPE_CHAR                                   { SutChar }
@@ -260,7 +263,7 @@ UnionTyping              : Type ID                                     { [($1,$2
 
 
 -- Blocks
------------------------------------------------------------------------------------------------------------------------
+-- ====================================================================================================================
 AddScope                 : {-empty-}                                   { % addInstructionScope }
 RemoveScope              : {-empty-}                                   { % removeLastScope }
 
@@ -311,6 +314,7 @@ BoundedIteration         : Block ID S_toldthatstory Expression TIMES       { % c
 
 
 Print                    : ID ':' Expression                                               { % checkId $1 Person >>  return (SutPrintVal $1 $3) }
+-- Read                     : LeftSide '?'                                                  { % checkId $1 Person >>  return (SutPrintVal $1 $3) }
 
 
 
@@ -321,6 +325,6 @@ happyError tks = error ("Parse error at " ++ lcn ++ "\n")
   where
     lcn = case tks of
             []    -> "end of file"
-            ((Token (AlexPn _ l c) _):_)  -> "line " ++ show l ++ ", column " ++ show c
+            ((SutToken (AlexPn _ l c) _):_)  -> "line " ++ show l ++ ", column " ++ show c
 
 }

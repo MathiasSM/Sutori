@@ -15,43 +15,12 @@ import Control.Monad.Zip
 import Sutori.AST
 import Sutori.Types
 import Sutori.Utils
+import Sutori.SymTable
 
 -- Data types {{{1
 type SutParserM a = StateT SutParserState (WriterT SutParserLog (Either SutParserError)) a
 
 -- SymTable {{{2
-type Scope = Int
-
-newtype SymTable = SymTable {
-  getHash :: Map.Map String [Symbol]
-} deriving (Eq,Show)
-
--- Symbol {{{3
-data Symbol = Symbol {
-  getId       :: String,
-  getCategory :: SymCategory,
-  getScope    :: Scope,
-  getType     :: Maybe SutType,
-  getOther    :: SymOther
-} deriving (Show, Eq)
-
--- Symbol Category {{{3
-data SymCategory = ModuleSym
-                 | FunctionSym
-                 | PersonSym
-                 | VarSym
-                 | ParamSym
-                 | TypeSym
-                 deriving (Eq,Show)
-
--- Symbol Other {{{3
-data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParam]}
-               | IsReference Bool
-               | NoOther
-               deriving (Eq,Show)
-
-instance SutPrint Symbol where
-  printSut (Symbol id cat sc t other) = "Symbol "++id++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++")"
 
 data SutParserState = SutParserState {
   getSymTable :: SymTable,
@@ -96,74 +65,44 @@ filterByLength p = filter (p . length) . group . sort
 repeated :: Ord a => [a] -> [a]
 repeated = map head . filterByLength (>1)
 
-insertToTable oldState insert xs = newSymTable
-  where oldSymTable = getSymTable oldState
-        oldHash = getHash oldSymTable
-        curScope = getCurScope oldState
-        newSymTable = SymTable $ foldl (insert curScope) oldHash xs
-
-updateSymTable :: SutParserState -> SymTable -> SutParserM ()
-updateSymTable oldState newSymTable = do
-    put $ oldState { getSymTable = newSymTable }
-
-
-logAlreadyDefined :: SymCategory -> String -> SutID -> SutParserM ()
-logAlreadyDefined thing place id = tell $ SutParserLog $ "\n"++printSut thing++" '"++id++"' already defined in the same "++place++"."
-
--- Insert symbols to Symtable
-insertTags :: SymCategory -> SutParserM ()
-insertTags symCat = do
-    oldState <- get
-    let newSymTable = insertToTable oldState insertTag predefinedTypeNames
-    updateSymTable olState newSymTable
-    where insertTag curScope hash tag = let newSymbol = Symbol tag symCat curScope Nothing NoOther
-                                            newList = newSymbol : extract (Map.lookup tag hash)
-                                         in Map.insert s newList mp
-
+-- Inserts
+---------------------------------------------------------------------------------------------------
 insertVars :: SutType -> [SutID] -> SutParserM ()
 insertVars t ids = do
     oldState <- get
-    let newSymTable = insertToTable oldState addToMap ids
-        nubids = nub ids
+    let nubids = nub ids
+        curScope = getCurScope oldState
+        newSymTable = insert (getSymTable oldState) curScope VarSym t NoOther
     notGood <- or <$> mapM (lookupVarInScope curScope) nubids
-    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
+    when (length ids /= length nubids) $ mapM_ logListError (repeated sl) -- ??
     when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
-    updateSymTable oldState newSymTable
-    where logScopeError (vs, _)      = logAlreadyDefined "Variable" "scope" vs
-          logListError vs            = logAlreadyDefined "Variable" "declaration" vs
-          addToMap curScope mp (s,_) = let newSymbol = Symbol s VarSym curScope (Just t) NoOther
-                                           newList = newSymbol:(extract $ Map.lookup s mp)
-                                        in Map.insert s newList mp
+    put $ oldState { getSymTable = newSymTable }
+    where logScopeError (vs, _)      = logAlreadyDefined "scope" "Variable" vs
+          logListError vs            = logAlreadyDefined "declaration" "Variable" vs
 
 insertPerson :: [SutID] -> SutParserM ()
 insertPerson ids = do
     oldState <- get
-    let newSymTable = insertToTable oldState addToMap ids
+    let curScope = getCurScope oldState
+        newSymTable = insert (getSymTable oldState) curScope PersonSym SutTypeVoid NoOther
         nubids = nub ids
     notGood <- or <$> mapM (lookupVarInScope curScope) nubids
     when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
     when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
-    updateSymTable oldState newSymTable
-    where logScopeError (vs, _)  = logAlreadyDefined "Person" "scope" vs
-          logListError vs        = logAlreadyDefined "Person" "declaration" vs
-          addToMap curScope mp s = let newSymbol = Symbol s PersonSym curScope Nothing NoOther
-                                       newList = newSymbol:(extract $ Map.lookup s mp)
-                                    in Map.insert s newList mp
+    put $ oldState { getSymTable = newSymTable }
+    where logScopeError (vs, _)  = logAlreadyDefined "scope" "Person" vs
+          logListError vs        = logAlreadyDefined "declaration" "Person" vs
 
 insertFunction :: SutID -> SutParserM ()
-insertFunction s = do
+insertFunction id = do
     oldState <- get
-    let oldSymTable = getSymTable oldState
-        oldHash = getHash oldSymTable
-        oldStack = getStack oldState
-        oldList = extract $ Map.lookup s oldHash
-        curScope = getIdScope oldState + 1
-        funcSymbol = Symbol s FunctionSym (head $ getStack oldState) Nothing NoOther
-        newSymTable = SymTable $ Map.insert s (funcSymbol:oldList) oldHash
+    let curScope = 1 + getCurScope oldState
+        oldTable = getHash oldSymTable
+        newSymTable = insert (getSymTable oldState) (head $ getStack oldState) FunctionSym SutTypeVoid NoOther
         newSet = Set.insert curScope (getSet oldState)
         newStack = curScope:oldStack
     notGood <- lookupVarInScope (head $ getStack oldState) s
-    when (notGood) $ logAlreadyDefined "Function" "scope" id
+    when (notGood) $ logAlreadyDefined "scope" "Function" id
     put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = curScope, getSet = newSet}
 
 
@@ -174,7 +113,7 @@ insertFunctionParams ps = do
         oldList = map (\(_, pid, _) -> pid) ps
         newList = nub oldList
     notGood <- or <$> mapM (lookupVarInScope curScope) nubids
-    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
+    when (length ids /= length newList) $ mapM_ logListError (repeated sl)
     when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
     updateSymTable oldState newSymTable
     where logScopeError (vs, _)  = logAlreadyDefined "Person" "scope" vs
@@ -444,31 +383,13 @@ getPointerType e = do
 
 
 
-getExpressionType (IdT _ t) = t
-getExpressionType (LitT l) = getLiteralType l
---getExpressionType (ConsT) = t
-getExpressionType (OpT o) = getOperationType o
---getExpressionType (FuncT) = t
-getExpressionType _ = TE
-
-getLiteralType (IT _)  = TI
-getLiteralType (CT _)  = TC
-getLiteralType (FT _)  = TF
-getLiteralType (ST _)  = TS
-getLiteralType TBT = TB
-getLiteralType FBT = TB
-
-getOperationType (PUT _ t) = t
-getOperationType (MUT _ t) = t
-getOperationType (NUT _ t) = t
-getOperationType (DUT _ t) = t
-getOperationType (ABT _ _ _ t) = t
-getOperationType (LBT _ _ _ t) = t
-getOperationType (GAT _ _ t) = t
--- getOperationType (GPT _ _) = t
-getOperationType (AT _ _ t) = t
--- getOperationType (FCAT _) = t
--- getOperationType (FCNT _ _) = t
 
 printSymTable :: SutParserState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
+
+
+logAlreadyDefined :: SymCategory -> String -> SutID -> SutParserM ()
+logAlreadyDefined place thing id = tell $ SutParserLog $ "\n"++printSut thing++" '"++id++"' already defined in the same "++place++"."
+
+logDefinedInScope = logAlreadyDefined "scope"
+logDefinedInDeclaration = logAlreadyDefined "declaration"

@@ -9,9 +9,10 @@ import Sutori.Utils
 import Sutori.Types
 
 type SutID = String
-type SutModule = (SutID, SutBlock)
 type SutBlock = [SutInstruction]
 type SutParam = (SutType, SutID)
+
+data SutModule = SutModule SutID SutBlock
 
 data SutInstruction = SutInstExpression SutExpression
                     | SutSelection      SutID SutExpression SutBlock SutBlock
@@ -33,7 +34,6 @@ data SutExpression = SutExprLiteral     SutType SutLiteral
                    | SutArrayItem       SutType SutExpression SutExpression
                    | SutStructMember    SutType SutExpression SutID
                    deriving (Show, Eq)
-
 data SutLiteral = SutString String
                 | SutInt Int
                 | SutFloat Float
@@ -71,6 +71,49 @@ data SutBiOp  = SutOpAdd
               | SutOpMember
               deriving (Show, Eq)
 
+instance SutTypedExpression SutExpression where
+  getExpressionType (SutExprLiteral t _) = t
+  getExpressionType (SutExprConstructor t _) = t
+  getExpressionType (SutBinaryOp t _ _ _)  = t
+  getExpressionType (SutUnaryOp t _ _) = t
+  getExpressionType (SutCall t _ _) = t
+  getExpressionType (SutExprID t _) = t
+  getExpressionType (SutArrayItem t _ _) = t
+  getExpressionType (SutStructMember t _ _) = t
+
+instance SutTypedExpression SutLiteral where
+  getExpressionType (SutString _) = SutTypeString
+  getExpressionType (SutInt _)    = SutTypeInt
+  getExpressionType (SutFloat _)  = SutTypeFloat
+  getExpressionType (SutChar _)   = SutTypeChar
+  getExpressionType (SutBool _)   = SutTypeBool
+
+instance SutShow SutUnOp where
+  showSut SutOpNeg     = "-negative"
+  showSut SutOpNot     = "!negation"
+  showSut SutOpDer     = "*dereference"
+
+instance SutShow SutBiOp where
+  showSut SutOpAdd     = "+"
+  showSut SutOpSub     = "-"
+  showSut SutOpMul     = "*"
+  showSut SutOpDiv     = "div"
+  showSut SutOpIntDiv  = "/"
+  showSut SutOpMod     = "%"
+  showSut SutOpPow     = "^"
+  showSut SutOpAnd     = "and"
+  showSut SutOpOr      = "or"
+  showSut SutOpEqual   = "=="
+  showSut SutOpNotEq   = "/="
+  showSut SutOpGEq     = ">="
+  showSut SutOpLEq     = "<="
+  showSut SutOpGreater = ">"
+  showSut SutOpLess    = "<"
+  showSut SutOpAssign  = "="
+  showSut SutOpIndex   = "indexation[i]"
+  showSut SutOpMember  = "memberGet->a"
+
+
 
 identU = "|  "
 ident n = replicateM_ n $ putStr identU
@@ -86,7 +129,7 @@ logID :: Int -> SutID -> IO()
 logID n s = putStrLnWithIdent n $ "ID: " ++ s
 
 logModule :: Int -> SutModule -> IO()
-logModule n (s, b) = do
+logModule n (SutModule s b) = do
   putStrLnWithIdent n "Module"
   logID (n+1) s
   putStrLnWithIdent (n+1) "Block:"
@@ -148,14 +191,14 @@ logExpression n (SutExprConstructor t c) = do
   putStrLnWithIdent (n+1) "Type:"
   logConstructor (n+1) c
 logExpression n (SutBinaryOp t o e1 e2) = do
-  putStrLnWithIdent n $ "Binary Operation (" ++ printSut o ++ ")"
+  putStrLnWithIdent n $ "Binary Operation (" ++ showSut o ++ ")"
   putStrLnWithIdent (n+1) "Type:"
   putStrLnWithIdent (n+1) "First operand:"
   logExpression (n+2) e1
   putStrLnWithIdent (n+1) "Second operand:"
   logExpression (n+2) e2
 logExpression n (SutUnaryOp t o e) = do
-  putStrLnWithIdent n $ "Unary Operation (" ++ printSut o ++ ")"
+  putStrLnWithIdent n $ "Unary Operation (" ++ showSut o ++ ")"
   putStrLnWithIdent (n+1) "Type:"
   putStrLnWithIdent (n+1) "Operand"
   logExpression (n+2) e
@@ -203,29 +246,3 @@ logConstructor n (SutStruct nes) = do
         logID (n+2) i
         putStrLnWithIdent (n+1) "Value:"
         logExpression (n+2) e
-
-
-instance SutPrint SutUnOp where
-  printSut SutOpNeg     = "-negative"
-  printSut SutOpNot     = "!negation"
-  printSut SutOpDer     = "*dereference"
-
-instance SutPrint SutBiOp where
-  printSut SutOpAdd     = "+"
-  printSut SutOpSub     = "-"
-  printSut SutOpMul     = "*"
-  printSut SutOpDiv     = "div"
-  printSut SutOpIntDiv  = "/"
-  printSut SutOpMod     = "%"
-  printSut SutOpPow     = "^"
-  printSut SutOpAnd     = "and"
-  printSut SutOpOr      = "or"
-  printSut SutOpEqual   = "=="
-  printSut SutOpNotEq   = "/="
-  printSut SutOpGEq     = ">="
-  printSut SutOpLEq     = "<="
-  printSut SutOpGreater = ">"
-  printSut SutOpLess    = "<"
-  printSut SutOpAssign  = "="
-  printSut SutOpIndex   = "indexation[i]"
-  printSut SutOpMember  = "memberGet->a"
