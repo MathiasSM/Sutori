@@ -9,7 +9,7 @@ import Sutori.Utils
 import Sutori.Types
 
 type SutID = String
-type SutModule = (SutID, SutBlock)
+newtype SutModule = SutModule SutID SutBlock
 type SutBlock = [SutInstruction]
 type SutParam = (SutType, SutID)
 

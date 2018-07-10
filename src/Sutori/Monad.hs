@@ -111,10 +111,10 @@ logAlreadyDefined :: SymCategory -> String -> SutID -> SutParserM ()
 logAlreadyDefined thing place id = tell $ SutParserLog $ "\n"++printSut thing++" '"++id++"' already defined in the same "++place++"."
 
 -- Insert symbols to Symtable
-insertTags :: SymCategory -> SutParserM ()
-insertTags symCat = do
+insertTags :: SymCategory -> [SutID] -> SutParserM ()
+insertTags symCat ids = do
     oldState <- get
-    let newSymTable = insertToTable oldState insertTag predefinedTypeNames
+    let newSymTable = insertToTable oldState insertTag ids
     updateSymTable olState newSymTable
     where insertTag curScope hash tag = let newSymbol = Symbol tag symCat curScope Nothing NoOther
                                             newList = newSymbol : extract (Map.lookup tag hash)

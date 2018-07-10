@@ -109,16 +109,16 @@ import Sutori.Types
 
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                   : PROGRAM_INI ID Block PROGRAM_FIN EOF  { % addInitialTypes >> return (SutModule $2 $3) }
+Source                   : PROGRAM_INI ID Block PROGRAM_FIN EOF  { % insertTags TypeSym predefinedTypesNames >> return (SutModule $2 $3) }
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
 Expression               : LeftSide           { $1 }
-                         | Literal            { SutExprLiteral $1 }
-                         | Constructor        { SutExprConstructor $1 }
+                         | Literal            { SutExprLiteral (getExpressionType $1) $1 }
+                         | Constructor        { SutExprConstructor (getExpressionType $1) $1 }
                          | UnaryOperation     { $1 }
                          | BinaryOperation    { $1 }
-                         | FunctionCall       { SutCall $1 }
+                         | FunctionCall       { SutCall (getExpressionType $1) $1 }
                          | '(' Expression ')' { $2 }
 
 
@@ -131,8 +131,8 @@ Literal                  : LITERAL_INT        { SutLitInt $1 }
 
 -- Constructors
 -----------------------------------------------------------------------------------------------------------------------
-Constructor              : ConstructorArray                            { $1 }
-                         | ConstructorStruct                           { $1 }
+Constructor              : ConstructorArray                            { SutArray $1 }
+                         | ConstructorStruct                           { SutStruct $1 }
 
 ConstructorArray         : '[' ConstructorArrayList ']'                { $2 }
 ConstructorArrayList     : Expression                                  { [ $1 ] }
@@ -145,8 +145,6 @@ ConstructorStructList    : ID ':' Expression                           { [ ($1,$
 
 -- Operators
 -----------------------------------------------------------------------------------------------------------------------
-Operation                : UnaryOperation             { $1 }
-                         | BinaryOperation            { $1 }
 
 UnaryOperation           : NumericalUnaryOperation    { $1 }
                          | LogicalUnaryOperation      { $1 }
@@ -185,9 +183,9 @@ GetArrayItem             : LeftSide '[' Expression ']' { % checkIndexType $3 >> 
 
 GetProp                  : LeftSide '->' ID            { SutStructMember t $1 $3 }
 
-Assignment               : LeftSide '=' Expression     { % getEqualityType SutOpAssign $1 $3 >>= (\t -> return (SutBinaryOp SutOpAssign (getExpressionType $1) $1 $3)) }
+Assignment               : LeftSide '=' Expression     { % getEqualityType SutOpAssign $1 $3 >>= (\t -> return (SutBinaryOp (getExpressionType $1) SutOpAssign $1 $3)) }
 
-LeftSide                 : ID                          { % checkId $1 Var >>= (\s -> return (SutExprID (fromJust (getType' s)) $1)) }
+LeftSide                 : ID                          { % checkId $1 VarSym >>= (\s -> return (SutExprID (fromJust (getType' s)) $1)) }
                          | GetArrayItem                { $1 }
                          | GetProp                     { $1 }
 --                         | Dereference                        { OpT $1 }
@@ -202,7 +200,7 @@ FunctionActualParams     : Expression                           { [$1] }
 -- Declaration
 -----------------------------------------------------------------------------------------------------------------------
 Declaration              : PersonDeclaration                     { % addToSymTablePerson $1}
-                         | FunctionDeclaration                   { $1 }
+                         | FunctionDeclaration                   ;
                          | VariableDeclaration                   { $1 }
                          | TypeDeclaration                       { $1 }
 
@@ -213,9 +211,8 @@ PersonNames              : ID                                    { [$1] }
                          | ID ',' PersonNames                    { $1:$3 }
                          | ID and PersonNames                    { $1:$3 }
 
-FunctionDeclaration      ::                                      { Declaration }
 FunctionDeclaration      : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN
-                           { % checkType $5 >> modifyFunction $2 $6 (LFDP []) $5 >> return () }
+                           { % checkType $5 >> modifyFunction $2 $6 [] $5 >> return () }
 
                          | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN
                            { % checkType $5 >> modifyFunction $2 $10 $8 $5 >> return () }
@@ -230,14 +227,14 @@ FunctionFormalParams     : Type ID                               { [($1,$2,0)] }
                          | YOUR Type ID ',' FunctionFormalParams { ($2,$3,1):$5 }
 
 
-VariableDeclaration      : ID S_broughta Type ':' VariableList   { % checkId $1 Person >> checkType $3 >> addToSymTableVar $3 $5 }
+VariableDeclaration      : ID S_broughta Type ':' VariableList   { % checkId $1 PersonSym >> checkType $3 >> addToSymTableVar $3 $5 }
 
 VariableList             : ID ',' VariableList                   { ($1,Nothing):$3 }
                          | ID '=' Expression ',' VariableList    { ($1,Just $3):$5 }
                          | ID '=' Expression                     { [($1,Just $3)] }
                          | ID                                    { [($1,Nothing)] }
 
-TypeDeclaration          : ID S_invented ID                      { % checkId $1 Person >> addTypeToSymTable TDT $3 }
+TypeDeclaration          : ID S_invented ID                      { % checkId $1 PersonSym >> addTypeToSymTable TDT $3 }
 
 -- Types
 -----------------------------------------------------------------------------------------------------------------------
@@ -294,8 +291,8 @@ Instruction              : Expression '.'                                       
 ManageMemory             : CreatePointer                                                   { $1 }
                          | FreePointer                                                     { $1 }
 
-CreatePointer            : ID S_madea Type                                                 { % checkId $1 Var >> checkType $3 >> return (SutCreatePointer $1 $3) }
-FreePointer              : ID S_brokea ID                                                  { % checkId $1 Var >> checkId $3 Var >> return (SutFreePointer $1 $3) }
+CreatePointer            : ID S_madea Type                                                 { % checkId $1 VarSym >> checkType $3 >> return (SutCreatePointer $1 $3) }
+FreePointer              : ID S_brokea ID                                                  { % checkId $1 VarSym >> checkId $3 VarSym >> return (SutFreePointer $1 $3) }
 
 Selection                : IdToken S_dreamsof Block WHEN Expression                        { % getLogicalType "condition" $5 $5 >> return (SutSelection $1 $3 $5 []) }
                          | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block { % getLogicalType "condition" $5 $5 >> return (SutSelection $1 $3 $5 $8) }
@@ -303,14 +300,14 @@ Selection                : IdToken S_dreamsof Block WHEN Expression             
 OtherwiseTok             : OTHERWISE                                                       { % addInstructionScope }
 
 
-IdToken                  : ID                                                              { % checkId $1 Person >> addInstructionScope >> return $1 }
+IdToken                  : ID                                                              { % checkId $1 PersonSym >> addInstructionScope >> return $1 }
 
 UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 >> return (SutIterationU $1 $3 $4) }
 
-BoundedIteration         : Block ID S_toldthatstory Expression TIMES       { % checkIndexType $5 >> checkId $3 Person >> return (SutIterationB $2 $3 $5) }
+BoundedIteration         : Block ID S_toldthatstory Expression TIMES       { % checkIndexType $5 >> checkId $3 PersonSym >> return (SutIterationB $2 $3 $5) }
 
 
-Print                    : ID ':' Expression                                               { % checkId $1 Person >>  return (SutPrintVal $1 $3) }
+Print                    : ID ':' Expression                                               { % checkId $1 PersonSym >>  return (SutPrintVal $1 $3) }
 
 
 
