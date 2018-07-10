@@ -407,7 +407,7 @@ getPointerType e = do
 
 getExpressionType (IdT _ t) = t
 getExpressionType (LitT l) = getLiteralType l
---getExpressionType (ConsT) = t
+getExpressionType (ConsT c) = getConstructType c
 getExpressionType (OpT o) = getOperationType o
 --getExpressionType (FuncT) = t
 getExpressionType _ = TE
@@ -431,11 +431,24 @@ getOperationType (AT _ _ t) = t
 -- getOperationType (FCAT _) = t
 -- getOperationType (FCNT _ _) = t
 
+getConstructType (LCAT lexp) = TA (length lexp) (getExpressionType $ head lexp)
+--getConstructType (LCST lexp) = getExpressionType $ snd $ head lexp
+
 checkTypesExp :: Type -> Lists -> AlexPosn -> OurMonad ()
 checkTypesExp t (LDV l) ap = do 
     let bad = filter (\(_,x) -> isJust x && ((getExpressionType $ fromJust x) /= t)) l
     when (length bad /= 0) $
         mapM_ (\(s,t2) -> tell $ OurLog $ showAlex ap++"Variable '"++s++"' has an invalid conversion from "++show (getExpressionType $ fromJust t2)++" to: "++show t++"\n") bad
+
+checkArrayItemsType :: Constructor -> AlexPosn -> OurMonad ()
+checkArrayItemsType (LCAT []) _ = return ()
+checkArrayItemsType (LCAT lexp) ap = do 
+    let arrayTypes = map getExpressionType lexp
+        hElem = getExpressionType $ head lexp
+        listTwo = filter (/=hElem) arrayTypes
+    when (length listTwo /= 0) $
+        tell $ OurLog $ showAlex ap++"Invalid type of elements for the array\n"
+
 
 printSymTable :: OurState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))

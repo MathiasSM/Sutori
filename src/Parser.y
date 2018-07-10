@@ -102,7 +102,8 @@ import OurMonad
 
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                  : PROGRAM_INI ID Block PROGRAM_FIN EOF                                   { % addInitialTypes >> return (PT $2 $3) }
+Source                  : PROGRAM_INI INI_TYPES ID Block PROGRAM_FIN EOF                                { PT $3 $4 }
+INI_TYPES               :                                                                               { % addInitialTypes } 
 
 -- Expressions
 ----------------------------------------------------------------------------------------------------------------------
@@ -127,7 +128,7 @@ Literal                  : LITERAL_INT                                          
 Constructor              : ConstructorArray                                                      { $1 }
                          | ConstructorStruct                                                     { $1 }
 
-ConstructorArray         : '[' ConstructorArrayList ']'                                          { $2 }
+ConstructorArray         : '[' ConstructorArrayList ']'                             { % checkArrayItemsType $2 $1 >> return $2 }
 ConstructorArrayList     : Expression                                                            { LCAT [ $1 ] }
                          | Expression ';' ConstructorArrayList                                   { LCAT $ $1: listLCAT $3 }
 
@@ -253,7 +254,12 @@ UnionTyping              : Type ID                                              
 
 -- Blocks
 -----------------------------------------------------------------------------------------------------------------------
-Block                    : BLOCK_OPEN BlockContent BLOCK_CLOSE                                                  { $2 }
+Block                    : BLOCK_OPEN AddScope BlockContent RemoveScope BLOCK_CLOSE                             { $3 }
+
+AddScope                 : {-empty-}                        { % addInstructionScope }
+
+RemoveScope              : {-empty-}                        { % removeLastScope }
+
 
 BlockContent             : Statement '.' BlockContent                                                           { LST $ $1: listLST $3 }
                          | {-empty-}                                                                            { LST [] }
@@ -286,19 +292,16 @@ ManageMemory             : CreatePointer                                        
 CreatePointer            : ID S_madea Type                                  { % checkId $1 Var (Just $2) >> checkType $3 $2 >> return (CPT $1 $3) }
 FreePointer              : ID S_brokea ID                                   { % checkId $1 Var (Just $2) >> checkId $3 Var (Just $2) >> return (FPT $1 $3) }
 
-Selection                : IdToken S_dreamsof Block WHEN Expression                            { % getLogicalType "condition" $5 $5 $4 >> removeLastScope >> return (IFT $1 $3 $5) }
-                         | IdToken S_dreamsof Block WHEN Expression ';' OtherwiseTok Block     { % getLogicalType "condition" $5 $5 $4 >> removeLastScope >> return (IFET $1 $3 $5 $8) }
-
-OtherwiseTok             : OTHERWISE   { % removeLastScope >> addInstructionScope }
+Selection                : IdToken S_dreamsof Block WHEN Expression         { % getLogicalType "condition" $5 $5 $4 >> return (IFT $1 $3 $5) }
+                         | IdToken S_dreamsof Block WHEN Expression ';'  Block     { % getLogicalType "condition" $5 $5 $4 >> return (IFET $1 $3 $5 $7) }
 
 
-IdToken                  : ID                                              { % checkId $1 Person Nothing >> addInstructionScope >> return $1 }
+IdToken                  : ID                                              { % checkId $1 Person Nothing >> return $1 }
 
-UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 $2 >> removeLastScope >> return (UIT $1 $3 $4) }
+UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 $2 >> return (UIT $1 $3 $4) }
 
-BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % checkIndexType $5 $4 >> removeLastScope >> checkId $3 Person (Just $4) >> return (BIT $2 $3 $5) }
+BoundedIteration         : Block ID S_toldthatstory Expression TIMES  { % checkIndexType $4 $3 >> checkId $2 Person (Just $3) >> return (BIT $1 $2 $4) }
 
-AddScope                 : {-empty-}                        { % addInstructionScope }
 
 Print                    : ID ':' Expression                {  % checkId $1 Person (Just $2) >>  return (PRT $1 $3) }
 
