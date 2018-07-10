@@ -453,3 +453,24 @@ checkArrayItemsType (LCAT lexp) ap = do
 printSymTable :: OurState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
 
+
+typesLCA :: Type -> Type -> Type
+typesLCA TI TF  = TF
+typesLCA TI TB   = TI
+typesLCA TI TC   = TI
+
+typesLCA TF TI  = TF
+typesLCA TF TC = TF
+typesLCA TF TB = TF
+
+typesLCA TC TI   = TI
+typesLCA TC TF = TF
+typesLCA TC TB  = TI
+
+typesLCA TB TI   = TI
+typesLCA TB TF = TF
+typesLCA TB TC  = TI
+
+typesLCA TE _ = TE
+typesLCA _ TE = TE
+typesLCA t1 t2 = if t1 == t2 then t1 else TE
