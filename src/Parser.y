@@ -174,7 +174,7 @@ LogicalBinaryOperation   : Expression and  Expression         { % getLogicalType
 
 --Dereference              : '*' Expression %prec IND           { % getPointerType $2 >>= (\x -> return (DUT $2 x)) }
 
-GetArrayItem             : LeftSide '[' Expression ']'              { % checkIndexType $3 >> extArrayType $1 >>= (\x -> return (GAT $1 $3 x)) }
+GetArrayItem             : LeftSide '[' Expression ']'              { % checkIndexType $3 $2 >> extArrayType $1 $2 >>= (\x -> return (GAT $1 $3 x)) }
 
 GetProp                  : LeftSide '->' ID                 { GPT $1 $3 }
 
@@ -222,7 +222,7 @@ FunctionFormalParams     : Type ID                                              
                          | YOUR Type ID ',' FunctionFormalParams                                         { LFDP $ ($2,$3,1): listLFDP $5 }  
 
 
-VariableDeclaration      : ID S_broughta Type ':' VariableList  { % checkId $1 Person (Just $2) >> checkType $3 $4 >> checkTypesExp $3 $5 >> addToSymTableVar VDT $3 $5 $4 }
+VariableDeclaration      : ID S_broughta Type ':' VariableList  { % checkId $1 Person (Just $2) >> checkType $3 $4 >> checkTypesExp $3 $5 $4 >> addToSymTableVar VDT $3 $5 $4 }
 
 VariableList             : ID ',' VariableList                                                         { LDV $ ($1,Nothing): listLDV $3 }
                          | ID '=' Expression ',' VariableList                                          { LDV $ ($1,Just $3): listLDV $5 }
@@ -296,7 +296,7 @@ IdToken                  : ID                                              { % c
 
 UnboundedIteration       : IdToken S_keepsdreamingof Expression Block      { % getLogicalType "condition" $3 $3 $2 >> removeLastScope >> return (UIT $1 $3 $4) }
 
-BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % checkIndexType $5 >> removeLastScope >> checkId $3 Person (Just $4) >> return (BIT $2 $3 $5) }
+BoundedIteration         : AddScope Block ID S_toldthatstory Expression TIMES  { % checkIndexType $5 $4 >> removeLastScope >> checkId $3 Person (Just $4) >> return (BIT $2 $3 $5) }
 
 AddScope                 : {-empty-}                        { % addInstructionScope }
 

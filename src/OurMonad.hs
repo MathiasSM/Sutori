@@ -373,27 +373,27 @@ getEqualityType sim e1 e2 ap = do
 
           joinTypes a b = if (a==b) then TB else TE
 
-checkIndexType :: Expression -> OurMonad ()
-checkIndexType e = do
+checkIndexType :: Expression -> AlexPosn -> OurMonad ()
+checkIndexType e ap = do
     let t = getExpressionType e
         i = toInt t
     when (i == TE) $
-        tell $ OurLog $ "Indice no convertible a entero\n" 
+        tell $ OurLog $ showAlex ap++"Size of array has non-integral type \n" 
     where toInt TI = TI
           toInt TC = TI
           toInt TB = TI
           toInt _  = TE
 
-extArrayType :: Expression -> OurMonad Type
-extArrayType e = do
+extArrayType :: Expression -> AlexPosn -> OurMonad Type
+extArrayType e ap = do
     let pt = getExpressionType e
     case pt of 
         (TA _ t) -> return t
         TE -> return TE
-        _ -> do tell $ OurLog $ "Operaci'on de indexaci'on no definida para tipo: \n"
+        _ -> do tell $ OurLog $ showAlex ap++"Invalid types for array subscript\n"
                 return TE
 
-
+{-
 getPointerType :: Expression -> OurMonad Type
 getPointerType e = do
     let pt = getExpressionType e
@@ -403,7 +403,7 @@ getPointerType e = do
         _ -> do tell $ OurLog $ "Operaci'on de deferencia no definida para tipo: \n"
                 return TE
 
-
+-}
 
 getExpressionType (IdT _ t) = t
 getExpressionType (LitT l) = getLiteralType l
@@ -431,11 +431,11 @@ getOperationType (AT _ _ t) = t
 -- getOperationType (FCAT _) = t
 -- getOperationType (FCNT _ _) = t
 
-checkTypesExp :: Type -> Lists -> OurMonad ()
-checkTypesExp t (LDV l) = do 
+checkTypesExp :: Type -> Lists -> AlexPosn -> OurMonad ()
+checkTypesExp t (LDV l) ap = do 
     let bad = filter (\(_,x) -> isJust x && ((getExpressionType $ fromJust x) /= t)) l
     when (length bad /= 0) $
-        mapM_ (\(s,t2) -> tell $ OurLog $ "Variable '"++s++"' es de tipo: "++show (getExpressionType $ fromJust t2)++" y esperaba un tipo: "++show t++"\n") bad
+        mapM_ (\(s,t2) -> tell $ OurLog $ showAlex ap++"Variable '"++s++"' has an invalid conversion from "++show (getExpressionType $ fromJust t2)++" to: "++show t++"\n") bad
 
 printSymTable :: OurState -> IO ()
 printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
