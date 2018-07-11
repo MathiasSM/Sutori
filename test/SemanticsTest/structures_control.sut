@@ -1,0 +1,32 @@
+Once upon a time in Santadila ...(
+  
+  There was Angel.
+
+  Angel brought a chain (of 2 bag) : a.
+  Angel brought a chain (of 2 phrase) : b.
+  Angel brought a bag : i = 3+2-2.
+  Angel brought a phrase : str = b[i]. --| BAD
+
+  Angel dreams of ...(
+
+  )... when "23 > 3".   --| BAD, if con condicion "String"
+
+  Angel dreams of ...(
+      i = i+1.
+  )... when a[i]. --| GOOD.
+
+  Angel dreams of ...(
+      i = i+1.
+  )... when b[i]. --| BAD.
+
+  Angel dreams of ...(
+      i = i+1.
+      Angel brought a bag : mueroAqui.
+  )... when a[i] ; ...(
+      i = i - 1.
+      mueroAqui = 1. --| BAD.
+  )... . --| GOOD.
+
+  mueroAqui = 1. --| BAD.
+
+)... and they lived happily ever after

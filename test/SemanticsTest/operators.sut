@@ -1,0 +1,21 @@
+Once upon a time in Santadila ...(
+  There was Angel.
+  Angel brought a bag: hi,low,fo.
+
+  hi = 23.1 and 4.  --| BAD
+
+  low = on + 23 + "hola". --| BAD
+
+  low = on and off. --| GOOD
+
+  low = on and "sss".  --| BAD
+
+  fo = 32 >= 32.123. --| GOOD
+
+  fo = 32 >= "hola".  --| BAD
+
+  hi = !(32.1) .  --| BAD
+
+  hi = !1 and !on. --| GOOD
+
+)... and they lived happily ever after

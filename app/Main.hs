@@ -24,8 +24,8 @@ main = do
                  printSource 0 ast
       otherwise -> do let tuple = getTuple (calc ls) emptyState
                       case tuple of
-                        (ast,sym,OurLog "") -> do putStrLn "AST: "
-                                                  printSource 0 ast
+                        (ast,sym,OurLog "") -> do --putStrLn "AST: "
+                                                  --printSource 0 ast
                                                   putStrLn "SYMTABLE: "
                                                   printSymTable sym
                                                   putStrLn "0 Errors."

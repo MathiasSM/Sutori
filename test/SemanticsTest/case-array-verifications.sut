@@ -1,0 +1,13 @@
+Once upon a time in Santadila ...(
+  There was Angel.
+  Angel brought a chain ( of 3 bag ) : as. --| GOOD 
+  
+  Angel brought a chain ( of 34 bag ) : arr. --| GOOD 
+  
+  as = [1;33;3]. --| GOOD
+
+  as = [1;"sss";3]. --| BAD
+
+  arr = [1;4;4]. --| BAD
+
+)... and they lived happily ever after
