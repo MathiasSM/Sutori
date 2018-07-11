@@ -18,7 +18,6 @@ data SutInstruction = SutInstExpression SutExpression
                     | SutSelection      SutID SutExpression SutBlock SutBlock
                     | SutIterationU     SutID SutExpression SutBlock
                     | SutIterationB     SutID SutExpression SutBlock
-                    | SutCreatePointer  SutID SutType
                     | SutFreePointer    SutID SutExpression
                     | SutPrintVal       SutID SutExpression
                     | SutReadVal        SutID SutExpression
@@ -32,7 +31,9 @@ data SutExpression = SutExprLiteral     SutType SutLiteral
                    | SutCall            SutType SutID [SutExpression]
                    | SutExprID          SutType SutID
                    | SutArrayItem       SutType SutExpression SutExpression
+                   | SutPointed         SutType SutExpression
                    | SutStructMember    SutType SutExpression SutID
+                   | SutCreatePointer   SutType SutID
                    deriving (Show, Eq)
 
 data SutLiteral = SutString String
@@ -79,6 +80,7 @@ instance SutTypedExpression SutExpression where
   getExpressionType (SutUnaryOp t _ _) = t
   getExpressionType (SutCall t _ _) = t
   getExpressionType (SutExprID t _) = t
+  getExpressionType (SutCreatePointer t _) = t
   getExpressionType (SutArrayItem t _ _) = t
   getExpressionType (SutStructMember t _ _) = t
 
@@ -160,10 +162,6 @@ logInstruction n (SutIterationB p e b) = do
   logByPerson (n+1) p
   putStrLnWithIdent (n+1) "Repetitions:" >> logExpression (n+2) e
   putStrLnWithIdent (n+1) "Block:" >> logBlock (n+2) b
-logInstruction n (SutCreatePointer p t) = do
-  putStrLnWithIdent n "Pointer creation"
-  logByPerson (n+1) p
-  putStrLnWithIdent (n+1) "Type:"
 logInstruction n (SutFreePointer p e) = do
   putStrLnWithIdent n "Pointer freeing"
   logByPerson (n+1) p
@@ -213,6 +211,10 @@ logExpression n (SutExprID t i) = do
   putStrLnWithIdent n "Variable"
   putStrLnWithIdent (n+1) "Type:"
   logID (n+1) i
+logExpression n (SutCreatePointer t p) = do
+  putStrLnWithIdent n "Pointer creation"
+  logByPerson (n+1) p
+  putStrLnWithIdent (n+1) "Type:"
 logExpression n (SutArrayItem t a i) = do
   putStrLnWithIdent n "Array Item"
   putStrLnWithIdent (n+1) "Type:"
@@ -241,9 +243,8 @@ logConstructor n (SutArray es) = do
 logConstructor n (SutStruct nes) = do
   putStrLnWithIdent n "Constructed Structure"
   foldr ((>>) . logNamedExpression) (return ()) nes
-    where
-      logNamedExpression (i, e) = do
-        putStrLnWithIdent (n+1) "Member"
-        logID (n+2) i
-        putStrLnWithIdent (n+1) "Value:"
-        logExpression (n+2) e
+    where logNamedExpression (i, e) = do
+            putStrLnWithIdent (n+1) "Member"
+            logID (n+2) i
+            putStrLnWithIdent (n+1) "Value:"
+            logExpression (n+2) e

@@ -1,17 +1,14 @@
-module Sutori.SymTable
-(
-  Scope, SymMap, SymTable(..),
-  Symbol(..), SymCategory(..), SymOther(..),
-  insert, insertParam, updateSymList,
-  lookupId, lookupInScope, lookupsInScope
-) where
+module Sutori.SymTable where
 
 import qualified Data.Map as Map
 
 import Sutori.Utils
 import Sutori.AST
+import Sutori.Lexer
 import Sutori.Types
 
+
+type SutParamTk = (Bool, SutType, SutToken)
 
 type Scope = Int
 
@@ -23,12 +20,15 @@ newtype SymTable = SymTable {
 
 -- Symbol
 data Symbol = Symbol {
-  getId       :: String,
+  getSymToken :: SutToken,
   getCategory :: SymCategory,
   getScope    :: Scope,
   getType     :: SutType,
   getOther    :: SymOther
 } deriving (Show, Eq)
+
+getId :: Symbol -> SutID
+getId = getString.getToken.getSymToken
 
 -- Symbol Category
 data SymCategory = ModuleSym
@@ -47,48 +47,44 @@ instance SutShow SymCategory where
   showSut TypeSym = "Type"
 
 -- Symbol Other
-data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParam]}
+data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParamTk] }
                | IsReference {isReference :: Bool}
                | TypeDef {typeOf :: SutType}
                | NoOther
                deriving (Eq,Show)
 
 instance SutShow Symbol where
-  showSut (Symbol id cat sc t other) = "Symbol "++id++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++")"
+  showSut s@(Symbol tk cat sc t other) = "Symbol "++getId s++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++", Posn: "++showSut (getPosn tk)++")"
 
 
 -- Insertion
 ---------------------------------------------------------------------------------------------------
 insertWith table ids f = SymTable $ foldl f (getHash table) ids
 
-insert :: SymTable -> Scope -> SymCategory -> SutType -> SymOther -> [SutID] -> SymTable
+insert :: SymTable -> Scope -> SymCategory -> SutType -> SymOther -> [SutToken] -> SymTable
 insert table curScope category t o ids = insertWith table ids f
-  where f hash tag = let newSymbol  = Symbol tag category curScope t o
-                         newSymList = newSymbol : Map.findWithDefault [] tag hash
-                      in updateSymList hash tag newSymList
+  where f hash tk = let newSymbol  = Symbol tk category curScope t o
+                        newSymList = newSymbol : Map.findWithDefault [] ((getString.getToken) tk) hash
+                    in updateSymList hash tk newSymList
 
-insertParam :: SymTable -> Scope -> SymCategory -> [SutParam] -> SymTable
+insertParam :: SymTable -> Scope -> SymCategory -> [SutParamTk] -> SymTable
 insertParam table curScope category ps = insertWith table ps f
-  where f hash (ref, t, id) = let newSymbol  = Symbol id category curScope t (IsReference ref)
-                                  newSymList = newSymbol : Map.findWithDefault [] id hash
-                               in updateSymList hash id newSymList
+  where f hash (ref, t, tk) = let newSymbol  = Symbol tk category curScope t (IsReference ref)
+                                  newSymList = newSymbol : Map.findWithDefault [] ((getString.getToken) tk) hash
+                               in updateSymList hash tk newSymList
 
-updateSymList :: SymMap -> SutID -> [Symbol] -> SymMap
-updateSymList hash tag newSymList = Map.insert tag newSymList hash
+updateSymList :: SymMap -> SutToken -> [Symbol] -> SymMap
+updateSymList hash tk newSymList = Map.insert ((getString.getToken) tk) newSymList hash
 
 
 -- Lookup
 ---------------------------------------------------------------------------------------------------
-lookupInScope :: SymTable -> Scope -> SutID -> [Symbol]
-lookupInScope table scope id = filter isHere $ lookupId table id
+lookupInScope :: SymTable -> Scope -> SutToken -> [Symbol]
+lookupInScope table scope tk = filter isHere $ lookupId table $ getString $ getToken tk
   where isHere = (== scope) . getScope
 
 lookupId :: SymTable -> SutID -> [Symbol]
 lookupId table id = Map.findWithDefault [] id $ getHash table
 
-lookupsInScope :: SymTable -> Scope -> [SutID] -> [[Symbol]]
+lookupsInScope :: SymTable -> Scope -> [SutToken] -> [[Symbol]]
 lookupsInScope table scope = map (lookupInScope table scope)
-
-
--- Checks
----------------------------------------------------------------------------------------------------

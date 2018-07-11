@@ -1,14 +1,7 @@
 {
 -- # PRE CODE BLOCK (Module and imports)
 -- #===========================================================================
-module Sutori.Lexer(
-  SutToken(..),
-  SutTokenClass(..),
-  isValid,
-  runAlexScan,
-  AlexUserState(..),
-  AlexPosn(..)
-) where
+module Sutori.Lexer where
 
 import Control.Monad
 import Numeric ( readDec )
@@ -51,6 +44,7 @@ tokens :-
 <0>                "there was a"                        { getTk S_therewasa                              }
 <0>                "told that story"                    { getTk S_toldthatstory                          }
 <0>                "invented"                           { getTk S_invented                               }
+<0>                "it's a"                             { getTk S_itsa                                   }
 
 <0>                "with"                               { getTk WITH                                     }
 <0>                "your"                               { getTk YOUR                                     }
@@ -84,7 +78,7 @@ tokens :-
 <0>                ","                                  { getTk COMMA                                    }
 <0>                ":"                                  { getTk COLON                                    }
 <0>                ";"                                  { getTk SEMICOLON                                }
-<0>                "?"                                  { getTk INTERROGATION                            }
+<0>                "?"                                  { getTk QUESTIONMARK                             }
 <0>                "!"                                  { getTk EXCLAMATION                              }
 <0>                "->"                                 { getTk ARROW_RIGHT                              }
 <0>                "+"                                  { getTk PLUS                                     }
@@ -134,17 +128,19 @@ tokens :-
 -- #---------------------------------------------------------------------------
 type GetTokenAction = AlexInput -> Int -> Alex SutToken
 
-data SutToken = SutToken AlexPosn SutTokenClass deriving Show
+data SutToken = SutToken { getPosn :: AlexPosn, getToken :: SutTokenClass } deriving (Eq,Show)
 instance SutShow SutToken where
   showSut (SutToken _ SutTkEOF) = "Token EOF"
   showSut (SutToken p cl)  = "Token (" ++ showSut cl ++ "): " ++ showSut p
+
+fakeToken :: SutTokenClass -> SutToken
+fakeToken tkc = SutToken (AlexPn 0 0 0) tkc
 
 alexEOF :: Alex SutToken
 alexEOF = return $ SutToken undefined SutTkEOF
 
 data SutTokenClass =
     SutTkEOF            |
-    SutTkError String   |
 
     BLOCK_OPEN          |
     BLOCK_CLOSE         |
@@ -166,6 +162,7 @@ data SutTokenClass =
     S_therewasa         |
     S_toldthatstory     |
     S_invented          |
+    S_itsa              |
 
     TYPE_INT            |
     TYPE_FLOAT          |
@@ -188,7 +185,7 @@ data SutTokenClass =
     COMMA               |
     COLON               |
     SEMICOLON           |
-    INTERROGATION       |
+    QUESTIONMARK        |
     EXCLAMATION         |
     ARROW_RIGHT         |
     PLUS                |
@@ -216,11 +213,13 @@ data SutTokenClass =
     OTHERWISE           |
     TIMES               |
 
-    SutTkBool   Bool    |
-    SutTkChar   String  |
-    SutTkFloat  Float   |
-    SutTkInt    Int     |
-    SutTkString String  |
+    SutTkBool   { getValueBool :: Bool }     |
+    SutTkChar   { getValueChar :: String }   |
+    SutTkFloat  { getValueFloat :: Float }   |
+    SutTkInt    { getValueInt :: Int }       |
+    SutTkString { getString :: String } |
+
+    SutTkError  { getError :: String }  |
 
     SutTkId     String
   deriving (Eq,Show)

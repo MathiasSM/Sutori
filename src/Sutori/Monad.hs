@@ -21,6 +21,7 @@ import Sutori.Lexer
 -- Data types {{{1
 type SutParserM a = StateT SutParserState (WriterT SutParserLog (Either SutParserError)) a
 
+
 -- SymTable {{{2
 
 data SutParserState = SutParserState {
@@ -79,138 +80,207 @@ removeLastScope = do
 
 -- Insertion and modification of symbols
 ---------------------------------------------------------------------------------------------------
-insertInitial :: AlexPosn -> SutParserM ()
-insertInitial pos = mapM_ (uncurry (insertType pos)) predefinedTypeNames
+insertInitial :: SutParserM ()
+insertInitial = mapM_ insertType' predefinedTypes
 
-insertVars :: AlexPosn -> SutType -> [SutID] -> SutParserM ()
-insertVars pos t ids = let what = "Variable" in do
+insertType' :: (SutID, SutType) -> SutParserM ()
+insertType' (id,t) = let what = "Type" in do
+    oldState <- get
+    let tk = fakeToken (SutTkId id)
+        newSymTable = insert (getSymTable oldState) (head $ getStack oldState) TypeSym SutTypeVoid (TypeDef t) [tk]
+    put $ oldState { getSymTable = newSymTable }
+
+insertVars :: SutType -> [SutToken] -> SutParserM ()
+insertVars t tks = let what = "Variable" in do
     oldState <- get
     let curScope = getCurScope oldState
-        newSymTable = insert (getSymTable oldState) curScope VarSym t NoOther ids
-    checkToBeNew pos what curScope ids
+        newSymTable = insert (getSymTable oldState) curScope VarSym t NoOther tks
+    checkToBeNew what curScope tks
     put $ oldState { getSymTable = newSymTable }
 
-insertPerson :: AlexPosn -> [SutID] -> SutParserM ()
-insertPerson ids = let what = "Person" in do
+insertPerson :: [SutToken] -> SutParserM ()
+insertPerson tks = let what = "Person" in do
     oldState <- get
     let curScope = getCurScope oldState
-        newSymTable = insert (getSymTable oldState) curScope PersonSym SutTypeVoid NoOther ids
-    checkToBeNew pos what curScope ids
+        newSymTable = insert (getSymTable oldState) curScope PersonSym SutTypeVoid NoOther tks
+    checkToBeNew what curScope tks
     put $ oldState { getSymTable = newSymTable }
 
-insertType :: AlexPosn -> SutID -> SutType -> SutParserM ()
-insertType id t = let what = "Type" in do
+insertType :: SutToken -> SutType -> SutParserM ()
+insertType tk t = let what = "Type" in do
     oldState <- get
-    checkRepeated pos what [id] >>= checkAlreadyDefined what (head $ getStack oldState)
-    let newSymTable = insert (getSymTable oldState) (head $ getStack oldState) TypeSym SutTypeVoid (TypeDef t) [id]
+    checkRepeated what [tk] >>= checkAlreadyDefined what (head $ getStack oldState)
+    let newSymTable = insert (getSymTable oldState) (head $ getStack oldState) TypeSym SutTypeVoid (TypeDef t) [tk]
     put $ oldState { getSymTable = newSymTable }
 
-insertFunction :: AlexPosn -> SutID -> SutParserM ()
-insertFunction pos id = let what = "Function" in do
+insertFunction :: SutToken -> SutParserM ()
+insertFunction tk = let what = "Function" in do
     oldState <- get
     let newCurScope = 1 + getCurScope oldState
         oldStack = getStack oldState
-        newSymTable = insert (getSymTable oldState) (head oldStack) FunctionSym SutTypeVoid NoOther [id]
+        newSymTable = insert (getSymTable oldState) (head oldStack) FunctionSym SutTypeVoid NoOther [tk]
         newSet = Set.insert newCurScope (getSet oldState)
         newStack = newCurScope:oldStack
-    checkToBeNew pos what newCurScope [id]
+    checkToBeNew what newCurScope [tk]
     put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = newCurScope, getSet = newSet}
 
-insertFunctionParams :: AlexPosn -> [SutParam] -> SutParserM ()
-insertFunctionParams pos ps = let what = "Parameter" in do
+insertFunctionParams :: [SutParamTk] -> SutParserM ()
+insertFunctionParams ps = let what = "Parameter" in do
     oldState <- get
     let newSymTable = insertParam (getSymTable oldState) (head $ getStack oldState) ParamSym ps
-    checkRepeated pos what (map thd ps) >>= checkAlreadyDefined pos what (getCurScope oldState)
+    checkRepeated what (map thd ps) >>= checkAlreadyDefined what (getCurScope oldState)
     put $ oldState { getSymTable = newSymTable }
     where thd (_,_,a) = a
 
-modifyFunction :: SutID -> SutBlock -> [SutParam] -> SutType -> SutParserM ()
-modifyFunction id funBlock params t = do
+modifyFunction :: SutID -> SutBlock -> [SutParamTk] -> SutType -> SutParserM ()
+modifyFunction id funBlock ps t = do
     oldState <- get
     let oldSymbols = lookupId (getSymTable oldState) id
         oldSymbol = head oldSymbols
-        newSymbol = Symbol id FunctionSym (getScope oldSymbol) t (FunctionAST funBlock params)
+        newSymbol = Symbol (getSymToken oldSymbol) FunctionSym (getScope oldSymbol) t (FunctionAST funBlock ps)
         newSymbols = map (\x -> if x /= oldSymbol then x else newSymbol) oldSymbols
-        newSymTable = SymTable $ updateSymList (getHash $ getSymTable oldState) id newSymbols
+        newSymTable = SymTable $ updateSymList (getHash $ getSymTable oldState) (getSymToken oldSymbol) newSymbols
     put $ oldState { getSymTable = newSymTable }
 
 
 
 -- Checks
 ---------------------------------------------------------------------------------------------------
-checkRepeated :: AlexPosn -> String -> [SutID] -> SutParserM [SutID]
-checkRepeated pos what ids = do
-    let rep = repeated ids
-        unq = List.nub ids
+checkRepeated :: String -> [SutToken] -> SutParserM [SutToken]
+checkRepeated what tks = do
+    let rep = repeatedBy gse detokenize tks
+        unq = List.nubBy (eqf detokenize) tks
     unless (null rep) $ mapM_ logListError rep
     return unq
-    where logListError = logAlreadyDefined pos "declaration" what
+    where logListError = logAlreadyDefined "declaration" what
+          gse = getString.getToken
+          eqf :: (Eq b) => (a -> b) -> a -> a -> Bool
+          eqf f a b = f a == f b
+          detokenize (SutToken a b) = getString b
 
-checkAlreadyDefined :: AlexPosn -> String -> Scope -> [SutID] -> SutParserM ()
-checkAlreadyDefined pos what scope ids = do
+checkAlreadyDefined :: String -> Scope -> [SutToken] -> SutParserM ()
+checkAlreadyDefined what scope tks = do
     oldState <- get
-    let setsIn = lookupsInScope (getSymTable oldState) scope ids
+    let ids = map (getString.getToken) tks
+        setsIn = lookupsInScope (getSymTable oldState) scope tks
         someIn = not $ all null setsIn
-        thoseIn = filter null setsIn
-    when someIn $ mapM_ (logScopeError.head) thoseIn
-    where logScopeError s = logAlreadyDefined pos "scope" what $ getId s
+        thoseIn = filter (null.snd) $ zip tks setsIn
+    when someIn $ mapM_ (logScopeError.fst) thoseIn
+    where logScopeError = logAlreadyDefined "scope" what
 
-checkToBeNew :: AlexPosn -> String -> Scope -> [SutID] -> SutParserM ()
-checkToBeNew pos what scope ids = checkRepeated pos what ids >>= checkAlreadyDefined pos what scope
+checkToBeNew :: String -> Scope -> [SutToken] -> SutParserM ()
+checkToBeNew what scope tks = checkRepeated what tks >>= checkAlreadyDefined what scope
 
-checkId :: AlexPosn -> SutID -> SymCategory -> SutType -> SutParserM (Maybe Symbol)
-checkId pos id cat t = do
+checkToBeNewNow :: String -> [SutToken] -> SutParserM ()
+checkToBeNewNow what tks = get >>= \st -> checkToBeNew what (getCurScope st) tks
+
+checkId :: SutToken -> SymCategory -> SutType -> SutParserM (Maybe Symbol)
+checkId tk cat t = do
     state <- get
-    let symbols = lookupId (getSymTable state) id
+    let symbols = lookupId (getSymTable state) $ getString $ getToken tk
         activeScopes = getSet state
         good = filter (allf [isInScopes activeScopes, isThisCat, isThisType]) symbols
-    when (null good) $ logNotDefined pos (showSut cat) id
+    when (null good) $ logNotDefined (showSut cat) tk
     return $ if null good then Nothing else Just $ head good
     where isInScopes scopes sym = Set.member (getScope sym) scopes
           isThisCat sym = getCategory sym == cat
           isThisType sym = getType sym == t
 
-checkParams :: AlexPosn -> Symbol -> [SutParam] -> SutParserM ()
-checkParams pos fs args = do
-  let actualTypes = map (\(_,t,_) -> t) args
-      formalTypes = getParams $ getOther fs
-      matches = zip formalTypes actualTypes
-      badMatches = filter (\((_,tp,_), t) -> tp /= t) matches
-      badNumber = length actualTypes /= length formalTypes
-      badTypes = not $ null badMatches
-  when badNumber $ logBadParamNumber pos (getId fs) (length formalTypes) (length actualTypes)
-  when badTypes $ mapM_ (uncurry $ logBadParamType pos (getId fs)) badMatches
+checkId' :: SutToken -> SymCategory -> SutParserM (Maybe Symbol)
+checkId' tk cat = do
+    state <- get
+    let symbols = lookupId (getSymTable state) $ getString $ getToken tk
+        activeScopes = getSet state
+        good = filter (allf [isInScopes activeScopes, isThisCat]) symbols
+    when (null good) $ logNotDefined (showSut cat) tk
+    return $ if null good then Nothing else Just $ head good
+    where isInScopes scopes sym = Set.member (getScope sym) scopes
+          isThisCat sym = getCategory sym == cat
 
-checkIndexType :: AlexPosn -> SutType -> SutParserM SutType
-checkIndexType pos t = do
-    let newType = typesLCA SutTypeInt t
-    when (newType == SutTypeError) $ logIndexNeedsInt pos t
-    return newType
+checkIsPointer :: SutToken -> SymCategory -> SutParserM (Maybe Symbol)
+checkIsPointer tk cat = do
+    symbol <- checkId' tk cat
+    return $ if isJust symbol && (isPointer.getType.fromJust) symbol
+                then symbol
+                else Nothing
+    where isPointer (SutTypePointer _) = True
+          isPointer _ = False
+
+checkNewVars :: SutType -> [(SutToken,SutType)] -> SutParserM ()
+checkNewVars t ts = do
+    let badMatches = filter ((/= t).snd) ts
+        badTypes = not $ null badMatches
+    when badTypes $ mapM_ (uncurry $ logBadVarType t) badMatches
+
+checkParams :: Symbol -> [SutParamTk] -> SutParserM ()
+checkParams fs args = do
+    let actualTypes = map (\(_,t,_) -> t) args
+        formalTypes = getParams $ getOther fs
+        matches = zip formalTypes actualTypes
+        badMatches = filter (\((_,tp,_), t) -> tp /= t) matches
+        badNumber = length actualTypes /= length formalTypes
+        badTypes = not $ null badMatches
+    when badNumber $ logBadParamNumber (getSymToken fs) (length formalTypes) (length actualTypes)
+    when badTypes $ mapM_ (uncurry $ logBadParamType (getSymToken fs)) badMatches
+
+checkIndexType :: SutToken -> SutType -> SutParserM ()
+checkIndexType tk t = do
+    let t' = typesLCA SutTypeInt t
+    unless (t' == SutTypeInt) $ logIndexNeedsInt tk t
+
+checkConditionalType :: SutToken -> SutType -> SutParserM ()
+checkConditionalType tk t = do
+    let t' = toTypeBool t
+    unless (t' == SutTypeBool) $ logConditionalNeedsBool tk t
+
+
+
+-- Parser Actions
+-- ------------------------------------------------------------------------------------------------
+variableDeclaration vtk te list = do
+    checkId' vtk PersonSym
+    checkNewVars te (map (\(tk,Just e) -> (tk,getExpressionType e)) (filter (isJust.snd) list))
+    insertVars te (map fst list)
+    return (map mapAssigns (filter (isJust.snd) list))
+    where mapAssigns (_, Just e) = SutInstExpression (axp e)
+          axp = SutBinaryOp te SutOpAssign $ SutExprID te (getString $ getToken vtk)
+
 
 
 
 -- Error logs
 ---------------------------------------------------------------------------------------------------
-logAlreadyDefined :: AlexPosn -> String -> String -> SutID -> SutParserM ()
-logAlreadyDefined pos place thing id = tell $ SutParserLog $
-  "\n"++showAlex++": "++thing++" '"++id++"' already defined in the same "++place++"."
+logAlreadyDefined :: String -> String -> SutToken -> SutParserM ()
+logAlreadyDefined place thing (SutToken pos tkc) = tell $ SutParserLog $
+  "\n"++showSut pos++": error: "++thing++" '"++getString tkc++"' already defined in the same "++place++"."
 
-logNotDefined :: AlexPosn -> String -> SutID -> SutParserM ()
-logNotDefined thing id = tell $ SutParserLog $
-  "\n"++showAlex++": "++thing++" '"++id++"' not defined in any active scope."
+logNotDefined :: String -> SutToken -> SutParserM ()
+logNotDefined thing (SutToken pos tkc) = tell $ SutParserLog $
+  "\n"++showSut pos++": error: "++thing++" '"++getString tkc++"' not defined in any active scope."
 
-logBadParamNumber :: AlexPosn -> SutID -> Int -> Int -> SutParserM ()
-logBadParamNumber pos id formal actual = let howmany = if actual > formal then "more" else "fewer" in
+logBadParamNumber :: SutToken -> Int -> Int -> SutParserM ()
+logBadParamNumber (SutToken pos tkc) formal actual = let howmany = if actual > formal then "more" else "fewer" in
   tell $ SutParserLog $
-    "\n"++showAlex pos++"Function '"++id++"' needs "++howmany++" arguments ("++show formal++" instead of "++show actual++")."
+    "\n"++showSut pos++": error: "++"Function '"++getString tkc++"' needs "++howmany++" arguments ("++show formal++" instead of "++show actual++")."
 
-logBadParamType :: AlexPosn -> SutID -> SutParam -> SutType -> SutParserM ()
-logBadParamType pos fid (ref, t, id) t' = tell $ SutParserLog $
-  "\n"++showAlex pos++": Function '"++fid++"' parameter '"++id++"' has type (1) (you used (2))"++
+logBadVarType :: SutType -> SutToken -> SutType -> SutParserM ()
+logBadVarType t1 (SutToken pos tkc) t2 = tell $ SutParserLog $
+  "\n"++showSut pos++": error: "++"Declaration for variable '"++getString tkc++"' is of type (1), but value is of type (2)"++
+  "\n\t(1)\t"++showSut t1++
+  "\n\t(2)\t"++showSut t2
+
+logBadParamType :: SutToken -> SutParamTk -> SutType -> SutParserM ()
+logBadParamType (SutToken pos1 fkc) (ref, t, SutToken _ tkc) t' = tell $ SutParserLog $
+  "\n"++showSut pos1++": error: "++"Function '"++getString fkc++"' parameter '"++getString tkc++"' has type (1) (you used (2))"++
   "\n\t(1)\t"++showSut t++
   "\n\t(2)\t"++showSut t'
 
-logIndexNeedsInt :: AlexPosn -> SutType -> SutParserM ()
-logIndexNeedsInt pos t = tell $ SutParserLog $
-  "\n"++showAlex pos++":Chain types (arrays) need integer-convertibles indexes. Type (1) is not convertible to int."++
+logIndexNeedsInt :: SutToken -> SutType -> SutParserM ()
+logIndexNeedsInt (SutToken pos _) t = tell $ SutParserLog $
+  "\n"++showSut pos++": error: "++"Indexes have to be integers. Type (1) is not convertible to int."++
+  "\n\t(1)\t"++showSut t
+
+logConditionalNeedsBool :: SutToken -> SutType -> SutParserM ()
+logConditionalNeedsBool (SutToken pos _) t = tell $ SutParserLog $
+  "\n"++showSut pos++": error: "++"Conditionals for flow control need to be booleans. Type (1) is not convertible to bool."++
   "\n\t(1)\t"++showSut t
