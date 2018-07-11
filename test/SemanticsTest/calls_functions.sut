@@ -1,17 +1,17 @@
 Once upon a time in Santadila ...(
   There was Angel.
-  Angel brought a bag: soyInt. --| Type Int
-  Angel brought a book: soyChar. --| Type Char
-  Angel brought a phrase: soyString. --| TypeString
+  Angel brought a bag: soyInt. -- Type Int
+  Angel brought a book: soyChar. -- Type Char
+  Angel brought a phrase: soyString. -- TypeString
 
   Once upon some other time in C4R4C4S, there was a book ( made of bag x, your bag termol, wallet termo) ...(
   		Angel brought a bag: hi = 1.
   )... or that is what they say.
 
-  soyInt = C4R4C4S(with 1,2,3.1). --| Le asigno a un Int un Char
+  soyInt = C4R4C4S(with 1,2,3.1). -- Le asigno a un Int un Char
   
-  soyChar = C4R4C4S(with 1,2,3.1). --| Le asigno a un Char un Char
+  soyChar = C4R4C4S(with 1,2,3.1). -- Le asigno a un Char un Char
 
-  soyString = C4R4C4S(with 1,2,3.1). --| Le asigno a un String un Char
+  soyString = C4R4C4S(with 1,2,3.1). -- Le asigno a un String un Char
 
 )... and they lived happily ever after
