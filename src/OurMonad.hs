@@ -31,7 +31,7 @@ instance Show OurLog where
   show (OurLog a) = "Errores:\n"++a++"\n"
 
 instance Show Symbol where
-  show (Symbol id cat sc t other) = "Simbolo: "++id++"\n Tipo "++show t++"\n Categoria: "++(show cat)++"\n Scope: "++(show sc)++"\n"
+  show (Symbol id cat sc t other) = "Simbolo: "++id++", Tipo "++show t++", Categoria: "++(show cat)++", Scope: "++(show sc)++"\n"
 
 
 type OurMonad a = StateT OurState (WriterT OurLog (Either OurError)) a
@@ -201,7 +201,7 @@ checkId s cat ap = do
 
 fromJust' :: Maybe AlexPosn -> AlexPosn
 fromJust' (Just c) = c
-fromJust' Nothing = (AlexPn 2 2 2)
+fromJust' Nothing = (AlexPn (-1) (-1) (-1))
 
 head' [] = Nothing
 head' (x:xs) = Just x
@@ -253,7 +253,7 @@ checkParams (LFCP l) (Just s) ap = do
     when (length actualTypes /= length formalTypes) $ 
         tell $ OurLog $ showAlex ap++showArg (length actualTypes) (length formalTypes)++"to function '"++(getId s)++"'.\n" 
     when (length bad /= 0) $ 
-        tell $ OurLog $ showAlex ap++"Invalid conversion from '"++"show $ head bad"++"' to '"++"show $ head bad"++"' in function '"++(getId s)++"'\n"     
+        tell $ OurLog $ showAlex ap++"Invalid conversion from '"++(showType $ snd $ head bad)++"' to '"++(showType $ fst $ head bad)++"' in function '"++(getId s)++"'\n"     
     where f (LFDP l) = map (\(x,_,_) -> x) l
 
 showAlex :: AlexPosn -> String
@@ -268,7 +268,7 @@ getNumericType sim e1 e2 ap = do
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++showType type1++" and "++showType type2++"\n"
     return $ finalType
     where joinTypes TI TI = TI
           joinTypes TI TC = TI
@@ -298,7 +298,7 @@ getLogicalType sim e1 e2 ap = do
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++showType type1++" and "++showType type2++"\n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -322,7 +322,7 @@ getComparisonType sim e1 e2 ap = do
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++showType type1++" and "++showType type2++"\n"
     return $ finalType
     where joinTypes TI TI = TB
           joinTypes TI TC = TB
@@ -351,7 +351,7 @@ getEqualityType sim e1 e2 ap = do
         type2 = getExpressionType e2
         finalType = joinTypes type1 type2
     when (finalType == TE) $ 
-        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++show type1++" and "++show type2++"\n"
+        tell $ OurLog $ showAlex ap++"No match for operator: '"++sim++"' and types: "++showType type1++" and "++showType type2++"\n"
     return $ finalType
     where joinTypes TI TC = TB
           joinTypes TI TB = TB
@@ -409,7 +409,8 @@ getExpressionType (IdT _ t) = t
 getExpressionType (LitT l) = getLiteralType l
 getExpressionType (ConsT c) = getConstructType c
 getExpressionType (OpT o) = getOperationType o
---getExpressionType (FuncT) = t
+getExpressionType (FunCT (FCAT _ t)) = t
+getExpressionType (FunCT (FCNT _ _ t)) = t
 getExpressionType _ = TE
 
 getLiteralType (IT _)  = TI 
@@ -438,7 +439,7 @@ checkTypesExp :: Type -> Lists -> AlexPosn -> OurMonad ()
 checkTypesExp t (LDV l) ap = do 
     let bad = filter (\(_,x) -> isJust x && ((getExpressionType $ fromJust x) /= t)) l
     when (length bad /= 0) $
-        mapM_ (\(s,t2) -> tell $ OurLog $ showAlex ap++"Variable '"++s++"' has an invalid conversion from "++show (getExpressionType $ fromJust t2)++" to: "++show t++"\n") bad
+        mapM_ (\(s,t2) -> tell $ OurLog $ showAlex ap++"Variable '"++s++"' has an invalid conversion from "++showType (getExpressionType $ fromJust t2)++" to: "++showType t++"\n") bad
 
 checkArrayItemsType :: Constructor -> AlexPosn -> OurMonad ()
 checkArrayItemsType (LCAT []) _ = return ()
@@ -474,3 +475,13 @@ typesLCA TB TC  = TI
 typesLCA TE _ = TE
 typesLCA _ TE = TE
 typesLCA t1 t2 = if t1 == t2 then t1 else TE
+
+showType ::  Type -> String
+showType (TI) = "entero"
+showType (TF) = "flotante"
+showType (TC) = "caracter"
+showType (TB) = "booleano"
+showType (TS) = "string"
+showType (TA n ty) = "array de "++show n++" elementos de "++showType ty
+showType (TE) = "error"
+showType t = show t 

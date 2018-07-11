@@ -234,22 +234,22 @@ TypeDeclaration          : ID Invented ID                           { % checkId 
 
 -- Types
 -----------------------------------------------------------------------------------------------------------------------
-Type                     : TYPE_INT                                                                             { TI }
-                         | TYPE_FLOAT                                                                           { TF }
-                         | TYPE_CHAR                                                                            { TC }
-                         | TYPE_BOOL                                                                            { TB }
-                         | TYPE_STRING                                                                          { TS }
-                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                               { TA $4 $5 }
-                         | TYPE_STRUCT '(' WITH StructTyping ')'                                                { TST $4 }
-                         | TYPE_UNION '(' EITHER UnionTyping ')'                                                { TU $4 }
-                         | TYPE_POINTER '(' TO Type ')'                                                         { TP $4 }
-                         | ID                                                                                   { TID $1 }
+Type                     : TYPE_INT                                                                     { TI }
+                         | TYPE_FLOAT                                                                   { TF }
+                         | TYPE_CHAR                                                                    { TC }
+                         | TYPE_BOOL                                                                    { TB }
+                         | TYPE_STRING                                                                  { TS }
+                         | TYPE_ARRAY '(' OF LITERAL_INT Type ')'                                       { TA $4 $5 }
+                         | TYPE_STRUCT '(' WITH StructTyping ')'                                        { TST $4 }
+                         | TYPE_UNION '(' EITHER UnionTyping ')'                                        { TU $4 }
+                         | TYPE_POINTER '(' TO Type ')'                                                 { TP $4 }
+                         | ID                                                                           { TID $1 }
 
-StructTyping             : Type ID                                                                           { LSRT [($1,$2)] }
-                         | Type ID and StructTyping                                                          { LSRT $ ($1,$2): listLSRT $4 }
+StructTyping             : Type ID                                                                      { LSRT [($1,$2)] }
+                         | Type ID and StructTyping                                                     { LSRT $ ($1,$2): listLSRT $4 }
 
-UnionTyping              : Type ID                                                                              { LUT [($1,$2)] }
-                         | Type ID or UnionTyping                                                               { LUT $ ($1,$2): listLUT $4 }
+UnionTyping              : Type ID                                                                      { LUT [($1,$2)] }
+                         | Type ID or UnionTyping                                                       { LUT $ ($1,$2): listLUT $4 }
 
 
 -- Blocks
