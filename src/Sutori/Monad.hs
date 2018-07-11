@@ -1,9 +1,9 @@
 module Sutori.Monad where
 
 import Data.Maybe
-import Data.List
 import Data.Semigroup
 import Data.Either
+import qualified Data.List as List
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
@@ -16,6 +16,7 @@ import Sutori.AST
 import Sutori.Types
 import Sutori.Utils
 import Sutori.SymTable
+import Sutori.Lexer
 
 -- Data types {{{1
 type SutParserM a = StateT SutParserState (WriterT SutParserLog (Either SutParserError)) a
@@ -44,352 +45,172 @@ instance Show SutParserLog where
 
 
 
--- SutParserM Actions {{{1
-
-runSutParserM :: SutParserM a -> SutParserState -> Either SutParserError ((a, SutParserState), SutParserLog)
-runSutParserM f a = runWriterT $ runStateT f a
-
-
 getTuple f a = getTuple $ getRight $ runSutParserM f a `catchError` parseError
     where getRight (Right x) = x
           getTuple((ast,st),log) = (ast,st,log)
           parseError (SutParserError pos) = error $ "\nError in line "++show pos
 
-extract Nothing = []
-extract (Just a) = a
 
-
-filterByLength :: Ord a => (Int -> Bool) -> [a] -> [[a]]
-filterByLength p = filter (p . length) . group . sort
-
-repeated :: Ord a => [a] -> [a]
-repeated = map head . filterByLength (>1)
-
--- Inserts
+-- Regular Actions
 ---------------------------------------------------------------------------------------------------
-insertVars :: SutType -> [SutID] -> SutParserM ()
-insertVars t ids = do
+runSutParserM :: SutParserM a -> SutParserState -> Either SutParserError ((a, SutParserState), SutParserLog)
+runSutParserM f a = runWriterT $ runStateT f a
+
+printSymTable :: SutParserState -> IO ()
+printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
+
+addScope :: SutParserM ()
+addScope = do
     oldState <- get
-    let nubids = nub ids
-        curScope = getCurScope oldState
-        newSymTable = insert (getSymTable oldState) curScope VarSym t NoOther
-    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
-    when (length ids /= length nubids) $ mapM_ logListError (repeated sl) -- ??
-    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
-    put $ oldState { getSymTable = newSymTable }
-    where logScopeError (vs, _)      = logAlreadyDefined "scope" "Variable" vs
-          logListError vs            = logAlreadyDefined "declaration" "Variable" vs
-
-insertPerson :: [SutID] -> SutParserM ()
-insertPerson ids = do
-    oldState <- get
-    let curScope = getCurScope oldState
-        newSymTable = insert (getSymTable oldState) curScope PersonSym SutTypeVoid NoOther
-        nubids = nub ids
-    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
-    when (length ids /= length nubids) $ mapM_ logListError (repeated sl)
-    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
-    put $ oldState { getSymTable = newSymTable }
-    where logScopeError (vs, _)  = logAlreadyDefined "scope" "Person" vs
-          logListError vs        = logAlreadyDefined "declaration" "Person" vs
-
-insertFunction :: SutID -> SutParserM ()
-insertFunction id = do
-    oldState <- get
-    let curScope = 1 + getCurScope oldState
-        oldTable = getHash oldSymTable
-        newSymTable = insert (getSymTable oldState) (head $ getStack oldState) FunctionSym SutTypeVoid NoOther
-        newSet = Set.insert curScope (getSet oldState)
-        newStack = curScope:oldStack
-    notGood <- lookupVarInScope (head $ getStack oldState) s
-    when (notGood) $ logAlreadyDefined "scope" "Function" id
-    put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = curScope, getSet = newSet}
-
-
-insertFunctionParams :: [SutParam] -> SutParserM ()
-insertFunctionParams ps = do
-    oldState <- get
-    let newSymTable = insertToTable oldState addToMap ids
-        oldList = map (\(_, pid, _) -> pid) ps
-        newList = nub oldList
-    notGood <- or <$> mapM (lookupVarInScope curScope) nubids
-    when (length ids /= length newList) $ mapM_ logListError (repeated sl)
-    when (notGood) $ mapM_ logScopeError <$> filter <$> fmap (zip nubids) inSymTable snd
-    updateSymTable oldState newSymTable
-    where logScopeError (vs, _)  = logAlreadyDefined "Person" "scope" vs
-          logListError vs        = logAlreadyDefined "Person" "declaration" vs
-          addToMap curScope mp s = let newSymbol = Symbol s PersonSym curScope Nothing NoOther
-                                       newList = newSymbol:(extract $ Map.lookup s mp)
-                                    in Map.insert s newList mp
-    let oldSymTable = getSymTable oldState
-        oldHash = getHash oldSymTable
-        curScope = head $ getStack oldState
-        newSymTable = SymTable $ foldl (addToMap curScope) oldHash l
-        sl = map (\(_,s,_) -> s) l
-        newl = nub sl
-    when (length l /= length newl) $
-        mapM_ (\vs -> tell $ SutParserLog $ "Id '"++vs++"' definido dos veces en la misma lista de parametros de la funci'on\n") (repeated sl)
-    updateSymTable oldState newSymTable
-    return $ LFDP l
-    where addToMap curScope mp (tf,sf,f) = let newSymbol = Symbol sf Param curScope (Just tf) (ReferenceOp f)
-                                             newList = newSymbol:(extract $ Map.lookup sf mp)
-                                             newMap = Map.insert sf newList mp
-                                         in newMap
-
-insertType :: Declaration -> String -> SutParserM Declaration
-insertType TDT s = do
-    oldState <- get
-    let oldSymTable = getSymTable oldState
-        curScope = head $ getStack oldState
-        oldHash = getHash oldSymTable
-        newSymbol = Symbol s TypeSym curScope Nothing NoOther
-        newList = newSymbol:(extract $ Map.lookup s oldHash)
-        newSymTable = SymTable $ Map.insert s newList oldHash
-    updateSymTable oldState newSymTable
-    return TDT
-
-
-
-
-
-
-
-lookupVarInScope :: Int -> String -> SutParserM Bool
-lookupVarInScope sc s = do
-    oldState <- get
-    let hash = getHash.getSymTable $ oldState
-        symb = map getScope (extract $ Map.lookup s hash)
-        xs = filter (==sc) symb
-        ans = case xs of
-            [] -> False
-            _ -> True
-    return ans
-
+    let newIdScope = 1 + getIdScope oldState
+        newSet = Set.insert newIdScope (getSet oldState)
+        newStack = newIdScope:getStack oldState
+    put $ oldState { getStack = newStack, getIdScope = newIdScope, getSet = newSet}
 
 removeLastScope :: SutParserM ()
 removeLastScope = do
     oldState <- get
     let oldStack = getStack oldState
         newStack = tail oldStack
-        newSet = Set.delete (oldStack !! 0) (getSet oldState)
+        newSet = Set.delete (head oldStack) (getSet oldState)
     put $ oldState { getStack = newStack, getSet = newSet }
 
 
-checkId :: String -> Category -> SutParserM (Maybe Symbol)
-checkId s cat = do
-    state <- get
-    let hash = getHash $ getSymTable state
-        set = getSet state
-        listSymb = Map.lookup s hash
-        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == cat))  (extract listSymb)
-    when (length good == 0) $
-        tell $ SutParserLog $ (show cat)++" '"++s++"' no definido anteriormente\n"
-    return $ head' good
 
-head' [] = Nothing
-head' (x:xs) = Just x
+-- Insertion and modification of symbols
+---------------------------------------------------------------------------------------------------
+insertInitial :: AlexPosn -> SutParserM ()
+insertInitial pos = mapM_ (uncurry (insertType pos)) predefinedTypeNames
 
-getType' Nothing = Just TE
-getType' (Just s) = getType s
-
-checkType :: Type -> SutParserM ()
-checkType (TID s) = do
-    state <- get
-    let hash = getHash $ getSymTable state
-        set = getSet state
-        listSymb = Map.lookup s hash
-        good = filter (\sy -> (Set.member (getScope sy) set) && (getCategory sy == TypeSym))  (extract listSymb)
-    when (length good == 0) $
-        tell $ SutParserLog $ "Tipo '"++s++"' no definido anteriormente\n"
-
-checkType _ = return ()
-
-addInstructionScope :: SutParserM ()
-addInstructionScope = do
+insertVars :: AlexPosn -> SutType -> [SutID] -> SutParserM ()
+insertVars pos t ids = let what = "Variable" in do
     oldState <- get
-    let oldStack = getStack oldState
-        idScope = getIdScope oldState
-        curScope = idScope + 1
-        newSet = Set.insert curScope (getSet oldState)
-        newStack = curScope:oldStack
-    put $ oldState { getStack = newStack, getIdScope = curScope, getSet = newSet}
-
-modifyFunction :: String -> Lists -> Lists -> Type -> SutParserM ()
-modifyFunction s bf ps t = do
-    oldSymbol <- checkId s Function
-    oldState <- get
-    let oldSymTable = getSymTable oldState
-        oldHash = getHash oldSymTable
-        oldList = extract $ Map.lookup s oldHash
-        funcSymbol = Symbol s Function (getScope (fromJust oldSymbol)) (Just t) (FunctionAST bf ps)
-        newList = foldr (\x acc -> (if (x/=(fromJust oldSymbol)) then x else funcSymbol):acc ) [] oldList
-        newSymTable = SymTable $ Map.insert s newList oldHash
+    let curScope = getCurScope oldState
+        newSymTable = insert (getSymTable oldState) curScope VarSym t NoOther ids
+    checkToBeNew pos what curScope ids
     put $ oldState { getSymTable = newSymTable }
 
-checkParams :: Lists -> Maybe Symbol -> SutParserM ()
-checkParams _ Nothing = return ()
-checkParams (LFCP l) (Just s) = do
-    let actualTypes = map getExpressionType l
-        formalTypes = f (getParams $ getOther s)
-        list = zip actualTypes formalTypes
-        bad = filter (\(x,y) -> x/=y ) list
-    when (length actualTypes /= length formalTypes) $
-        tell $ SutParserLog $ "N'umero de par'ametros de la funci'on '"++(getId s)++"' incorrecto.\n"
-    when (length bad /= 0) $
-        tell $ SutParserLog $ "Ti[p de parametro de la funci'on '"++(getId s)++"' incorrecto.\n"
-    where f (LFDP l) = map (\(x,_,_) -> x) l
+insertPerson :: AlexPosn -> [SutID] -> SutParserM ()
+insertPerson ids = let what = "Person" in do
+    oldState <- get
+    let curScope = getCurScope oldState
+        newSymTable = insert (getSymTable oldState) curScope PersonSym SutTypeVoid NoOther ids
+    checkToBeNew pos what curScope ids
+    put $ oldState { getSymTable = newSymTable }
 
+insertType :: AlexPosn -> SutID -> SutType -> SutParserM ()
+insertType id t = let what = "Type" in do
+    oldState <- get
+    checkRepeated pos what [id] >>= checkAlreadyDefined what (head $ getStack oldState)
+    let newSymTable = insert (getSymTable oldState) (head $ getStack oldState) TypeSym SutTypeVoid (TypeDef t) [id]
+    put $ oldState { getSymTable = newSymTable }
 
-getNumericType :: String -> Expression -> Expression -> SutParserM Type
-getNumericType sim e1 e2 = do
-    let type1 = getExpressionType e1
-        type2 = getExpressionType e2
-        finalType = joinTypes type1 type2
-    when (finalType == TE) $
-        tell $ SutParserLog $ "Operaci'on num'erica "++sim++" no definida para tipos: \n"
-    return $ finalType
-    where joinTypes TI TI = TI
-          joinTypes TI TC = TI
-          joinTypes TI TB = TI
-          joinTypes TI TF = TF
+insertFunction :: AlexPosn -> SutID -> SutParserM ()
+insertFunction pos id = let what = "Function" in do
+    oldState <- get
+    let newCurScope = 1 + getCurScope oldState
+        oldStack = getStack oldState
+        newSymTable = insert (getSymTable oldState) (head oldStack) FunctionSym SutTypeVoid NoOther [id]
+        newSet = Set.insert newCurScope (getSet oldState)
+        newStack = newCurScope:oldStack
+    checkToBeNew pos what newCurScope [id]
+    put $ oldState { getSymTable = newSymTable, getStack = newStack, getIdScope = newCurScope, getSet = newSet}
 
-          joinTypes TC TI = TI
-          joinTypes TC TF = TF
-          joinTypes TC TB = TI
-          joinTypes TC TC = TI
+insertFunctionParams :: AlexPosn -> [SutParam] -> SutParserM ()
+insertFunctionParams pos ps = let what = "Parameter" in do
+    oldState <- get
+    let newSymTable = insertParam (getSymTable oldState) (head $ getStack oldState) ParamSym ps
+    checkRepeated pos what (map thd ps) >>= checkAlreadyDefined pos what (getCurScope oldState)
+    put $ oldState { getSymTable = newSymTable }
+    where thd (_,_,a) = a
 
-          joinTypes TF TI = TF
-          joinTypes TF TC = TF
-          joinTypes TF TF = TF
-          joinTypes TF TB = TF
-
-          joinTypes TB TB = TI
-          joinTypes TB TI = TI
-          joinTypes TB TC = TI
-          joinTypes TB TF = TF
-
-          joinTypes _ _ = TE
-
-getLogicalType :: String -> Expression -> Expression -> SutParserM Type
-getLogicalType sim e1 e2 = do
-    let type1 = getExpressionType e1
-        type2 = getExpressionType e2
-        finalType = joinTypes type1 type2
-    when (finalType == TE) $
-        tell $ SutParserLog $ "Operaci'on logica"++sim++" no definida para tipos: \n"
-    return $ finalType
-    where joinTypes TI TI = TB
-          joinTypes TI TC = TB
-          joinTypes TI TB = TB
-
-
-          joinTypes TC TI = TB
-          joinTypes TC TB = TB
-          joinTypes TC TC = TB
-
-          joinTypes TB TB = TB
-          joinTypes TB TI = TB
-          joinTypes TB TC = TB
-
-          joinTypes _ _ = TE
-
-
-getComparisonType :: String -> Expression -> Expression -> SutParserM Type
-getComparisonType sim e1 e2 = do
-    let type1 = getExpressionType e1
-        type2 = getExpressionType e2
-        finalType = joinTypes type1 type2
-    when (finalType == TE) $
-        tell $ SutParserLog $ "Operaci'on de comparaci'on "++sim++" no definida para tipos: \n"
-    return $ finalType
-    where joinTypes TI TI = TB
-          joinTypes TI TC = TB
-          joinTypes TI TB = TB
-          joinTypes TI TF = TB
-
-          joinTypes TC TI = TB
-          joinTypes TC TF = TB
-          joinTypes TC TB = TB
-          joinTypes TC TC = TB
-
-          joinTypes TF TI = TB
-          joinTypes TF TC = TB
-          joinTypes TF TF = TB
-          joinTypes TF TB = TB
-
-          joinTypes TB TB = TB
-          joinTypes TB TI = TB
-          joinTypes TB TC = TB
-          joinTypes TB TF = TB
-          joinTypes _ _ = TE
-
-getEqualityType :: String -> Expression -> Expression -> SutParserM Type
-getEqualityType sim e1 e2 = do
-    let type1 = getExpressionType e1
-        type2 = getExpressionType e2
-        finalType = joinTypes type1 type2
-    when (finalType == TE) $
-        tell $ SutParserLog $ "Operaci'on de igualdad "++sim++" no definida para tipos: \n"
-    return $ finalType
-    where joinTypes TI TC = TB
-          joinTypes TI TB = TB
-          joinTypes TI TF = TB
-
-          joinTypes TC TI = TB
-          joinTypes TC TF = TB
-          joinTypes TC TB = TB
-
-          joinTypes TF TI = TB
-          joinTypes TF TC = TB
-          joinTypes TF TB = TB
-
-          joinTypes TB TI = TB
-          joinTypes TB TC = TB
-          joinTypes TB TF = TB
-
-          joinTypes TE TE = TE
-
-          joinTypes a b = if (a==b) then TB else TE
-
-checkIndexType :: Expression -> SutParserM ()
-checkIndexType e = do
-    let t = getExpressionType e
-        i = toInt t
-    when (i == TE) $
-        tell $ SutParserLog $ "Indice no convertible a entero\n"
-    where toInt TI = TI
-          toInt TC = TI
-          toInt TB = TI
-          toInt _  = TE
-
-extArrayType :: Expression -> SutParserM Type
-extArrayType e = do
-    let pt = getExpressionType e
-    case pt of
-        (TA _ t) -> return t
-        TE -> return TE
-        _ -> do tell $ SutParserLog $ "Operaci'on de indexaci'on no definida para tipo: \n"
-                return TE
-
-
-getPointerType :: Expression -> SutParserM Type
-getPointerType e = do
-    let pt = getExpressionType e
-    case pt of
-        (TP t) -> return t
-        TE -> return TE
-        _ -> do tell $ SutParserLog $ "Operaci'on de deferencia no definida para tipo: \n"
-                return TE
+modifyFunction :: SutID -> SutBlock -> [SutParam] -> SutType -> SutParserM ()
+modifyFunction id funBlock params t = do
+    oldState <- get
+    let oldSymbols = lookupId (getSymTable oldState) id
+        oldSymbol = head oldSymbols
+        newSymbol = Symbol id FunctionSym (getScope oldSymbol) t (FunctionAST funBlock params)
+        newSymbols = map (\x -> if x /= oldSymbol then x else newSymbol) oldSymbols
+        newSymTable = SymTable $ updateSymList (getHash $ getSymTable oldState) id newSymbols
+    put $ oldState { getSymTable = newSymTable }
 
 
 
+-- Checks
+---------------------------------------------------------------------------------------------------
+checkRepeated :: AlexPosn -> String -> [SutID] -> SutParserM [SutID]
+checkRepeated pos what ids = do
+    let rep = repeated ids
+        unq = List.nub ids
+    unless (null rep) $ mapM_ logListError rep
+    return unq
+    where logListError = logAlreadyDefined pos "declaration" what
 
-printSymTable :: SutParserState -> IO ()
-printSymTable mp = mapM_ print (Map.elems (getHash $ getSymTable mp))
+checkAlreadyDefined :: AlexPosn -> String -> Scope -> [SutID] -> SutParserM ()
+checkAlreadyDefined pos what scope ids = do
+    oldState <- get
+    let setsIn = lookupsInScope (getSymTable oldState) scope ids
+        someIn = not $ all null setsIn
+        thoseIn = filter null setsIn
+    when someIn $ mapM_ (logScopeError.head) thoseIn
+    where logScopeError s = logAlreadyDefined pos "scope" what $ getId s
+
+checkToBeNew :: AlexPosn -> String -> Scope -> [SutID] -> SutParserM ()
+checkToBeNew pos what scope ids = checkRepeated pos what ids >>= checkAlreadyDefined pos what scope
+
+checkId :: AlexPosn -> SutID -> SymCategory -> SutType -> SutParserM (Maybe Symbol)
+checkId pos id cat t = do
+    state <- get
+    let symbols = lookupId (getSymTable state) id
+        activeScopes = getSet state
+        good = filter (allf [isInScopes activeScopes, isThisCat, isThisType]) symbols
+    when (null good) $ logNotDefined pos (showSut cat) id
+    return $ if null good then Nothing else Just $ head good
+    where isInScopes scopes sym = Set.member (getScope sym) scopes
+          isThisCat sym = getCategory sym == cat
+          isThisType sym = getType sym == t
+
+checkParams :: AlexPosn -> Symbol -> [SutParam] -> SutParserM ()
+checkParams pos fs args = do
+  let actualTypes = map (\(_,t,_) -> t) args
+      formalTypes = getParams $ getOther fs
+      matches = zip formalTypes actualTypes
+      badMatches = filter (\((_,tp,_), t) -> tp /= t) matches
+      badNumber = length actualTypes /= length formalTypes
+      badTypes = not $ null badMatches
+  when badNumber $ logBadParamNumber pos (getId fs) (length formalTypes) (length actualTypes)
+  when badTypes $ mapM_ (uncurry $ logBadParamType pos (getId fs)) badMatches
+
+checkIndexType :: AlexPosn -> SutType -> SutParserM SutType
+checkIndexType pos t = do
+    let newType = typesLCA SutTypeInt t
+    when (newType == SutTypeError) $ logIndexNeedsInt pos t
+    return newType
 
 
-logAlreadyDefined :: SymCategory -> String -> SutID -> SutParserM ()
-logAlreadyDefined place thing id = tell $ SutParserLog $ "\n"++printSut thing++" '"++id++"' already defined in the same "++place++"."
 
-logDefinedInScope = logAlreadyDefined "scope"
-logDefinedInDeclaration = logAlreadyDefined "declaration"
+-- Error logs
+---------------------------------------------------------------------------------------------------
+logAlreadyDefined :: AlexPosn -> String -> String -> SutID -> SutParserM ()
+logAlreadyDefined pos place thing id = tell $ SutParserLog $
+  "\n"++showAlex++": "++thing++" '"++id++"' already defined in the same "++place++"."
+
+logNotDefined :: AlexPosn -> String -> SutID -> SutParserM ()
+logNotDefined thing id = tell $ SutParserLog $
+  "\n"++showAlex++": "++thing++" '"++id++"' not defined in any active scope."
+
+logBadParamNumber :: AlexPosn -> SutID -> Int -> Int -> SutParserM ()
+logBadParamNumber pos id formal actual = let howmany = if actual > formal then "more" else "fewer" in
+  tell $ SutParserLog $
+    "\n"++showAlex pos++"Function '"++id++"' needs "++howmany++" arguments ("++show formal++" instead of "++show actual++")."
+
+logBadParamType :: AlexPosn -> SutID -> SutParam -> SutType -> SutParserM ()
+logBadParamType pos fid (ref, t, id) t' = tell $ SutParserLog $
+  "\n"++showAlex pos++": Function '"++fid++"' parameter '"++id++"' has type (1) (you used (2))"++
+  "\n\t(1)\t"++showSut t++
+  "\n\t(2)\t"++showSut t'
+
+logIndexNeedsInt :: AlexPosn -> SutType -> SutParserM ()
+logIndexNeedsInt pos t = tell $ SutParserLog $
+  "\n"++showAlex pos++":Chain types (arrays) need integer-convertibles indexes. Type (1) is not convertible to int."++
+  "\n\t(1)\t"++showSut t

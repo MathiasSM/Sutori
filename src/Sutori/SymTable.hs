@@ -2,15 +2,20 @@ module Sutori.SymTable
 (
   Scope, SymMap, SymTable(..),
   Symbol(..), SymCategory(..), SymOther(..),
-  insert
+  insert, insertParam, updateSymList,
+  lookupId, lookupInScope, lookupsInScope
 ) where
 
+import qualified Data.Map as Map
+
 import Sutori.Utils
+import Sutori.AST
+import Sutori.Types
 
 
 type Scope = Int
 
-type SymMap = Map.Map String [Symbol]
+type SymMap = Map.Map SutID [Symbol]
 
 newtype SymTable = SymTable {
   getHash :: SymMap
@@ -34,20 +39,56 @@ data SymCategory = ModuleSym
                  | TypeSym
                  deriving (Eq,Show)
 
+instance SutShow SymCategory where
+  showSut ModuleSym = "Module"
+  showSut FunctionSym = "Function"
+  showSut PersonSym = "Person"
+  showSut VarSym = "Variable"
+  showSut TypeSym = "Type"
+
 -- Symbol Other
 data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParam]}
-               | IsReference Bool
+               | IsReference {isReference :: Bool}
+               | TypeDef {typeOf :: SutType}
                | NoOther
                deriving (Eq,Show)
 
-instance SutPrint Symbol where
-  printSut (Symbol id cat sc t other) = "Symbol "++id++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++")"
+instance SutShow Symbol where
+  showSut (Symbol id cat sc t other) = "Symbol "++id++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++")"
 
-insertWith :: SymTable -> [SymID] -> (SymTable -> SymID -> SymTable) -> SymTable
-insertWith table ids f = SymTable $ foldl f table ids
 
-insert :: SymTable -> Scope -> SutCategory -> SutType -> SutOther -> [SymID]
+-- Insertion
+---------------------------------------------------------------------------------------------------
+insertWith table ids f = SymTable $ foldl f (getHash table) ids
+
+insert :: SymTable -> Scope -> SymCategory -> SutType -> SymOther -> [SutID] -> SymTable
 insert table curScope category t o ids = insertWith table ids f
-  where f table' tag = let newSymbol  = Symbol tag category curScope t o
-                           newSymList = newSymbol : Map.findWithDefault [] tag table'
-                        in Map.insert tag newList table'
+  where f hash tag = let newSymbol  = Symbol tag category curScope t o
+                         newSymList = newSymbol : Map.findWithDefault [] tag hash
+                      in updateSymList hash tag newSymList
+
+insertParam :: SymTable -> Scope -> SymCategory -> [SutParam] -> SymTable
+insertParam table curScope category ps = insertWith table ps f
+  where f hash (ref, t, id) = let newSymbol  = Symbol id category curScope t (IsReference ref)
+                                  newSymList = newSymbol : Map.findWithDefault [] id hash
+                               in updateSymList hash id newSymList
+
+updateSymList :: SymMap -> SutID -> [Symbol] -> SymMap
+updateSymList hash tag newSymList = Map.insert tag newSymList hash
+
+
+-- Lookup
+---------------------------------------------------------------------------------------------------
+lookupInScope :: SymTable -> Scope -> SutID -> [Symbol]
+lookupInScope table scope id = filter isHere $ lookupId table id
+  where isHere = (== scope) . getScope
+
+lookupId :: SymTable -> SutID -> [Symbol]
+lookupId table id = Map.findWithDefault [] id $ getHash table
+
+lookupsInScope :: SymTable -> Scope -> [SutID] -> [[Symbol]]
+lookupsInScope table scope = map (lookupInScope table scope)
+
+
+-- Checks
+---------------------------------------------------------------------------------------------------

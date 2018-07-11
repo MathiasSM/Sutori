@@ -10,7 +10,7 @@ import Sutori.Types
 
 type SutID = String
 type SutBlock = [SutInstruction]
-type SutParam = (SutType, SutID)
+type SutParam = (Bool, SutType, SutID)
 
 data SutModule = SutModule SutID SutBlock
 
@@ -34,6 +34,7 @@ data SutExpression = SutExprLiteral     SutType SutLiteral
                    | SutArrayItem       SutType SutExpression SutExpression
                    | SutStructMember    SutType SutExpression SutID
                    deriving (Show, Eq)
+
 data SutLiteral = SutString String
                 | SutInt Int
                 | SutFloat Float
