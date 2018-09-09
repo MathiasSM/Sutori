@@ -3,6 +3,7 @@
 module Sutori.Parser where
 
 import Data.Maybe
+
 import Sutori.Lexer
 import Sutori.AST
 import Sutori.Monad
@@ -110,16 +111,22 @@ import Sutori.Utils
 
 %%
 
+
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
-Source                      : PROGRAM_INI Init           { % addInitialTypes (getPosn $1) }
-Init                        : ID Block PROGRAM_FIN EOF   { SutModule (getToken $1) $2 }
+Source                      : PROGRAM_INI Init
+                            {% addInitialTypes (getPosn $1) }
+Init                        : ID Block PROGRAM_FIN EOF
+                            { SutModule (getToken $1) $2 }
 
 -- Expressions
 -- ====================================================================================================================
-Expression                  : AssignableObject   { % return $1 }
-                            | Literal            { % return (SutExprLiteral (getExpressionType $1) $1) }
-                            | Constructor        { % getType $1 >>= (\t -> SutExprConstructor t $1) }
+Expression                  : AssignableObject
+                            {% return $1 }
+                            | Literal
+                            {% return (SutExprLiteral (getExpressionType $1) $1) }
+                            | Constructor
+                            {% getType $1 >>= (\t -> SutExprConstructor t $1) }
                             | UnaryOperation     { $1 }
                             | BinaryOperation    { $1 }
                             | FunctionCall       { $1 }
@@ -135,7 +142,7 @@ Literal                     : LITERAL_INT        { SutLitInt    ((getValueInt.ge
 
 
 -- Constructors
-------------------------   -----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
 Constructor                 : ConstructorArray                            { SutArray $1 }
                             | ConstructorStruct                           { SutStruct $1 }
 
@@ -149,7 +156,7 @@ ConstructorStructList       : ID ':' Expression                           { [ ($
 
 
 -- Operators
-------------------------   -----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
 Operation                   : UnaryOperation                { $1 }
                             | BinaryOperation               { $1 }
 
@@ -212,7 +219,7 @@ FunctionActualParams        : Expression                           { [$1] }
 
 
 -- Declaration
--- =====================   ================================================================================================
+-- =====================================================================================================================
 Declaration                 : PersonDeclaration                     { $1 }
                             | FunctionDeclaration                   { $1 }
                             | VariableDeclaration                   { $1 }
@@ -256,7 +263,7 @@ TypeDeclaration             : ID S_invented ID ';' S_itsa Type
 
 
 -- Types
--- =====================   ===============================================================================================
+-- ====================================================================================================================
 Type                        : TYPE_INT                                    { SutTypeInt }
                             | TYPE_FLOAT                                  { SutTypeFloat }
                             | TYPE_CHAR                                   { SutTypeChar }
@@ -298,7 +305,7 @@ ReturnStatement             : S_andthatswhere Expression S_comesfrom      { SutR
 
 
 -- Instructions
-------------------------   -----------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
 Instruction                 : Expression '.'         { SutInstExpression $1 }
                             | FreePointer '.'        { $1 }
                             | Print '.'              { $1 }

@@ -10,7 +10,6 @@ import Sutori.Types
 
 type SutID = String
 type SutBlock = [SutInstruction]
-type SutParam = (Bool, SutType, SutID)
 
 data SutModule = SutModule SutID SutBlock
 

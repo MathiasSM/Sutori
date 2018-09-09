@@ -1,6 +1,7 @@
 module Sutori.SymTable where
 
 import qualified Data.Map as Map
+import qualified Data.List as List
 
 import Sutori.Utils
 import Sutori.AST
@@ -8,83 +9,139 @@ import Sutori.Lexer
 import Sutori.Types
 
 
-type SutParamTk = (Bool, SutType, SutToken)
 
-type Scope = Int
+-- Data definition
+---------------------------------------------------------------------------------------------------
 
-type SymMap = Map.Map SutID [Symbol]
-
+-- Symbol table: A single SymMap
 newtype SymTable = SymTable {
   getHash :: SymMap
-} deriving (Eq,Show)
+} deriving (Eq, Show)
 
--- Symbol
-data Symbol = Symbol {
+-- A SymMap matches a SutID (symbol name) to a list of symbols
+type SymMap = Map.Map SutID [SutSymbol]
+
+
+
+-- A SutSymbol is made of a Token, a Category, a Scope, a Type, and perhaps other information
+data SutSymbol = SutSymbol {
   getSymToken :: SutToken,
-  getCategory :: SymCategory,
+  getCategory :: SutSymCategory,
   getScope    :: Scope,
   getType     :: SutType,
-  getOther    :: SymOther
+  getOther    :: SutSymOther
 } deriving (Show, Eq)
+instance SutShow SutSymbol where
+  showSut s@(SutSymbol tk cat sc t other) =
+    "SutSymbol "++getSymbolID s++" ("
+    ++"T: "++showSut t++", "
+    ++"Cat: "++showSut cat++", "
+    ++"Scope: "++showSut sc++", "
+    ++"Posn: "++showSut (getPosn tk)
+    ++")"
 
-getId :: Symbol -> SutID
-getId = getString.getToken.getSymToken
 
--- Symbol Category
-data SymCategory = ModuleSym
-                 | FunctionSym
-                 | PersonSym
-                 | VarSym
-                 | ParamSym
-                 | TypeSym
+-- A SutSymCategory. Can be shown by showSut
+data SutSymCategory = CatModule
+                    | CatFunction
+                    | CatPerson
+                    | CatVariable
+                    | CatParameter
+                    | CatType
+                    deriving (Eq,Show)
+instance SutShow SutSymCategory where
+  showSut CatModule    = "Module"
+  showSut CatFunction  = "Function"
+  showSut CatPerson    = "Person"
+  showSut CatVariable  = "Variable"
+  showSut CatParameter = "Parameter"
+  showSut CatType      = "Type"
+
+
+-- A SutSymOther is either a Function definition AST, the parameter kind, the type definition or nothing
+data SutSymOther = FunctionAST {getParams :: [SutParam], getBlock :: SutBlock }
+                 | ParamKind {getParamKind :: SutParamKind}
+                 | TypeDef {typeOf :: SutType}
+                 | NoOther
                  deriving (Eq,Show)
+instance SutShow SutSymOther where
+  showSut (FunctionAST ps b) = List.intercalate ", " (map showSut ps) ++ "\n" ++ showSut b
+  showSut (ParamKind SutRef) = "reference"
+  showSut (ParamKind SutVal) = "value"
+  showSut (TypeDef t)        = showSut t
+  showSut  NoOther           = ""
 
-instance SutShow SymCategory where
-  showSut ModuleSym = "Module"
-  showSut FunctionSym = "Function"
-  showSut PersonSym = "Person"
-  showSut VarSym = "Variable"
-  showSut TypeSym = "Type"
 
--- Symbol Other
-data SymOther  = FunctionAST {getBlock :: SutBlock, getParams :: [SutParamTk] }
-               | IsReference {isReference :: Bool}
-               | TypeDef {typeOf :: SutType}
-               | NoOther
-               deriving (Eq,Show)
+-- A SutParam can be either a sutori reference or a value
+data SutParamKind = SutRef | SutVal deriving (Show, Eq)
+instance SutShow SutParamKind where
+  showSut SutRef = "passed by reference"
+  showSut SutVal = "passed by value"
 
-instance SutShow Symbol where
-  showSut s@(Symbol tk cat sc t other) = "Symbol "++getId s++" (T: "++show t++", Cat: "++show cat++", Scope: "++show sc++", Posn: "++showSut (getPosn tk)++")"
 
+-- A SutParam has a kind, a type and a token representing
+data SutParam = SutParam {
+  getKind :: SutParamKind,
+  getParamType :: SutType,
+  getParamToken :: SutToken
+} deriving (Show, Eq)
+instance SutShow SutParam where
+  showSut (SutParam k t tk) = "Parameter "++showSut k++" (T: "++showSut t++") (TK: "++showSut tk++")"
+
+
+-- A Scope is just a number uniquely representing a scope (NOT a level)
+type Scope = Int
+
+
+-- Helper to get the SutID that represents a particular symbol
+getSymbolID :: SutSymbol -> SutID
+getSymbolID = getTokenID . getSymToken
+
+-- Helper to get the SutID that comes in a token
+getTokenID :: SutToken -> String
+getTokenID = getString . getToken
+
+
+
+-- Actions on the SymTable
+-- ===============================================================================================
 
 -- Insertion
----------------------------------------------------------------------------------------------------
+-- ------------------------------------------------------------------------------------------------
+-- Inserts? a list of IDs witha given function
+insertWith :: SymTable -> [a] -> (SymMap -> a -> SymMap) -> SymTable
 insertWith table ids f = SymTable $ foldl f (getHash table) ids
 
-insert :: SymTable -> Scope -> SymCategory -> SutType -> SymOther -> [SutToken] -> SymTable
+-- Inserts into the table the given constructed symbol
+insertSymbol :: SymMap -> SutSymbol -> SymMap
+insertSymbol hash s = let id = getSymbolID s
+                          syms = Map.findWithDefault [] id hash
+                       in Map.insert id (s:syms) hash
+
+-- Inserts new symbols into the table (from a list of tokens)
+insert :: SymTable -> Scope -> SutSymCategory -> SutType -> SutSymOther -> [SutToken] -> SymTable
 insert table curScope category t o ids = insertWith table ids f
-  where f hash tk = let newSymbol  = Symbol tk category curScope t o
-                        newSymList = newSymbol : Map.findWithDefault [] ((getString.getToken) tk) hash
-                    in updateSymList hash tk newSymList
+  where f hash tk = let newSymbol = SutSymbol tk category curScope t o
+                     in insertSymbol hash newSymbol
 
-insertParam :: SymTable -> Scope -> SymCategory -> [SutParamTk] -> SymTable
-insertParam table curScope category ps = insertWith table ps f
-  where f hash (ref, t, tk) = let newSymbol  = Symbol tk category curScope t (IsReference ref)
-                                  newSymList = newSymbol : Map.findWithDefault [] ((getString.getToken) tk) hash
-                               in updateSymList hash tk newSymList
-
-updateSymList :: SymMap -> SutToken -> [Symbol] -> SymMap
-updateSymList hash tk newSymList = Map.insert ((getString.getToken) tk) newSymList hash
+-- Inserts new symbols into the table (from a list of params)
+insertParams :: SymTable -> Scope -> SutSymCategory -> [SutParam] -> SymTable
+insertParams table curScope category ps = insertWith table ps f
+  where f hash (SutParam k t tk) = let newSymbol = SutSymbol tk category curScope t (ParamKind k)
+                                    in insertSymbol hash newSymbol
 
 
 -- Lookup
 ---------------------------------------------------------------------------------------------------
-lookupInScope :: SymTable -> Scope -> SutToken -> [Symbol]
-lookupInScope table scope tk = filter isHere $ lookupId table $ getString $ getToken tk
+-- Search for all symbols that match a SutID
+lookupID :: SymTable -> SutID -> [SutSymbol]
+lookupID table id = Map.findWithDefault [] id $ getHash table
+
+-- Search for all symbols that match a token in a given scope
+lookupInScope :: SymTable -> Scope -> SutToken -> [SutSymbol]
+lookupInScope table scope tk = filter isHere $ lookupID table $ getTokenID tk
   where isHere = (== scope) . getScope
 
-lookupId :: SymTable -> SutID -> [Symbol]
-lookupId table id = Map.findWithDefault [] id $ getHash table
-
-lookupsInScope :: SymTable -> Scope -> [SutToken] -> [[Symbol]]
+-- Makes several token searches in the same scope
+lookupsInScope :: SymTable -> Scope -> [SutToken] -> [[SutSymbol]]
 lookupsInScope table scope = map (lookupInScope table scope)

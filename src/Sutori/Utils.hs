@@ -2,6 +2,7 @@ module Sutori.Utils where
 
 import Data.List
 
+-- Interface for showing Sutori constructs (token, actions, tables, ...)
 class SutShow a where
   showSut :: a -> String
 
