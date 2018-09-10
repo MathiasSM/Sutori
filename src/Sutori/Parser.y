@@ -1,5 +1,4 @@
 {
--- # PRE CODE (Module and imports)
 module Sutori.Parser where
 
 import Data.Maybe
@@ -97,6 +96,7 @@ import Sutori.Utils
     ID                  { $$ }
 
 
+%right    ASG
 %right    '='
 %left     or
 %left     and
@@ -115,13 +115,14 @@ import Sutori.Utils
 -- Program
 -----------------------------------------------------------------------------------------------------------------------
 Source                      : PROGRAM_INI Init
-                            {% addInitialTypes (getPosn $1) }
+                            {% beforeStart $1 }
+
 Init                        : ID Block PROGRAM_FIN EOF
                             { SutModule (getToken $1) $2 }
 
 -- Expressions
 -- ====================================================================================================================
-Expression                  : AssignableObject
+Expression                  : AssignableObject %prec ASG
                             {% return $1 }
                             | Literal
                             {% return (SutExprLiteral (getExpressionType $1) $1) }
@@ -172,7 +173,6 @@ NumericalUnaryOperation     : '+' Expression %prec POS      { SutUnaryOp (getNum
 
 LogicalUnaryOperation       : '!' Expression                { SutUnaryOp (getBoolExprType $2) SutOpNot $2 }
 
-
 NumericalBinaryOperation    : Expression '+' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpAdd $1 $3 }
                             | Expression '-' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpSub $1 $3 }
                             | Expression '*' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpMul $1 $3 }
@@ -189,7 +189,6 @@ LogicalBinaryOperation      : Expression and  Expression    { SutBinaryOp (binar
                             | Expression '<=' Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpLEqual   $1 $3 }
                             | Expression '>'  Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpGreater  $1 $3 }
                             | Expression '<'  Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpLess     $1 $3 }
-
 
 Dereference                 : '*' Expression %prec IND
                             { % getExpressionType $2 >>= \t -> return SutPointed t $2 }
@@ -347,4 +346,6 @@ happyError tks = error ("Parse error at " ++ lcn ++ "\n")
   where lcn = case tks of
                 []    -> "end of file"
                 ((SutToken pos _):_)  -> showSut pos
+
+-- vim: set ft=haskell
 }

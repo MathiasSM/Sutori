@@ -1,4 +1,5 @@
 {
+
 -- # PRE CODE BLOCK (Module and imports)
 -- #===========================================================================
 module Sutori.Lexer where
@@ -21,109 +22,106 @@ import Sutori.Utils
 
 tokens :-
 
-<0>                $white+                              ;
+<0>                $white+                   ;
 
-<0>                "...("                               { getTk BLOCK_OPEN                               }
-<0>                ")..."                               { getTk BLOCK_CLOSE                              }
+<0>                "...("                    { getTk BLOCK_OPEN             }
+<0>                ")..."                    { getTk BLOCK_CLOSE            }
 
 
-<0>                "Once upon a time in"                { getTk PROGRAM_INI                              }
-<0>                "and they lived happily ever after"  { getTk PROGRAM_FIN                              }
-<0>                "Once upon some other time in"       { getTk FUNCTION_INI                             }
-<0>                "or that is what they say"           { getTk FUNCTION_FIN                             }
+<0>                "Once upon a time in"               { getTk PROGRAM_INI  }
+<0>                "and they lived happily ever after" { getTk PROGRAM_FIN  }
+<0>                "Once upon some other time in"      { getTk FUNCTION_INI }
+<0>                "or that is what they say"          { getTk FUNCTION_FIN }
 
-<0>                "And that's where"                   { getTk S_andthatswhere                          }
-<0>                "There was"                          { getTk S_therewas                               }
-<0>                "broke a"                            { getTk S_brokea                                 }
-<0>                "brought a"                          { getTk S_broughta                               }
-<0>                "comes from"                         { getTk S_comesfrom                              }
-<0>                "dreams of"                          { getTk S_dreamsof                               }
-<0>                "keeps dreaming of"                  { getTk S_keepsdreamingof                        }
-<0>                "made a"                             { getTk S_madea                                  }
-<0>                "made of"                            { getTk S_madeof                                 }
-<0>                "there was a"                        { getTk S_therewasa                              }
-<0>                "told that story"                    { getTk S_toldthatstory                          }
-<0>                "invented"                           { getTk S_invented                               }
-<0>                "it's a"                             { getTk S_itsa                                   }
+<0>                "And that's where"        { getTk S_andthatswhere        }
+<0>                "There was"               { getTk S_therewas             }
+<0>                "broke a"                 { getTk S_brokea               }
+<0>                "brought a"               { getTk S_broughta             }
+<0>                "comes from"              { getTk S_comesfrom            }
+<0>                "dreams of"               { getTk S_dreamsof             }
+<0>                "keeps dreaming of"       { getTk S_keepsdreamingof      }
+<0>                "made a"                  { getTk S_madea                }
+<0>                "made of"                 { getTk S_madeof               }
+<0>                "there was a"             { getTk S_therewasa            }
+<0>                "told that story"         { getTk S_toldthatstory        }
+<0>                "invented"                { getTk S_invented             }
+<0>                "it's a"                  { getTk S_itsa                 }
 
-<0>                "with"                               { getTk WITH                                     }
-<0>                "your"                               { getTk YOUR                                     }
-<0>                "of"                                 { getTk OF                                       }
-<0>                "either"                             { getTk EITHER                                   }
-<0>                "to"                                 { getTk TO                                       }
-<0>                "when"                               { getTk WHEN                                     }
-<0>                "otherwise"                          { getTk OTHERWISE                                }
-<0>                "times"                              { getTk TIMES                                    }
+<0>                "with"                    { getTk WITH                   }
+<0>                "your"                    { getTk YOUR                   }
+<0>                "of"                      { getTk OF                     }
+<0>                "either"                  { getTk EITHER                 }
+<0>                "to"                      { getTk TO                     }
+<0>                "when"                    { getTk WHEN                   }
+<0>                "otherwise"               { getTk OTHERWISE              }
+<0>                "times"                   { getTk TIMES                  }
 
-<0>                "bag"                                { getTk TYPE_INT                                 }
-<0>                "wallet"                             { getTk TYPE_FLOAT                               }
-<0>                "letter"                             { getTk TYPE_CHAR                                }
-<0>                "light"                              { getTk TYPE_BOOL                                }
-<0>                "chain"                              { getTk TYPE_ARRAY                               }
-<0>                "machine"                            { getTk TYPE_STRUCT                              }
-<0>                "thing"                              { getTk TYPE_UNION                               }
-<0>                "phrase"                             { getTk TYPE_STRING                              }
-<0>                "direction"                          { getTk TYPE_POINTER                             }
+<0>                "bag"                     { getTk TYPE_INT               }
+<0>                "wallet"                  { getTk TYPE_FLOAT             }
+<0>                "letter"                  { getTk TYPE_CHAR              }
+<0>                "light"                   { getTk TYPE_BOOL              }
+<0>                "chain"                   { getTk TYPE_ARRAY             }
+<0>                "machine"                 { getTk TYPE_STRUCT            }
+<0>                "thing"                   { getTk TYPE_UNION             }
+<0>                "phrase"                  { getTk TYPE_STRING            }
+<0>                "direction"               { getTk TYPE_POINTER           }
 
-<0>                "and"                                { getTk AND                                      }
-<0>                "or"                                 { getTk OR                                       }
-<0>                "("                                  { getTk OPEN_PAREN                               }
-<0>                "["                                  { getTk OPEN_BRACKETS                            }
-<0>                "{"                                  { getTk OPEN_BRACES                              }
-<0>                ")"                                  { getTk CLOSE_PAREN                              }
-<0>                "]"                                  { getTk CLOSE_BRACKETS                           }
-<0>                "}"                                  { getTk CLOSE_BRACES                             }
-<0>                "..."                                { getTk ELLIPSIS                                 }
-<0>                "."                                  { getTk PERIOD                                   }
-<0>                ","                                  { getTk COMMA                                    }
-<0>                ":"                                  { getTk COLON                                    }
-<0>                ";"                                  { getTk SEMICOLON                                }
-<0>                "?"                                  { getTk QUESTIONMARK                             }
-<0>                "!"                                  { getTk EXCLAMATION                              }
-<0>                "->"                                 { getTk ARROW_RIGHT                              }
-<0>                "+"                                  { getTk PLUS                                     }
-<0>                "-"                                  { getTk MINUS                                    }
-<0>                "=="                                 { getTk EQUAL                                    }
-<0>                "="                                  { getTk ASSIGNMENT                               }
-<0>                "*"                                  { getTk ASTERISK                                 }
-<0>                "%"                                  { getTk PERCENT                                  }
-<0>                "/"                                  { getTk SLASH                                    }
-<0>                "div"                                { getTk DIV                                      }
-<0>                "/="                                 { getTk NOT_EQUAL                                }
-<0>                ">="                                 { getTk GREATER_EQUAL                            }
-<0>                "<="                                 { getTk LESS_EQUAL                               }
-<0>                ">"                                  { getTk GREATER                                  }
-<0>                "<"                                  { getTk LESS                                     }
-<0>                "^"                                  { getTk POWER                                    }
+<0>                "and"                     { getTk AND                    }
+<0>                "or"                      { getTk OR                     }
+<0>                "("                       { getTk OPEN_PAREN             }
+<0>                "["                       { getTk OPEN_BRACKETS          }
+<0>                "{"                       { getTk OPEN_BRACES            }
+<0>                ")"                       { getTk CLOSE_PAREN            }
+<0>                "]"                       { getTk CLOSE_BRACKETS         }
+<0>                "}"                       { getTk CLOSE_BRACES           }
+<0>                "..."                     { getTk ELLIPSIS               }
+<0>                "."                       { getTk PERIOD                 }
+<0>                ","                       { getTk COMMA                  }
+<0>                ":"                       { getTk COLON                  }
+<0>                ";"                       { getTk SEMICOLON              }
+<0>                "?"                       { getTk QUESTIONMARK           }
+<0>                "!"                       { getTk EXCLAMATION            }
+<0>                "->"                      { getTk ARROW_RIGHT            }
+<0>                "+"                       { getTk PLUS                   }
+<0>                "-"                       { getTk MINUS                  }
+<0>                "=="                      { getTk EQUAL                  }
+<0>                "="                       { getTk ASSIGNMENT             }
+<0>                "*"                       { getTk ASTERISK               }
+<0>                "%"                       { getTk PERCENT                }
+<0>                "/"                       { getTk SLASH                  }
+<0>                "div"                     { getTk DIV                    }
+<0>                "/="                      { getTk NOT_EQUAL              }
+<0>                ">="                      { getTk GREATER_EQUAL          }
+<0>                "<="                      { getTk LESS_EQUAL             }
+<0>                ">"                       { getTk GREATER                }
+<0>                "<"                       { getTk LESS                   }
+<0>                "^"                       { getTk POWER                  }
 
-<0>                "--|"                                { embedComment `andBegin` state_comment          }
-<state_comment>    "--|"                                { embedComment                                   }
-<state_comment>    "|--"                                { unembedComment                                 }
-<state_comment>    .                                    ;
-<state_comment>    \n                                   { skip                                           }
-<0>                "--".*                               ;
+<0>                "--|"                     { embedComment `andBegin` commentLvl }
+<commentLvl>       "--|"                     { embedComment                       }
+<commentLvl>       "|--"                     { unembedComment                     }
+<commentLvl>       .                         ;
+<commentLvl>       \n                        { skip                               }
+<0>                "--".*                    ;
 
-<0>                "on"|"off"                           { getTkBool                                      }
-<0>                \'[a-z]\'                            { getTkChar                                      }
-<0>                [0-9]+(\.[0-9]+)                     { getTkFloat                                     }
-<0>                [0-9]+                               { getTkInteger                                   }
+<0>                "on"|"off"                { getTkBool          }
+<0>                \'[a-z]\'                 { getTkChar          }
+<0>                [0-9]+(\.[0-9]+)          { getTkFloat         }
+<0>                [0-9]+                    { getTkInteger       }
 
-<0>                \"                                   { {-'"'-} enterString `andBegin` state_string    }
-<state_string>     \"                                   { {-'"'-} leaveString `andBegin` 0               }
-<state_string>     \\ [ntfrbv\\\'\"]                    { {-'"'-} addCurrentToString                     }
-<state_string>     \\ $white+                           ;
-<state_string>     \\ ?                                 ;
-<state_string>     \\ .                                 { addEscapedToString                             }
-<state_string>     .                                    { addCurrentToString                             }
+<0>                \"                        { {-'"'-} enterString `andBegin` stringState }
+<stringState>      \"                        { {-'"'-} leaveString `andBegin` 0           }
+<stringState>      \\ [ntfrbv\\\'\"]         { {-'"'-} addCurrentToString                 }
+<stringState>      \\ $white+                ;
+<stringState>      \\ ?                      ;
+<stringState>      \\ .                      { addEscapedToString }
+<stringState>      .                         { addCurrentToString }
 
-<0>                \n                                   { skip                                           }
-<0>                [a-zA-Z] [a-zA-Z\-\_0-9]*            { getTkId                                        }
-<0>                .                                    { getTkError                                     }
+<0>                \n                        { skip               }
+<0>                [a-zA-Z] [a-zA-Z\-\_0-9]* { getTkId            }
+<0>                .                         { getTkError         }
 
 {
--- # POST CODE BLOCK (Data definitions and functions)
--- #===========================================================================
-
 -- ## DATA DEFINITIONS
 -- #---------------------------------------------------------------------------
 
@@ -418,4 +416,5 @@ lexerLoop = do
 
 runAlexScan s = runAlex s lexerLoop
 
+-- vim: set ft=haskell
 }

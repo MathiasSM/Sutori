@@ -36,7 +36,7 @@ instance SutShow SutSymbol where
     "SutSymbol "++getSymbolID s++" ("
     ++"T: "++showSut t++", "
     ++"Cat: "++showSut cat++", "
-    ++"Scope: "++showSut sc++", "
+    ++"Scope: "++show sc++", "
     ++"Posn: "++showSut (getPosn tk)
     ++")"
 
@@ -65,7 +65,7 @@ data SutSymOther = FunctionAST {getParams :: [SutParam], getBlock :: SutBlock }
                  | NoOther
                  deriving (Eq,Show)
 instance SutShow SutSymOther where
-  showSut (FunctionAST ps b) = List.intercalate ", " (map showSut ps) ++ "\n" ++ showSut b
+  showSut (FunctionAST ps b) = List.intercalate ", " (map showSut ps) ++ "\n" ++ List.intercalate ", " (map showSut b)
   showSut (ParamKind SutRef) = "reference"
   showSut (ParamKind SutVal) = "value"
   showSut (TypeDef t)        = showSut t
@@ -114,21 +114,33 @@ insertWith table ids f = SymTable $ foldl f (getHash table) ids
 
 -- Inserts into the table the given constructed symbol
 insertSymbol :: SymMap -> SutSymbol -> SymMap
-insertSymbol hash s = let id = getSymbolID s
-                          syms = Map.findWithDefault [] id hash
-                       in Map.insert id (s:syms) hash
+insertSymbol hash s =
+  let id   = getSymbolID s
+      syms = Map.findWithDefault [] id hash
+  in  Map.insert id (s : syms) hash
 
 -- Inserts new symbols into the table (from a list of tokens)
-insert :: SymTable -> Scope -> SutSymCategory -> SutType -> SutSymOther -> [SutToken] -> SymTable
+insert
+  :: SymTable
+  -> Scope
+  -> SutSymCategory
+  -> SutType
+  -> SutSymOther
+  -> [SutToken]
+  -> SymTable
 insert table curScope category t o ids = insertWith table ids f
-  where f hash tk = let newSymbol = SutSymbol tk category curScope t o
-                     in insertSymbol hash newSymbol
+ where
+  f hash tk =
+    let newSymbol = SutSymbol tk category curScope t o
+    in  insertSymbol hash newSymbol
 
 -- Inserts new symbols into the table (from a list of params)
 insertParams :: SymTable -> Scope -> SutSymCategory -> [SutParam] -> SymTable
 insertParams table curScope category ps = insertWith table ps f
-  where f hash (SutParam k t tk) = let newSymbol = SutSymbol tk category curScope t (ParamKind k)
-                                    in insertSymbol hash newSymbol
+ where
+  f hash (SutParam k t tk) =
+    let newSymbol = SutSymbol tk category curScope t (ParamKind k)
+    in  insertSymbol hash newSymbol
 
 
 -- Lookup

@@ -6,6 +6,7 @@ import Data.List
 class SutShow a where
   showSut :: a -> String
 
+-- Helper general functions
 anyf :: [a -> Bool] -> a -> Bool
 anyf fns x = any (\fn -> fn x) fns
 

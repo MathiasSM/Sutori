@@ -10,12 +10,12 @@ data SutType  = SutTypeInt
               | SutTypeString
               | SutTypeBool
               | SutTypeChar
-              | SutTypeVoid
-              | SutTypeError
               | SutTypePointer SutType
               | SutTypeStruct [SutMember]
               | SutTypeUnion [SutMember]
               | SutTypeArray SutType Int
+              | SutTypeVoid
+              | SutTypeError
               deriving (Show, Eq)
 
 -- Types string representation (for easier user reading)
@@ -32,46 +32,45 @@ instance SutShow SutType where
   showSut (SutTypeUnion ms)   = "Thing (Union) with: { "++concatMap showMember ms++ " }"
   showSut (SutTypeArray t s)  = "Chain (Array) of "++show s++": { "++showSut t++" }"
 
-showMember (s, t) = "( "++show s++": "++showSut t++" )"
+showMember (s, t) = "( " ++ show s ++ ": " ++ showSut t ++ " )"
 
 -- Predefined Sutori types to initialize symtable
 basicTypes =
-  [
-    ("bag",    SutTypeInt),
-    ("wallet", SutTypeFloat),
-    ("phrase", SutTypeString),
-    ("light",  SutTypeBool),
-    ("letter", SutTypeChar)
+  [ ("bag"   , SutTypeInt)
+  , ("wallet", SutTypeFloat)
+  , ("phrase", SutTypeString)
+  , ("light" , SutTypeBool)
+  , ("letter", SutTypeChar)
   ]
 
 
 -- From two types, return the most general one (LCA)
 generalizeTypes :: SutType -> SutType -> SutType
 
-generalizeTypes SutTypeVoid SutTypeBool  = SutTypeBool
-generalizeTypes SutTypeVoid SutTypeChar  = SutTypeChar
-generalizeTypes SutTypeVoid SutTypeInt   = SutTypeInt
-generalizeTypes SutTypeVoid SutTypeFloat = SutTypeFloat
+generalizeTypes SutTypeVoid  SutTypeBool  = SutTypeBool
+generalizeTypes SutTypeVoid  SutTypeChar  = SutTypeChar
+generalizeTypes SutTypeVoid  SutTypeInt   = SutTypeInt
+generalizeTypes SutTypeVoid  SutTypeFloat = SutTypeFloat
 
-generalizeTypes SutTypeBool SutTypeVoid  = SutTypeBool
-generalizeTypes SutTypeBool SutTypeChar  = SutTypeChar
-generalizeTypes SutTypeBool SutTypeInt   = SutTypeInt
-generalizeTypes SutTypeBool SutTypeFloat = SutTypeFloat
+generalizeTypes SutTypeBool  SutTypeVoid  = SutTypeBool
+generalizeTypes SutTypeBool  SutTypeChar  = SutTypeChar
+generalizeTypes SutTypeBool  SutTypeInt   = SutTypeInt
+generalizeTypes SutTypeBool  SutTypeFloat = SutTypeFloat
 
-generalizeTypes SutTypeChar SutTypeVoid  = SutTypeChar
-generalizeTypes SutTypeChar SutTypeBool  = SutTypeChar
-generalizeTypes SutTypeChar SutTypeInt   = SutTypeInt
-generalizeTypes SutTypeChar SutTypeFloat = SutTypeFloat
+generalizeTypes SutTypeChar  SutTypeVoid  = SutTypeChar
+generalizeTypes SutTypeChar  SutTypeBool  = SutTypeChar
+generalizeTypes SutTypeChar  SutTypeInt   = SutTypeInt
+generalizeTypes SutTypeChar  SutTypeFloat = SutTypeFloat
 
-generalizeTypes SutTypeInt SutTypeVoid   = SutTypeInt
-generalizeTypes SutTypeInt SutTypeBool   = SutTypeInt
-generalizeTypes SutTypeInt SutTypeChar   = SutTypeInt
-generalizeTypes SutTypeInt SutTypeFloat  = SutTypeFloat
+generalizeTypes SutTypeInt   SutTypeVoid  = SutTypeInt
+generalizeTypes SutTypeInt   SutTypeBool  = SutTypeInt
+generalizeTypes SutTypeInt   SutTypeChar  = SutTypeInt
+generalizeTypes SutTypeInt   SutTypeFloat = SutTypeFloat
 
-generalizeTypes SutTypeFloat SutTypeVoid = SutTypeFloat
-generalizeTypes SutTypeFloat SutTypeBool = SutTypeFloat
-generalizeTypes SutTypeFloat SutTypeChar = SutTypeFloat
-generalizeTypes SutTypeFloat SutTypeInt  = SutTypeFloat
+generalizeTypes SutTypeFloat SutTypeVoid  = SutTypeFloat
+generalizeTypes SutTypeFloat SutTypeBool  = SutTypeFloat
+generalizeTypes SutTypeFloat SutTypeChar  = SutTypeFloat
+generalizeTypes SutTypeFloat SutTypeInt   = SutTypeFloat
 
 generalizeTypes t1 t2 = if t1 == t2 then t1 else SutTypeError
 
