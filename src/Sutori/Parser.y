@@ -14,6 +14,7 @@ import Sutori.Utils
 %name      parse
 %tokentype { SutToken }
 %monad     { SutParserM }
+%lexer     { lexwrap } { SutTkEOF }
 
 %token
     EOF                 { $$ }
@@ -342,10 +343,11 @@ Read                        : AssignableObject '?'
 {
 
 
+happyError :: SutToken -> SutParserM a
 happyError tks = error ("Parse error at " ++ lcn ++ "\n")
   where lcn = case tks of
                 []    -> "end of file"
                 ((SutToken pos _):_)  -> showSut pos
 
--- vim: set ft=haskell
+-- vim:ft=haskell
 }

@@ -1,7 +1,4 @@
 {
-
--- # PRE CODE BLOCK (Module and imports)
--- #===========================================================================
 module Sutori.Lexer where
 
 import Control.Monad
@@ -10,15 +7,12 @@ import Data.Maybe
 import Data.Char ( chr, isSpace )
 import Data.List
 
+import Sutori.LexerInternals
 import Sutori.Utils
+import Sutori.Monad
 
-
--- # TOKEN DEFINITIONS
--- #===========================================================================
 
 }
-
-%wrapper "monadUserState"
 
 tokens :-
 
@@ -122,8 +116,9 @@ tokens :-
 <0>                .                         { getTkError         }
 
 {
--- ## DATA DEFINITIONS
--- #---------------------------------------------------------------------------
+
+lexwrap :: (SutToken -> Alex a) -> Alex a
+lexwrap = (alexMonadScan >>=)
 
 -- AlexPosn can be shown with SutShow
 instance SutShow AlexPosn where

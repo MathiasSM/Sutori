@@ -14,7 +14,7 @@ import Sutori.Options
 
 -- Sutori runner
 main = do
-  argv <- getArgs
+  argv             <- getArgs
   (options, files) <- handleFlags argv
   printLn (show options)
   --
