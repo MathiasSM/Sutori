@@ -2,6 +2,7 @@ module Sutori.Types
 ( SutType(..)
 , SutTypedExpression(getExpressionType)
 , showMember
+, primitiveTypes
 ) where
 
 import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
@@ -39,7 +40,7 @@ instance SutShow SutType where
 showMember (id, t) = SutLogNode (show id ++ " of type:") [showSut t]
 
 -- Predefined Sutori types to initialize symtable
-basicTypes =
+primitiveTypes =
   [ ("bag"   , SutTypeInt)
   , ("wallet", SutTypeFloat)
   , ("phrase", SutTypeString)

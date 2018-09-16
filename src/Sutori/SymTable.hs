@@ -1,4 +1,13 @@
-module Sutori.SymTable where
+module Sutori.SymTable
+( SutSymbol(symID, symCat, symScope, symType, symOther)
+, SutSymCategory(..)
+, SutSymOther(..)
+, SymTable
+, Scope
+, insert
+, insertSymbol
+, insertParams
+) where
 
 import qualified Data.Map as Map
 
