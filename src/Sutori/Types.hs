@@ -1,6 +1,10 @@
-module Sutori.Types where
+module Sutori.Types
+( SutType(..)
+, SutTypedExpression(getExpressionType)
+, showMember
+) where
 
-import Sutori.Utils
+import Sutori.Utils(SutShow(showSut))
 
 type SutMember = (String, SutType)
 
@@ -111,16 +115,3 @@ getNumExprType = toTypeNum . getExpressionType
 
 getBoolExprType :: SutTypedExpression a => a -> SutType
 getBoolExprType = toTypeBool . getExpressionType
-
--- binaryOp
--- binaryNum2NumType e1 e2   = toTypeNum $ typesLCA (getNumExprType e1) (getNumExprType e2)
--- binaryNum2FloatType e1 e2 = toTypeFloat $ typesLCA (getNumExprType e1) (getNumExprType e2)
--- binaryNum2BoolType e1 e2  = toTypeBool $ typesLCA (getNumExprType e1) (getNumExprType e2)
---
--- binaryBoolType e1 e2 = toTypeBool $ typesLCA (getExpressionType e1) (getExpressionType e2)
---
--- binaryEqualityType e1 e2 = let t1 = getExpressionType e1
---                                t2 = getExpressionType e2
---                             in if (t1 == t2) || (typesLCA t1 t2 /= SutTypeError)
---                                   then SutTypeBool
---                                   else SutTypeError

@@ -1,5 +1,5 @@
 module Sutori.Utils
-( SutShow
+( SutShow(showSut)
 , anyf
 , allf
 , filterBy
