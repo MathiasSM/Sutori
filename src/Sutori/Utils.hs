@@ -1,10 +1,19 @@
-module Sutori.Utils where
+module Sutori.Utils
+( SutShow
+, anyf
+, allf
+, filterBy
+, repeated
+, repeatedBy
+) where
 
 import Data.List
 
 -- Interface for showing Sutori constructs (token, actions, tables, ...)
 class SutShow a where
   showSut :: a -> String
+
+
 
 -- Helper general functions
 anyf :: [a -> Bool] -> a -> Bool
