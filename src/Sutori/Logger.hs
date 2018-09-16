@@ -1,15 +1,27 @@
-module Sutori.Logger where
+module Sutori.Logger
+( SutLog(SutLogLeave, SutLogNode)
+, SutShow(showSut)
+, SutLogger(getLog)
+) where
 
-import Sutori.Utils
 
-newtype SutParserLog = SutParserLog {parserLog :: String}
+-- Simple tree data structure to allow pretty printing of sutori logs
+data SutLog = SutLogLeave String
+            | SutLogNode String [SutLog]
+            deriving Show
 
-instance Monoid SutParserLog where
-  mempty = SutParserLog ""
-  mappend (SutParserLog a) (SutParserLog b) = SutParserLog (a++b)
 
-instance Show SutParserLog where
-  show (SutParserLog a) = a
+-- The logger is just a string for the time being
+newtype SutLogger = SutLogger {getLog :: [SutLog]}
 
-instance SutShow SutParserLog where
-  showSut (SutParserLog a) = "[ERROR]\n"++a++"\n"
+instance Monoid SutLogger where
+  mempty = SutLogger []
+  mappend (SutLogger a) (SutLogger b) = SutLogger (a++b)
+
+instance Show SutLogger where
+  show (SutLogger a) = show a
+
+
+-- Interface for showing Sutori constructs (token, actions, tables, ...)
+class SutShow a where
+  showSut :: a -> SutLog

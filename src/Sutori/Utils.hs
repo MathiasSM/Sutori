@@ -1,6 +1,5 @@
 module Sutori.Utils
-( SutShow(showSut)
-, anyf
+( anyf
 , allf
 , filterBy
 , repeated
@@ -9,9 +8,6 @@ module Sutori.Utils
 
 import Data.List
 
--- Interface for showing Sutori constructs (token, actions, tables, ...)
-class SutShow a where
-  showSut :: a -> String
 
 
 

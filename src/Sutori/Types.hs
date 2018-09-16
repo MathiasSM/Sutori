@@ -4,7 +4,7 @@ module Sutori.Types
 , showMember
 ) where
 
-import Sutori.Utils(SutShow(showSut))
+import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
 
 type SutMember = (String, SutType)
 
@@ -24,19 +24,19 @@ data SutType  = SutTypeInt
 
 -- Types string representation (for easier user reading)
 instance SutShow SutType where
-  showSut SutTypeInt          = "Bag (Int)"
-  showSut SutTypeFloat        = "Wallet (Float)"
-  showSut SutTypeString       = "Phrase (String)"
-  showSut SutTypeBool         = "Light (Bool)"
-  showSut SutTypeChar         = "Letter (Char)"
-  showSut SutTypeVoid         = "Nothing (Void)"
-  showSut SutTypeError        = "Error"
-  showSut (SutTypePointer t)  = "Direction (Pointer) to: { "++showSut t++" }"
-  showSut (SutTypeStruct ms)  = "Machine (Struct) with: { "++concatMap showMember ms++" }"
-  showSut (SutTypeUnion ms)   = "Thing (Union) with: { "++concatMap showMember ms++ " }"
-  showSut (SutTypeArray t s)  = "Chain (Array) of "++show s++": { "++showSut t++" }"
+  showSut SutTypeInt          = SutLogLeave "Bag (Int)"
+  showSut SutTypeFloat        = SutLogLeave "Wallet (Float)"
+  showSut SutTypeString       = SutLogLeave "Phrase (String)"
+  showSut SutTypeBool         = SutLogLeave "Light (Bool)"
+  showSut SutTypeChar         = SutLogLeave "Letter (Char)"
+  showSut SutTypeVoid         = SutLogLeave "Nothing (Void)"
+  showSut SutTypeError        = SutLogLeave "Type Error"
+  showSut (SutTypePointer t)  = SutLogNode  "Direction (Pointer) to:" [showSut t]
+  showSut (SutTypeStruct ms)  = SutLogNode  "Machine (Struct) with:"  (map showMember ms)
+  showSut (SutTypeUnion ms)   = SutLogNode  "Thing (Union) with:"     (map showMember ms)
+  showSut (SutTypeArray t s)  = SutLogNode  ("Chain (Array) of size " ++ show s ++ " and type:") [showSut t]
 
-showMember (s, t) = "( " ++ show s ++ ": " ++ showSut t ++ " )"
+showMember (id, t) = SutLogNode (show id ++ " of type:") [showSut t]
 
 -- Predefined Sutori types to initialize symtable
 basicTypes =
