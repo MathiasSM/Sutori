@@ -1,20 +1,23 @@
 {
-module Sutori.Parser where
+module Sutori.Parser (parseSut) where
 
 import Data.Maybe
 
 import Sutori.Lexer
-import Sutori.AST
 import Sutori.Monad
-import Sutori.Types
-import Sutori.Utils
+import Sutori.Logger
+import Sutori.Instructions(..)
+import Sutori.Expressions(..)
+import Sutori.Declarations(..)
+import Sutori.TypeConstruction(..)
 
 }
 
-%name      parse
+%name      parseSut
 %tokentype { SutToken }
-%monad     { SutParserM }
+%monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }
+%error     { sutoriError SutParserError }
 
 %token
     EOF                 { $$ }
@@ -107,247 +110,214 @@ import Sutori.Utils
 %left     '*'  '/'  '%'  div
 %left     '^'
 %right    '!'  IND  POS  NEG
-%left     '['
-%left     '->'
+%left     '[' '->' PAR
 
 %%
 
 
 -- Program
------------------------------------------------------------------------------------------------------------------------
-Source                      : PROGRAM_INI Init
-                            {% beforeStart $1 }
+---------------------------------------------------------------------------------------------------
+Source            : InitModule EOF
+                  {% beforeStart $1 }
 
-Init                        : ID Block PROGRAM_FIN EOF
-                            { SutModule (getToken $1) $2 }
+
+
+-- Modules
+-- ================================================================================================
+InitModule        : PROGRAM_INI ID Block PROGRAM_FIN {% defModule $1 $2 }
+
+
 
 -- Expressions
--- ====================================================================================================================
-Expression                  : AssignableObject %prec ASG
-                            {% return $1 }
-                            | Literal
-                            {% return (SutExprLiteral (getExpressionType $1) $1) }
-                            | Constructor
-                            {% getType $1 >>= (\t -> SutExprConstructor t $1) }
-                            | UnaryOperation     { $1 }
-                            | BinaryOperation    { $1 }
-                            | FunctionCall       { $1 }
-                            | FreePointer        { $1 }
-                            | '(' Expression ')' { $2 }
+-- ===============================================================================================
+Expression        : Assignable %prec ASG { $1 }
+                  | Assignment           { $1 }
+                  | Literal              { $1 }
+                  | Array                { $1 }
+                  | Struct               { $1 }
+                  | UnaryOp              { $1 }
+                  | BinaryOp             { $1 }
+                  | Call                 { $1 }
+                  | NewPointer           { $1 }
+                  | '(' Expression ')'   { $2 }
+
+Literal           : LITERAL_INT        { literalInt    $1 }
+                  | LITERAL_BOOL       { literalBool   $1 }
+                  | LITERAL_CHAR       { literalChar   $1 }
+                  | LITERAL_FLOAT      { literalFloat  $1 }
+                  | LITERAL_STRING     { literalString $1 }
+
+Assignable        : ID             { $1 }
+                  | GetArrayItem   { $1 }
+                  | GetMember      { $1 }
+                  | Dereference    { $1 }
 
 
-Literal                     : LITERAL_INT        { SutLitInt    ((getValueInt.getToken) $1) }
-                            | LITERAL_CHAR       { SutLitChar   ((getValueChar.getToken) $1) }
-                            | LITERAL_FLOAT      { SutLitFloat  ((getValueFloat.getToken) $1) }
-                            | LITERAL_BOOL       { SutLitBool   ((getValueBool.getToken) $1) }
-                            | LITERAL_STRING     { SutLitString ((getString.getToken) $1) }
+-- Structures
+---------------------------------------------------------------------------------------------------
+Array             : '[' ArrayList ']'                 {% constructedArray $2 }
+ArrayList         : Expression                        { [ $1 ] }
+                  | Expression ';' ArrayList          { $1 : $3 }
+
+Struct            : '{' StructList '}'                {% constructedStruct $2 }
+StructList        : ID ':' Expression                 { [ ($1, $3) ] }
+                  | ID ':' Expression ';' StructList  { ($1, $3): $5 }
 
 
--- Constructors
------------------------------------------------------------------------------------------------------------------------
-Constructor                 : ConstructorArray                            { SutArray $1 }
-                            | ConstructorStruct                           { SutStruct $1 }
-
-ConstructorArray            : '[' ConstructorArrayList ']'                { $2 }
-ConstructorArrayList        : Expression                                  { [ $1 ] }
-                            | Expression ';' ConstructorArrayList         { $1:$3 }
-
-ConstructorStruct           : '{' ConstructorStructList '}'               { $2 }
-ConstructorStructList       : ID ':' Expression                           { [ ($1,$3) ] }
-                            | ID ':' Expression ';' ConstructorStructList { ($1,$3): $5 }
+-- Operations
+---------------------------------------------------------------------------------------------------
+UnaryOp           : '+' Expression %prec POS   { unaryPlus   $2 }
+                  | '-' Expression %prec NEG   { unaryMinus  $2 }
+                  | '!' Expression             { unaryNot    $2 }
 
 
--- Operators
------------------------------------------------------------------------------------------------------------------------
-Operation                   : UnaryOperation                { $1 }
-                            | BinaryOperation               { $1 }
+BinaryOp          : Expression '+' Expression  { opAddition       $1 $3 }
+                  | Expression '-' Expression  { opSubstraction   $1 $3 }
+                  | Expression '*' Expression  { opMultiplication $1 $3 }
+                  | Expression '%' Expression  { opModulo         $1 $3 }
+                  | Expression '/' Expression  { opDivision       $1 $3 }
+                  | Expression div Expression  { opIntDivision    $1 $3 }
+                  | Expression '^' Expression  { opPower          $1 $3 }
 
-UnaryOperation              : NumericalUnaryOperation       { $1 }
-                            | LogicalUnaryOperation         { $1 }
+                  | Expression and  Expression { opAnd          $1 $3 }
+                  | Expression or   Expression { opOr           $1 $3 }
+                  | Expression '==' Expression { opEqual        $1 $3 }
+                  | Expression '/=' Expression { opNotEqual     $1 $3 }
+                  | Expression '>=' Expression { opGreaterEqual $1 $3 }
+                  | Expression '<=' Expression { opLessEqual    $1 $3 }
+                  | Expression '>'  Expression { opGreater      $1 $3 }
+                  | Expression '<'  Expression { opLess         $1 $3 }
 
-BinaryOperation             : NumericalBinaryOperation      { $1 }
-                            | LogicalBinaryOperation        { $1 }
-                            | Assignment                    { $1 }
 
-NumericalUnaryOperation     : '+' Expression %prec POS      { SutUnaryOp (getNumExprType $2) SutOpPos $2 }
-                            | '-' Expression %prec NEG      { SutUnaryOp (getNumExprType $2) SutOpNeg $2 }
+-- Compex operations
+Dereference       : '*' Expression %prec IND      {% dereference $2 }
+Assignment        : Assignable '=' Expression     {% assignment $1 $3 }
+GetArrayItem      : Assignable '[' Expression ']' {% arrayGet   $1 $3 }
+GetMember         : Assignable '->' ID            {% memberGet  $1 $3 }
 
-LogicalUnaryOperation       : '!' Expression                { SutUnaryOp (getBoolExprType $2) SutOpNot $2 }
+NewPointer        : PersonID S_madea Type         {}
 
-NumericalBinaryOperation    : Expression '+' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpAdd $1 $3 }
-                            | Expression '-' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpSub $1 $3 }
-                            | Expression '*' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpMul $1 $3 }
-                            | Expression '%' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpMod $1 $3 }
-                            | Expression '/' Expression     { SutBinaryOp (binaryNum2NumType $1 $3)   SutOpIntDiv $1 $3 }
-                            | Expression div Expression     { SutBinaryOp (binaryNum2FloatType $1 $3) SutOpDiv $1 $3 }
-                            | Expression '^' Expression     { SutBinaryOp (binaryNum2FloatType $1 $3) SutOpPow $1 $3 }
-
-LogicalBinaryOperation      : Expression and  Expression    { SutBinaryOp (binaryBoolType $1 $3)     SutOpAnd      $1 $3 }
-                            | Expression or   Expression    { SutBinaryOp (binaryBoolType $1 $3)     SutOpOr       $1 $3 }
-                            | Expression '==' Expression    { SutBinaryOp (binaryEqualityType $1 $3) SutOpEqual    $1 $3 }
-                            | Expression '/=' Expression    { SutBinaryOp (binaryEqualityType $1 $3) SutOpNotEqual $1 $3 }
-                            | Expression '>=' Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpGEqual   $1 $3 }
-                            | Expression '<=' Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpLEqual   $1 $3 }
-                            | Expression '>'  Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpGreater  $1 $3 }
-                            | Expression '<'  Expression    { SutBinaryOp (binaryNum2BoolType $1 $3) SutOpLess     $1 $3 }
-
-Dereference                 : '*' Expression %prec IND
-                            { % getExpressionType $2 >>= \t -> return SutPointed t $2 }
-
-GetArrayItem                : AssignableObject '[' Expression ']'
-                            { % checkIndexType $3 >> checkArrayType $1 >>= (\t -> return (SutArrayItem t $1 $3)) }
-
-GetProp                     : AssignableObject '->' ID      { SutStructMember t $1 $3 }
-
-Assignment                  : AssignableObject '=' Expression
-                            { % getEqualityType SutOpAssign $1 $3 >>= (\t -> return (SutBinaryOp (getExpressionType $1) SutOpAssign $1 $3)) }
-
-AssignableObject            : ID              { % checkId' $1 VarSym }
-                            | GetArrayItem    { $1 }
-                            | GetProp         { $1 }
-                            | Dereference     { $1 }
-
-FunctionCall                : ID
-                            { % checkId' $1 FunctionSym >>= (\s -> return (SutCall (fromJust (getType' s)) (getToken $1) [])) }
-                            | ID '(' WITH FunctionActualParams ')'
-                            { % checkId' $1 FunctionSym >>= (\s -> checkParams $4 s  >> return (SutCall (fromJust (getType' s)) (getToken $1) (getToken $4))) }
-
-FunctionActualParams        : Expression                           { [$1] }
-                            | Expression ',' FunctionActualParams  { $1:$3 }
-
+Call              : ID '(' WithCallParams ')' %prec PAR {% functionCall $1 $3 }
+WithCallParams    : WITH CallParams               { $2 }
+                  | {-empty-}                     { [] }
+CallParams        : Expression                    { [$1]  }
+                  | Expression ',' CallParams     { $1:$3 }
 
 
 
 -- Declaration
--- =====================================================================================================================
-Declaration                 : PersonDeclaration                     { $1 }
-                            | FunctionDeclaration                   { $1 }
-                            | VariableDeclaration                   { $1 }
-                            | TypeDeclaration                       { $1 }
+-- ================================================================================================
+Declaration       : PersonDef    { $1 }
+                  | FunctionDef  { $1 }
+                  | VariableDef  { $1 }
+                  | TypeDef      { $1 }
 
 
-PersonDeclaration           : S_therewas PersonNames
-                            { insertPerson $2 }
+PersonDef         : S_therewas PersonNames {% mapM_ defPerson $2 }
+PersonNames       : ID                     { [$1] }
+                  | ID ',' PersonNames     { $1:$3 }
+                  | ID and PersonNames     { $1:$3 }
 
-PersonNames                 : ID                                    { [$1] }
-                            | ID ',' PersonNames                    { $1:$3 }
-                            | ID and PersonNames                    { $1:$3 }
+FunctionDef       : FUNCTION_INI addFunctionID ',' FunctionWithP FUNCTION_FIN    { }
+                  | FUNCTION_INI addFunctionID ',' FunctionWOutP FUNCTION_FIN    { }
 
-FunctionDeclaration         : FUNCTION_INI IdentificadorFun ',' S_therewasa Type FunctionBlock FUNCTION_FIN
-                            { % checkType $5 >> modifyFunction $2 $5 [] $6 }
+FunctionWOutP     : S_therewasa Type BlockF                                {% defFunction' $2 $3 }
+FunctionWithP     : S_therewasa Type '(' S_madeof pushParams ')' BlockF    {% defFunction' $2 $7 }
+addFunctionID     : ID                                                     {% insertFunctionID $1 }
+pushParams        : ParamsDef                                              {% mapM_ insertParam $1 }
 
-                            | FUNCTION_INI IdentificadorFun ',' S_therewasa Type '(' S_madeof StackParams ')' FunctionBlock FUNCTION_FIN
-                            { % checkType $5 >> modifyFunction $2 $5 $8 $10 }
-
-IdentificadorFun            : ID                                    { % checkId' $1 FunctionSym >> insertFunction $1 }
-
-StackParams                 : FunctionFormalParams                  { % insertFunctionParams $1 }
-
-FunctionFormalParams        : Type ID                               { [(False, $1, $2)] }
-                            | Type ID ',' FunctionFormalParams      { (False, $1,$2):$4 }
-                            | YOUR Type ID                          { [(True, $2, $3)] }
-                            | YOUR Type ID ',' FunctionFormalParams { (True, $2, $3):$5 }
+ParamsDef         : Type ID                    { [(SutParamVal, $1, $2)] }
+                  | Type ID ',' ParamsDef      { (SutParamVal, $1,$2):$4 }
+                  | YOUR Type ID               { [(SutParamRef, $2, $3)] }
+                  | YOUR Type ID ',' ParamsDef { (SutParamVal, $2, $3):$5 }
 
 
-VariableDeclaration         : ID S_broughta Type ':' VariableList
-                            { % variableDeclaration $1 $3 $5  }
+VariableDef       : ID S_broughta Type ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }
 
-VariableList                : ID ',' VariableList                   { ($1,Nothing):$3 }
-                            | ID '=' Expression ',' VariableList    { ($1,Just $3):$5 }
-                            | ID '=' Expression                     { [($1,Just $3)] }
-                            | ID                                    { [($1,Nothing)] }
+VariableList      : ID ',' VariableList                   { ($1,Nothing):$3 }
+                  | ID '=' Expression ',' VariableList    { ($1,Just $3):$5 }
+                  | ID '=' Expression                     { [($1,Just $3)] }
+                  | ID                                    { [($1,Nothing)] }
 
-TypeDeclaration             : ID S_invented ID ';' S_itsa Type
-                            { % checkId' $1 PersonSym >> checkToBeNewNow "Person" [$1]  }
-
+TypeDef           : ID S_invented ID ';' S_itsa Type      {% defType $1 $3 $6 }
 
 
 -- Types
 -- ====================================================================================================================
-Type                        : TYPE_INT                                    { SutTypeInt }
-                            | TYPE_FLOAT                                  { SutTypeFloat }
-                            | TYPE_CHAR                                   { SutTypeChar }
-                            | TYPE_BOOL                                   { SutTypeBool }
-                            | TYPE_STRING                                 { SutTypeString }
-                            | TYPE_ARRAY '(' OF LITERAL_INT Type ')'      { SutTypeArray $4 $5 }
-                            | TYPE_STRUCT '(' WITH StructTyping ')'       { SutTypeStruct $4 }
-                            | TYPE_UNION '(' EITHER UnionTyping ')'       { SutTypeUnion $4 }
-                            | TYPE_POINTER '(' TO Type ')'                { SutTypePointer $4 }
-                            | ID                                          { % checkId' $1 TypeSym >>= getType }
+Type              : TYPE_INT                                    { SutTypeInt }
+                  | TYPE_FLOAT                                  { SutTypeFloat }
+                  | TYPE_CHAR                                   { SutTypeChar }
+                  | TYPE_BOOL                                   { SutTypeBool }
+                  | TYPE_STRING                                 { SutTypeString }
+                  | TYPE_ARRAY '(' OF LITERAL_INT Type ')'      { SutTypeArray $4 $5 }
+                  | TYPE_STRUCT '(' WITH StructTyping ')'       { SutTypeStruct $4 }
+                  | TYPE_UNION '(' EITHER UnionTyping ')'       { SutTypeUnion $4 }
+                  | TYPE_POINTER '(' TO Type ')'                { SutTypePointer $4 }
+                  | ID                                          { % checkId' $1 TypeSym >>= getType }
 
-StructTyping                : Type ID                                     { [($1,$2)] }
-                            | Type ID and StructTyping                    { ($1,$2):$4 }
+StructTyping      : Type ID                                     { [($1,$2)] }
+                  | Type ID and StructTyping                    { ($1,$2):$4 }
 
-UnionTyping                 : Type ID                                     { [($1,$2)] }
-                            | Type ID or UnionTyping                      { ($1,$2):$4 }
+UnionTyping       : Type ID                                     { [($1,$2)] }
+                  | Type ID or UnionTyping                      { ($1,$2):$4 }
 
 
 -- Blocks
 -- ====================================================================================================================
-AddScope                    : BLOCK_OPEN                                  { % addInstructionScope }
-RemoveScope                 : BLOCK_CLOSE                                 { % removeLastScope }
+InsertScope       : BLOCK_OPEN                                  { % insertScope }
+RemoveScope       : BLOCK_CLOSE                                 { % removeScope }
 
-Block                       : AddScope BlockContent RemoveScope           { $3 }
+Block             : InsertScope Statements RemoveScope           { $3 }
 
-BlockContent                : Statement BlockContent                      { $1: $2 }
-                            | {-empty-}                                   { [] }
+Statements        : Statement Statements                      { $1: $2 }
+                  | {-empty-}                                   { [] }
 
-FunctionBlock               : AddScope FunctionBlockContent RemoveScope   { $3 }
+BlockF            : InsertScope FunctionBlockCont RemoveScope   { $3 }
 
-FunctionBlockContent        : Statement FunctionBlockContent              { $1:$2 }
-                            | ReturnStatement FunctionBlockContent        { $1:$2 }
-                            | {-empty-}                                   { [] }
+FunctionBlockCont : Statement FunctionBlockCont              { $1:$2 }
+                  | Return FunctionBlockCont        { $1:$2 }
+                  | {-empty-}                                   { [] }
 
-Statement                   : Instruction                                 { $1 }
-                            | Declaration                                 { $1 }
+Statement         : Instruction                                 { $1 }
+                  | Declaration                                 { $1 }
 
-ReturnStatement             : S_andthatswhere Expression S_comesfrom      { SutReturn $2 }
+Return            : S_andthatswhere Expression S_comesfrom      { SutReturn $2 }
 
 
 -- Instructions
 -----------------------------------------------------------------------------------------------------------------------
-Instruction                 : Expression '.'         { SutInstExpression $1 }
-                            | FreePointer '.'        { $1 }
-                            | Print '.'              { $1 }
-                            | Selection              { $1 }
-                            | UnboundedIteration     { $1 }
-                            | BoundedIteration       { $1 }
+Instruction       : Assignment '.'           { SutInstExpression $1 }
+                  | FreePointer        { $1 }
+                  | Print              { $1 }
+                  | Read              { $1 }
+                  | Selection              { $1 }
+                  | IterationU     { $1 }
+                  | IterationB       { $1 }
 
-CreatePointer               : '(' PersonID S_madea Type ')'
-                            { % checkId' $2 >> return (SutCreatePointer $3 $1) }
-FreePointer                 : '(' PersonID S_brokea AssignableObject ')'
-                            { % checkId' $2 PersonSym >> return (SutFreePointer $1 $3) }
+FreePointer       : PersonID S_brokea Assignable '.'
+                  { % checkId' $2 PersonSym >> return (SutFreePointer $1 $3) }
 
-Selection                   : PersonID S_dreamsof Block WHEN Expression
-                            { % checkConditionalType $5 >> return (SutSelection $1 $3 $5 []) }
-                            | PersonID S_dreamsof Block WHEN Expression ';' OTHERWISE Block
-                            { % checkConditionalType $5 >> return (SutSelection $1 $3 $5 $8) }
+Selection         : PersonID S_dreamsof Block WHEN Expression '.'
+                  { % checkConditionalType $5 >> return (SutSelection $1 $3 $5 []) }
+                  | PersonID S_dreamsof Block WHEN Expression OTHERWISE Block
+                  { % checkConditionalType $5 >> return (SutSelection $1 $3 $5 $7) }
 
-PersonID                    : ID
-                            { % checkId' $1 PersonSym >> return $1 }
+PersonID          : ID
+                  { % checkId' $1 PersonSym >> return $1 }
 
-UnboundedIteration          : PersonID S_keepsdreamingof Expression Block
-                            { % checkConditionalType $3 >> return (SutIterationU $1 $3 $4) }
+IterationU        : PersonID S_keepsdreamingof Expression Block
+                  { % checkConditionalType $3 >> return (SutIterationU $1 $3 $4) }
 
-BoundedIteration            : Block PersonID S_toldthatstory Expression TIMES
-                            { % checkIndexType $4 >> return (SutIterationB $2 $4 $1) }
-
-
-Print                       : PersonID ':' Expression
-                            { SutPrintVal $1 $3 }
-Read                        : AssignableObject '?'
-                            { SutReadVal $1 }
+IterationB        : Block PersonID S_toldthatstory Expression TIMES '.'
+                  { % checkIndexType $4 >> return (SutIterationB $2 $4 $1) }
 
 
+Print             : PersonID ':' Expression '.'
+                  { SutPrintVal $1 $3 }
+Read              : Assignable '?'
+                  { SutReadVal $1 }
 
-{
 
 
-happyError :: SutToken -> SutParserM a
-happyError tks = error ("Parse error at " ++ lcn ++ "\n")
-  where lcn = case tks of
-                []    -> "end of file"
-                ((SutToken pos _):_)  -> showSut pos
 
--- vim:ft=haskell
-}
+{}
