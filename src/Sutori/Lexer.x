@@ -1,17 +1,22 @@
 {
-module Sutori.Lexer where
+module Sutori.Lexer
+( lexerScan
+, runLexer
+) where
 
-import Control.Monad.State
 import Control.Monad
-import Numeric ( readDec )
-import Data.Maybe
-import Data.Char ( chr, isSpace )
+import Control.Monad.State
+import Data.Char( chr, isSpace )
 import Data.List
+import Data.Maybe
+import Numeric( readDec )
 
-import Sutori.LexerTokens
 import Sutori.LexerInternals
-import Sutori.Utils
+import Sutori.LexerTokens( SutToken(SutToken, tokenPosn, tokenClass), SutTokenClass(..) )
 import Sutori.Monad
+  ( SutMonad, SutPosn(SutPosn), sutStateInit
+  , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth)
+  )
 
 
 
@@ -120,33 +125,32 @@ tokens :-
 
 {
 
--- lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
--- lexwrap = (lexerScan >>=)
---
 -- An action for SutMonad to run on a given token
 type TokenAction = SutoriInput -> Int -> SutMonad SutToken
---
---
--- -- fakeToken :: SutTokenClass -> SutToken
--- -- fakeToken tkc = SutToken (SutPosn 0 0 0) tkc
---
--- -- SutMonad EOF token (Sutori EOF)
--- alexEOF :: SutMonad SutToken
--- alexEOF = return $ SutToken undefined SutTkEOF
-
-
 
 
 -- ## Actions
 -- #---------------------------------------------------------------------------
 
+-- just ignore this token and scan another one
+skip :: TokenAction
+skip _input _len = lexerScan
 
+-- ignore this token, but set the start code to a new value
+begin :: Int -> TokenAction
+begin code _input _len = do lexerSetSC code; lexerScan
 
+-- perform an action for this token, and set the start code to a new value
+andBegin :: TokenAction -> Int -> TokenAction
+(action `andBegin` code) input__ len = do
+  lexerSetSC code
+  action input__ len
 
 -- ### Token Getters
 tokenize :: SutTokenClass -> TokenAction
 tokenize c (p, _, _, str) len = return (SutToken p c)
 
+tokenizeChar, tokenizeFloat, tokenizeInt, tokenizeID, tokenizeBool, tokenizeError :: TokenAction
 tokenizeChar    (p, _, _, str)   len = return (SutToken p (SutTkChar  (take len str)))
 tokenizeFloat   (p, _, _, str)   len = return (SutToken p (SutTkFloat (read $ take len str)))
 tokenizeInt     (p, _, _, str)   len = return (SutToken p (SutTkInt   (read $ take len str)))
@@ -157,10 +161,11 @@ tokenizeError   (p, _, _, input) len = do
   -- setLexerError True
   return $ SutToken p $ SutTkError $ take len input
 
-
-
+-- Set the current state code (startcode for alex)
 setStateCode :: Int -> SutMonad ()
 setStateCode c = get >>= \s -> put s{lexerStateCode=c}
+
+-- ### Comments
 
 -- Get current comment depth
 getLexerCommentDepth :: SutMonad Int
@@ -179,30 +184,27 @@ embedComment input len = do
 
 -- Go one level up
 unembedComment :: TokenAction
-unembedComment input len =
-    do cd <- getLexerCommentDepth
-       setLexerCommentDepth (cd - 1)
-       when (cd == 1) (setStateCode 0)
-       skip input len
-
-
+unembedComment input len = do
+  cd <- getLexerCommentDepth
+  setLexerCommentDepth (cd - 1)
+  when (cd == 1) (setStateCode 0)
+  skip input len
 
 -- ### Strings
 
 -- Enters "string" state
 enterString :: TokenAction
-enterString _ _ =
-    do setLexerStringState True
-       setLexerStringValue ""
-       lexerScan
+enterString _ _ = do
+  setLexerStringState True
+  setLexerStringValue ""
+  lexerScan
 
 -- Leaves "string" state
 leaveString :: TokenAction
-leaveString (p, _, _, input) len =
-    do s <- getLexerStringValue
-       setLexerStringState False
-       return (SutToken p (SutTkString (reverse s)))
-
+leaveString (p, _, _, input) len = do
+  s <- getLexerStringValue
+  setLexerStringState False
+  return (SutToken p (SutTkString (reverse s)))
 
 -- Adds a given character to the current string
 addCharToString :: Char -> TokenAction
@@ -218,15 +220,19 @@ addEscapedToString i@(_, _, _, input) len = addCharToString (head $ drop 1 input
 addCurrentToString :: TokenAction
 addCurrentToString i@(_, _, _, input) len = addCharToString (head input) i len
 
+-- Know if currently on a string
 getLexerStringState :: SutMonad Bool
 getLexerStringState = get >>= \s@SutState{lexerStringOn=ss} -> return ss
 
+-- Set the string state (if entering/leaving string)
 setLexerStringState :: Bool -> SutMonad ()
 setLexerStringState ss = get >>= \s -> put s{lexerStringOn=ss}
 
+-- Get the currently built string
 getLexerStringValue :: SutMonad String
 getLexerStringValue = get >>= \s@SutState{lexerString=ss} -> return ss
 
+-- Set the string value
 setLexerStringValue :: String -> SutMonad ()
 setLexerStringValue ss = get >>= \s -> put s{lexerString=ss}
 
@@ -235,12 +241,11 @@ setLexerStringValue ss = get >>= \s -> put s{lexerString=ss}
 -- Handling errors
 -- #---------------------------------------------------------------------------
 
--- Says if the given token is valid (not an error) or not
-isValid :: SutToken -> Bool
-isValid (SutToken _ (SutTkError _))  = False
-isValid _                            = True
+-- Log a lexical error
+-- lexerError :: SutLog -> SutMonad a
 
 
+-- Legacy:
 -- lexerError :: String -> SutMonad a
 -- lexerError msg = do
 --     (p, c, _, input) <- alexGetInput
@@ -259,7 +264,6 @@ isValid _                            = True
 --                           else if (null s2)
 --                                then " before end of line"
 --                                else " on char " ++ show c ++ " before : '" ++ s2 ++ "'"
---
 --
 -- alexComplementError :: SutMonad a -> SutMonad (a, Maybe String)
 -- alexComplementError a = \s -> case al s of
@@ -292,10 +296,12 @@ isValid _                            = True
 --
 -- runAlexScan s = runAlex s lexerLoop
 
+
+-- Scan for the next token
 lexerScan :: SutMonad SutToken
 lexerScan = do
+  SutState{lexerStateCode=sc} <- get
   input <- lexerGetInput
-  sc <- lexerGetSC
   case alexScan input sc of
     AlexEOF -> return SutToken{ tokenPosn = (SutPosn 0 0 0), tokenClass = SutTkEOF }
     AlexError (posn,_,_,_) -> error $ "Lexical error at " ++ show posn
@@ -306,30 +312,11 @@ lexerScan = do
         lexerSetInput input'
         action (ignorePendingBytes input) len
 
-
-
--- Lexer Actions (productions of lexer tokens)
--- -------------------------------------------------------
-
-type LexerAction result = SutoriInput -> Int -> SutMonad result
-
--- just ignore this token and scan another one
-skip :: LexerAction SutToken
-skip _input _len = lexerScan
-
--- ignore this token, but set the start code to a new value
-begin :: Int -> LexerAction SutToken
-begin code _input _len = do lexerSetSC code; lexerScan
-
--- perform an action for this token, and set the start code to a new value
-andBegin :: LexerAction SutToken -> Int -> LexerAction SutToken
-(action `andBegin` code) input__ len = do
-  lexerSetSC code
-  action input__ len
-
-token :: (SutoriInput -> Int -> SutToken) -> LexerAction SutToken
-token t input__ len = return (t input__ len)
--- vim: set ft=haskell
-
+-- Runs the lexer on an input string TODO: ??
+runLexer :: String -> (SutState -> Either String (b, a)) -> Either String a
+runLexer input f
+  = case f sutStateInit { lexerInput = input }
+    of Left msg       -> Left msg
+       Right ( _, a ) -> Right a
 
 }

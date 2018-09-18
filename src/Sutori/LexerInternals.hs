@@ -86,24 +86,7 @@ lexerSetInput (pos,c,bs,input) = do
   oldState <- get
   put oldState{ lexerPosn=pos, lexerChar=c, lexerBytes=bs, lexerInput=input }
 
-lexerGetSC :: SutMonad Int
-lexerGetSC = do
-  SutState{lexerStateCode=sc} <- get
-  return sc
-
 lexerSetSC :: Int -> SutMonad ()
 lexerSetSC sc = do
   oldState <- get
   put oldState{ lexerStateCode=sc }
-
-
--- Run lexer
--- -------------------------------------------------------
-
--- Runs the lexer on an input string
-runLexer input f
-  = case f sutStateInit { lexerInput = input }
-    of Left msg       -> Left msg
-       Right ( _, a ) -> Right a
-
--- Runs the lexer scanner

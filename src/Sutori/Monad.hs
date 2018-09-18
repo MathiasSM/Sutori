@@ -13,13 +13,12 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Zip
 
-import Sutori.AST
 import Sutori.Types(SutType(SutTypeVoid), primitiveTypes)
-import Sutori.Utils
 import Sutori.SymTable(SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
 import Sutori.Logger(SutLogger, SutShow(showSut), SutLog(SutLogLeave))
 
 
+-- Different errors the sutori compiler can turn up with
 data SutErrorCode = SutNoError | SutErrorLexer | SutErrorParser | SutError
 
 -- Source position: Number of characters before, row, col
@@ -80,30 +79,29 @@ type SutMonad a = StateT SutState (WriterT SutLogger (Either SutErrorCode)) a
 runSutMonad :: SutMonad a -> SutState -> Either SutErrorCode ((a, SutState), SutLogger)
 runSutMonad f a = runWriterT $ runStateT f a
 
--- -- Inserts a new scope into the parsing
--- insertScope :: SutMonad ()
--- insertScope = do
---     oldState <- get
---     let newScope = parserNextScope oldState
---         newSet = Set.insert newScope (parserScopes oldState)
---         newStack = parserNextScope oldState : parserStack oldState
---     put $ oldState { parserStack = newStack, parserNextScope = newScope + 1, parserScopes = newSet}
---
--- -- Removes last scope from the parsing
--- removeScope :: SutMonad ()
--- removeScope = do
---     oldState <- get
---     let oldStack = parserStack oldState
---         newSet = Set.delete (head oldStack) (parserScopes oldState)
---         newStack = tail oldStack
---     put $ oldState { parserStack = newStack, parserScopes = newSet}
---
---
---
--- getCurrentScope :: SutState -> Scope
--- getCurrentScope s = head $ parserStack s
---
+-- Inserts a new scope into the parsing
+insertScope :: SutMonad ()
+insertScope = do
+  oldState@SutState{parserNextScope = newScope, parserScopes = scopes, parserStack = stack} <- get
+  let newSet = Set.insert newScope scopes
+      newStack = newScope : stack
+  put $ oldState { parserStack = newStack, parserNextScope = newScope + 1, parserScopes = newSet}
+
+-- Removes last scope from the parsing
+removeScope :: SutMonad ()
+removeScope = do
+  oldState@SutState{parserStack = stack, parserScopes = scopes} <- get
+  let newSet = Set.delete (head stack) scopes
+      newStack = tail stack
+  put $ oldState { parserStack = newStack, parserScopes = newSet}
+
+-- Get the current open scope
+parserCurrentScope :: SutState -> Scope
+parserCurrentScope = head . parserStack
+
+
 -- -- Insertion and modification of symbols
+--
 -- ---------------------------------------------------------------------------------------------------
 -- insertInitial :: SutMonad ()
 -- insertInitial = mapM_ insertType primitiveTypes
