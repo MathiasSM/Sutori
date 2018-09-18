@@ -1,5 +1,6 @@
 module Sutori.Monad where
 
+import Data.Word (Word8)
 import Data.Maybe
 import Data.Semigroup
 import Data.Either
@@ -16,33 +17,56 @@ import Sutori.AST
 import Sutori.Types(SutType(SutTypeVoid), primitiveTypes)
 import Sutori.Utils
 import Sutori.SymTable(SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
-import Sutori.Logger(SutLogger)
+import Sutori.Logger(SutLogger, SutShow(showSut), SutLog(SutLogLeave))
 
+
+data SutErrorCode = SutNoError | SutErrorLexer | SutErrorParser | SutError
 
 -- Source position: Number of characters before, row, col
 data SutPosn = SutPosn !Int !Int !Int
   deriving (Eq,Show)
+
+posnInit = SutPosn 0 1 1
+
+-- AlexPosn can be shown with SutShow
+instance SutShow SutPosn where
+  showSut (SutPosn _ line col) = SutLogLeave $ show line ++ ":" ++ show col
 
 -- Monadic Lexer/Parser current state.
 data SutState = SutState {
   lexerPosn       :: !SutPosn,     -- position at current input location
   lexerInput      :: String,       -- the current input
   lexerChar       :: !Char,        -- the character before the input
-  lexerSC         :: !Int,         -- the current startcode
+  lexerStateCode  :: !Int,         -- the current startcode
+  lexerBytes      :: ![Word8],     -- the current bytes read
+  lexerDepth      :: Int,
+  lexerString     :: String,
+  lexerStringOn   :: Bool,
   parserTable     :: SymTable,      -- The symtable
   parserStack     :: [Scope],       -- The scopes stack
   parserScopes    :: Set.Set Scope, -- The set of open scopes
   parserNextScope :: Scope          -- The next scope ID to open
 }
+sutStateInit = SutState {
+  lexerPosn       = posnInit,
+  lexerInput      = "",
+  lexerChar       = '\n',
+  lexerBytes      = [],
+  lexerStateCode  = 0,
+  lexerDepth      = 0,
+  lexerString     = "",
+  lexerStringOn   = False,
+  parserTable     = Map.empty,
+  parserStack     = [0],
+  parserScopes    = Set.insert 0 Set.empty,
+  parserNextScope = 0
+}
 
 -- Sutori monad: Composes state and logging
-type SutMonad a = StateT SutState (WriterT SutLogger (Either SutLogger)) a
-
-
+type SutMonad a = StateT SutState (WriterT SutLogger (Either SutErrorCode)) a
 
 -- sutoriError :: String -> SutMonad a
 -- sutoriError message = SutMonad $ const $ Left message
-
 
 
 -- getTuple f a = getTuple $ getRight $ runMonad f a `catchError` parseError
@@ -53,45 +77,45 @@ type SutMonad a = StateT SutState (WriterT SutLogger (Either SutLogger)) a
 
 -- Regular Actions
 ---------------------------------------------------------------------------------------------------
-runMonad :: SutMonad a -> SutState -> Either SutLogger ((a, SutState), SutLogger)
-runMonad f a = runWriterT $ runStateT f a
+runSutMonad :: SutMonad a -> SutState -> Either SutErrorCode ((a, SutState), SutLogger)
+runSutMonad f a = runWriterT $ runStateT f a
 
--- Inserts a new scope into the parsing
-insertScope :: SutMonad ()
-insertScope = do
-    oldState <- get
-    let newScope = parserNextScope oldState
-        newSet = Set.insert newScope (parserScopes oldState)
-        newStack = parserNextScope oldState : parserStack oldState
-    put $ oldState { parserStack = newStack, parserNextScope = newScope + 1, parserScopes = newSet}
-
--- Removes last scope from the parsing
-removeScope :: SutMonad ()
-removeScope = do
-    oldState <- get
-    let oldStack = parserStack oldState
-        newSet = Set.delete (head oldStack) (parserScopes oldState)
-        newStack = tail oldStack
-    put $ oldState { parserStack = newStack, parserScopes = newSet}
-
-
-
-getCurrentScope :: SutState -> Scope
-getCurrentScope s = head $ parserStack s
-
--- Insertion and modification of symbols
----------------------------------------------------------------------------------------------------
-insertInitial :: SutMonad ()
-insertInitial = mapM_ insertType primitiveTypes
-
-insertType :: (SutID, SutType) -> SutMonad ()
-insertType (id, t) = do
-  oldState <- get
-  let curScope = getCurrentScope oldState
-      oldTable = parserTable oldState
-      newTable = insert oldTable curScope CatType SutTypeVoid (SymTypeDef t) [id]
-  put $ oldState { parserTable = newTable }
-
+-- -- Inserts a new scope into the parsing
+-- insertScope :: SutMonad ()
+-- insertScope = do
+--     oldState <- get
+--     let newScope = parserNextScope oldState
+--         newSet = Set.insert newScope (parserScopes oldState)
+--         newStack = parserNextScope oldState : parserStack oldState
+--     put $ oldState { parserStack = newStack, parserNextScope = newScope + 1, parserScopes = newSet}
+--
+-- -- Removes last scope from the parsing
+-- removeScope :: SutMonad ()
+-- removeScope = do
+--     oldState <- get
+--     let oldStack = parserStack oldState
+--         newSet = Set.delete (head oldStack) (parserScopes oldState)
+--         newStack = tail oldStack
+--     put $ oldState { parserStack = newStack, parserScopes = newSet}
+--
+--
+--
+-- getCurrentScope :: SutState -> Scope
+-- getCurrentScope s = head $ parserStack s
+--
+-- -- Insertion and modification of symbols
+-- ---------------------------------------------------------------------------------------------------
+-- insertInitial :: SutMonad ()
+-- insertInitial = mapM_ insertType primitiveTypes
+--
+-- insertType :: (SutID, SutType) -> SutMonad ()
+-- insertType (id, t) = do
+--   oldState <- get
+--   let curScope = getCurrentScope oldState
+--       oldTable = parserTable oldState
+--       newTable = insert oldTable curScope CatType SutTypeVoid (SymTypeDef t) [id]
+--   put $ oldState { parserTable = newTable }
+--
 --
 -- insertVars :: SutType -> [SutToken] -> SutMonad ()
 -- insertVars t tks = let what = "Variable" in do

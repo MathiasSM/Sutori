@@ -1,15 +1,18 @@
 {
 module Sutori.Lexer where
 
+import Control.Monad.State
 import Control.Monad
 import Numeric ( readDec )
 import Data.Maybe
 import Data.Char ( chr, isSpace )
 import Data.List
 
+import Sutori.LexerTokens
 import Sutori.LexerInternals
 import Sutori.Utils
 import Sutori.Monad
+
 
 
 }
@@ -18,78 +21,78 @@ tokens :-
 
 <0>                $white+                   ;
 
-<0>                "...("                    { getTk BLOCK_OPEN             }
-<0>                ")..."                    { getTk BLOCK_CLOSE            }
+<0>                "...("                    { tokenize BLOCK_OPEN             }
+<0>                ")..."                    { tokenize BLOCK_CLOSE            }
 
 
-<0>                "Once upon a time in"               { getTk PROGRAM_INI  }
-<0>                "and they lived happily ever after" { getTk PROGRAM_FIN  }
-<0>                "Once upon some other time in"      { getTk FUNCTION_INI }
-<0>                "or that is what they say"          { getTk FUNCTION_FIN }
+<0>                "Once upon a time in"               { tokenize PROGRAM_INI  }
+<0>                "and they lived happily ever after" { tokenize PROGRAM_FIN  }
+<0>                "Once upon some other time in"      { tokenize FUNCTION_INI }
+<0>                "or that is what they say"          { tokenize FUNCTION_FIN }
 
-<0>                "And that's where"        { getTk S_andthatswhere        }
-<0>                "There was"               { getTk S_therewas             }
-<0>                "broke a"                 { getTk S_brokea               }
-<0>                "brought a"               { getTk S_broughta             }
-<0>                "comes from"              { getTk S_comesfrom            }
-<0>                "dreams of"               { getTk S_dreamsof             }
-<0>                "keeps dreaming of"       { getTk S_keepsdreamingof      }
-<0>                "made a"                  { getTk S_madea                }
-<0>                "made of"                 { getTk S_madeof               }
-<0>                "there was a"             { getTk S_therewasa            }
-<0>                "told that story"         { getTk S_toldthatstory        }
-<0>                "invented"                { getTk S_invented             }
-<0>                "it's a"                  { getTk S_itsa                 }
+<0>                "And that's where"        { tokenize S_andthatswhere        }
+<0>                "There was"               { tokenize S_therewas             }
+<0>                "broke a"                 { tokenize S_brokea               }
+<0>                "brought a"               { tokenize S_broughta             }
+<0>                "comes from"              { tokenize S_comesfrom            }
+<0>                "dreams of"               { tokenize S_dreamsof             }
+<0>                "keeps dreaming of"       { tokenize S_keepsdreamingof      }
+<0>                "made a"                  { tokenize S_madea                }
+<0>                "made of"                 { tokenize S_madeof               }
+<0>                "there was a"             { tokenize S_therewasa            }
+<0>                "told that story"         { tokenize S_toldthatstory        }
+<0>                "invented"                { tokenize S_invented             }
+<0>                "it's a"                  { tokenize S_itsa                 }
 
-<0>                "with"                    { getTk WITH                   }
-<0>                "your"                    { getTk YOUR                   }
-<0>                "of"                      { getTk OF                     }
-<0>                "either"                  { getTk EITHER                 }
-<0>                "to"                      { getTk TO                     }
-<0>                "when"                    { getTk WHEN                   }
-<0>                "otherwise"               { getTk OTHERWISE              }
-<0>                "times"                   { getTk TIMES                  }
+<0>                "with"                    { tokenize WITH                   }
+<0>                "your"                    { tokenize YOUR                   }
+<0>                "of"                      { tokenize OF                     }
+<0>                "either"                  { tokenize EITHER                 }
+<0>                "to"                      { tokenize TO                     }
+<0>                "when"                    { tokenize WHEN                   }
+<0>                "otherwise"               { tokenize OTHERWISE              }
+<0>                "times"                   { tokenize TIMES                  }
 
-<0>                "bag"                     { getTk TYPE_INT               }
-<0>                "wallet"                  { getTk TYPE_FLOAT             }
-<0>                "letter"                  { getTk TYPE_CHAR              }
-<0>                "light"                   { getTk TYPE_BOOL              }
-<0>                "chain"                   { getTk TYPE_ARRAY             }
-<0>                "machine"                 { getTk TYPE_STRUCT            }
-<0>                "thing"                   { getTk TYPE_UNION             }
-<0>                "phrase"                  { getTk TYPE_STRING            }
-<0>                "direction"               { getTk TYPE_POINTER           }
+<0>                "bag"                     { tokenize TYPE_INT               }
+<0>                "wallet"                  { tokenize TYPE_FLOAT             }
+<0>                "letter"                  { tokenize TYPE_CHAR              }
+<0>                "light"                   { tokenize TYPE_BOOL              }
+<0>                "chain"                   { tokenize TYPE_ARRAY             }
+<0>                "machine"                 { tokenize TYPE_STRUCT            }
+<0>                "thing"                   { tokenize TYPE_UNION             }
+<0>                "phrase"                  { tokenize TYPE_STRING            }
+<0>                "direction"               { tokenize TYPE_POINTER           }
 
-<0>                "and"                     { getTk AND                    }
-<0>                "or"                      { getTk OR                     }
-<0>                "("                       { getTk OPEN_PAREN             }
-<0>                "["                       { getTk OPEN_BRACKETS          }
-<0>                "{"                       { getTk OPEN_BRACES            }
-<0>                ")"                       { getTk CLOSE_PAREN            }
-<0>                "]"                       { getTk CLOSE_BRACKETS         }
-<0>                "}"                       { getTk CLOSE_BRACES           }
-<0>                "..."                     { getTk ELLIPSIS               }
-<0>                "."                       { getTk PERIOD                 }
-<0>                ","                       { getTk COMMA                  }
-<0>                ":"                       { getTk COLON                  }
-<0>                ";"                       { getTk SEMICOLON              }
-<0>                "?"                       { getTk QUESTIONMARK           }
-<0>                "!"                       { getTk EXCLAMATION            }
-<0>                "->"                      { getTk ARROW_RIGHT            }
-<0>                "+"                       { getTk PLUS                   }
-<0>                "-"                       { getTk MINUS                  }
-<0>                "=="                      { getTk EQUAL                  }
-<0>                "="                       { getTk ASSIGNMENT             }
-<0>                "*"                       { getTk ASTERISK               }
-<0>                "%"                       { getTk PERCENT                }
-<0>                "/"                       { getTk SLASH                  }
-<0>                "div"                     { getTk DIV                    }
-<0>                "/="                      { getTk NOT_EQUAL              }
-<0>                ">="                      { getTk GREATER_EQUAL          }
-<0>                "<="                      { getTk LESS_EQUAL             }
-<0>                ">"                       { getTk GREATER                }
-<0>                "<"                       { getTk LESS                   }
-<0>                "^"                       { getTk POWER                  }
+<0>                "and"                     { tokenize AND                    }
+<0>                "or"                      { tokenize OR                     }
+<0>                "("                       { tokenize OPEN_PAREN             }
+<0>                "["                       { tokenize OPEN_BRACKETS          }
+<0>                "{"                       { tokenize OPEN_BRACES            }
+<0>                ")"                       { tokenize CLOSE_PAREN            }
+<0>                "]"                       { tokenize CLOSE_BRACKETS         }
+<0>                "}"                       { tokenize CLOSE_BRACES           }
+<0>                "..."                     { tokenize ELLIPSIS               }
+<0>                "."                       { tokenize PERIOD                 }
+<0>                ","                       { tokenize COMMA                  }
+<0>                ":"                       { tokenize COLON                  }
+<0>                ";"                       { tokenize SEMICOLON              }
+<0>                "?"                       { tokenize QUESTIONMARK           }
+<0>                "!"                       { tokenize EXCLAMATION            }
+<0>                "->"                      { tokenize ARROW_RIGHT            }
+<0>                "+"                       { tokenize PLUS                   }
+<0>                "-"                       { tokenize MINUS                  }
+<0>                "=="                      { tokenize EQUAL                  }
+<0>                "="                       { tokenize ASSIGNMENT             }
+<0>                "*"                       { tokenize ASTERISK               }
+<0>                "%"                       { tokenize PERCENT                }
+<0>                "/"                       { tokenize SLASH                  }
+<0>                "div"                     { tokenize DIV                    }
+<0>                "/="                      { tokenize NOT_EQUAL              }
+<0>                ">="                      { tokenize GREATER_EQUAL          }
+<0>                "<="                      { tokenize LESS_EQUAL             }
+<0>                ">"                       { tokenize GREATER                }
+<0>                "<"                       { tokenize LESS                   }
+<0>                "^"                       { tokenize POWER                  }
 
 <0>                "--|"                     { embedComment `andBegin` commentLvl }
 <commentLvl>       "--|"                     { embedComment                       }
@@ -98,10 +101,10 @@ tokens :-
 <commentLvl>       \n                        { skip                               }
 <0>                "--".*                    ;
 
-<0>                "on"|"off"                { getTkBool          }
-<0>                \'[a-z]\'                 { getTkChar          }
-<0>                [0-9]+(\.[0-9]+)          { getTkFloat         }
-<0>                [0-9]+                    { getTkInteger       }
+<0>                "on"|"off"                { tokenizeBool  }
+<0>                \'[a-z]\'                 { tokenizeChar  }
+<0>                [0-9]+(\.[0-9]+)          { tokenizeFloat }
+<0>                [0-9]+                    { tokenizeInt   }
 
 <0>                \"                        { {-'"'-} enterString `andBegin` stringState }
 <stringState>      \"                        { {-'"'-} leaveString `andBegin` 0           }
@@ -112,139 +115,25 @@ tokens :-
 <stringState>      .                         { addCurrentToString }
 
 <0>                \n                        { skip               }
-<0>                [a-zA-Z] [a-zA-Z\-\_0-9]* { getTkId            }
-<0>                .                         { getTkError         }
+<0>                [a-zA-Z] [a-zA-Z\-\_0-9]* { tokenizeID         }
+<0>                .                         { tokenizeError      }
 
 {
 
-lexwrap :: (SutToken -> Alex a) -> Alex a
-lexwrap = (alexMonadScan >>=)
+-- lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+-- lexwrap = (lexerScan >>=)
+--
+-- An action for SutMonad to run on a given token
+type TokenAction = SutoriInput -> Int -> SutMonad SutToken
+--
+--
+-- -- fakeToken :: SutTokenClass -> SutToken
+-- -- fakeToken tkc = SutToken (SutPosn 0 0 0) tkc
+--
+-- -- SutMonad EOF token (Sutori EOF)
+-- alexEOF :: SutMonad SutToken
+-- alexEOF = return $ SutToken undefined SutTkEOF
 
--- AlexPosn can be shown with SutShow
-instance SutShow AlexPosn where
-  showSut (AlexPn _ line col) = show line ++ ":" ++ show col
-
--- An action for Alex to run on a given token
-type GetTokenAction = AlexInput -> Int -> Alex SutToken
-
--- A Sutori Token. Can be shown with SutShow
-data SutToken = SutToken { getPosn :: AlexPosn, getToken :: SutTokenClass } deriving (Eq,Show)
-instance SutShow SutToken where
-  showSut (SutToken _ SutTkEOF) = "Token EOF"
-  showSut (SutToken p cl)  = "Token (" ++ showSut cl ++ "): " ++ showSut p
-
-
-fakeToken :: SutTokenClass -> SutToken
-fakeToken tkc = SutToken (AlexPn 0 0 0) tkc
-
--- Alex EOF token (Sutori EOF)
-alexEOF :: Alex SutToken
-alexEOF = return $ SutToken undefined SutTkEOF
-
--- Sutori token classes. Can be shown with SutShow
-data SutTokenClass =
-    SutTkEOF            |
-
-    BLOCK_OPEN          |
-    BLOCK_CLOSE         |
-
-    PROGRAM_INI         |
-    PROGRAM_FIN         |
-    FUNCTION_INI        |
-    FUNCTION_FIN        |
-
-    S_andthatswhere     |
-    S_therewas          |
-    S_brokea            |
-    S_broughta          |
-    S_comesfrom         |
-    S_dreamsof          |
-    S_keepsdreamingof   |
-    S_madea             |
-    S_madeof            |
-    S_therewasa         |
-    S_toldthatstory     |
-    S_invented          |
-    S_itsa              |
-
-    TYPE_INT            |
-    TYPE_FLOAT          |
-    TYPE_CHAR           |
-    TYPE_BOOL           |
-    TYPE_ARRAY          |
-    TYPE_STRUCT         |
-    TYPE_UNION          |
-    TYPE_STRING         |
-    TYPE_POINTER        |
-
-    OPEN_PAREN          |
-    OPEN_BRACKETS       |
-    OPEN_BRACES         |
-    CLOSE_PAREN         |
-    CLOSE_BRACKETS      |
-    CLOSE_BRACES        |
-    ELLIPSIS            |
-    PERIOD              |
-    COMMA               |
-    COLON               |
-    SEMICOLON           |
-    QUESTIONMARK        |
-    EXCLAMATION         |
-    ARROW_RIGHT         |
-    PLUS                |
-    MINUS               |
-    EQUAL               |
-    ASSIGNMENT          |
-    ASTERISK            |
-    PERCENT             |
-    SLASH               |
-    DIV                 |
-    NOT_EQUAL           |
-    GREATER_EQUAL       |
-    LESS_EQUAL          |
-    GREATER             |
-    LESS                |
-    POWER               |
-    AND                 |
-    OR                  |
-    WITH                |
-    YOUR                |
-    OF                  |
-    EITHER              |
-    TO                  |
-    WHEN                |
-    OTHERWISE           |
-    TIMES               |
-
-    SutTkBool   { getValueBool :: Bool }     |
-    SutTkChar   { getValueChar :: String }   |
-    SutTkFloat  { getValueFloat :: Float }   |
-    SutTkInt    { getValueInt :: Int }       |
-    SutTkString { getString :: String } |
-
-    SutTkError  { getError :: String }  |
-
-    SutTkId     String
-  deriving (Eq,Show)
-
-instance SutShow SutTokenClass where
-  showSut = show
-
-
--- Alex state to keep track of comment depth and string status
-data AlexUserState = AlexUserState {
-  lexerErrorTk       :: Bool,
-  lexerCommentDepth  :: Int,
-  lexerStringState   :: Bool,
-  lexerStringValue   :: String
-}
--- Default values:
-alexInitUserState = AlexUserState {
-  lexerErrorTk       = False,
-  lexerCommentDepth  = 0,
-  lexerStringState   = False,
-  lexerStringValue   = ""
-}
 
 
 
@@ -253,52 +142,47 @@ alexInitUserState = AlexUserState {
 
 
 
--- ### Errors
-getLexerError :: Alex Bool
-getLexerError = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerErrorTk ust)
-
-setLexerError :: Bool -> Alex ()
-setLexerError ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerErrorTk=ss}}, ())
-
-
 
 -- ### Token Getters
-getTk :: SutTokenClass -> GetTokenAction
-getTk c (p, _, _, str) len = return (SutToken p c)
+tokenize :: SutTokenClass -> TokenAction
+tokenize c (p, _, _, str) len = return (SutToken p c)
 
-getTkChar    (p, _, _, str)   len = return (SutToken p (SutTkChar  (take len str)))
-getTkFloat   (p, _, _, str)   len = return (SutToken p (SutTkFloat (read $ take len str)))
-getTkInteger (p, _, _, str)   len = return (SutToken p (SutTkInt   (read $ take len str)))
-getTkId      (p, _, _, str)   len = return (SutToken p (SutTkId    (take len str)))
-getTkBool    (p, _, _, "on")  len = return (SutToken p (SutTkBool  (True)))
-getTkBool    (p, _, _, "off") len = return (SutToken p (SutTkBool  (False)))
-getTkError   (p, _, _, input) len = setLexerError True >> (return $ SutToken p $ SutTkError $ take len input)
+tokenizeChar    (p, _, _, str)   len = return (SutToken p (SutTkChar  (take len str)))
+tokenizeFloat   (p, _, _, str)   len = return (SutToken p (SutTkFloat (read $ take len str)))
+tokenizeInt     (p, _, _, str)   len = return (SutToken p (SutTkInt   (read $ take len str)))
+tokenizeID      (p, _, _, str)   len = return (SutToken p (SutTkID    (take len str)))
+tokenizeBool    (p, _, _, "on")  len = return (SutToken p (SutTkBool  (True)))
+tokenizeBool    (p, _, _, "off") len = return (SutToken p (SutTkBool  (False)))
+tokenizeError   (p, _, _, input) len = do
+  -- setLexerError True
+  return $ SutToken p $ SutTkError $ take len input
 
 
 
--- ### Comments
+setStateCode :: Int -> SutMonad ()
+setStateCode c = get >>= \s -> put s{lexerStateCode=c}
 
 -- Get current comment depth
-getLexerCommentDepth :: Alex Int
-getLexerCommentDepth = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerCommentDepth ust)
+getLexerCommentDepth :: SutMonad Int
+getLexerCommentDepth = get >>= \SutState{lexerDepth=d} -> return d
 
 -- Set current comment depth
-setLexerCommentDepth :: Int -> Alex ()
-setLexerCommentDepth ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerCommentDepth=ss}}, ())
+setLexerCommentDepth :: Int -> SutMonad ()
+setLexerCommentDepth d = get >>= \s -> put s{lexerDepth=d}
 
 -- Go one level deeper
-embedComment :: GetTokenAction
-embedComment input len =
-    do cd <- getLexerCommentDepth
-       setLexerCommentDepth (cd + 1)
-       skip input len
+embedComment :: TokenAction
+embedComment input len = do
+  cd <- getLexerCommentDepth
+  setLexerCommentDepth (cd + 1)
+  skip input len
 
 -- Go one level up
-unembedComment :: GetTokenAction
+unembedComment :: TokenAction
 unembedComment input len =
     do cd <- getLexerCommentDepth
        setLexerCommentDepth (cd - 1)
-       when (cd == 1) (alexSetStartCode 0)
+       when (cd == 1) (setStateCode 0)
        skip input len
 
 
@@ -306,14 +190,14 @@ unembedComment input len =
 -- ### Strings
 
 -- Enters "string" state
-enterString :: GetTokenAction
+enterString :: TokenAction
 enterString _ _ =
     do setLexerStringState True
        setLexerStringValue ""
-       alexMonadScan
+       lexerScan
 
 -- Leaves "string" state
-leaveString :: GetTokenAction
+leaveString :: TokenAction
 leaveString (p, _, _, input) len =
     do s <- getLexerStringValue
        setLexerStringState False
@@ -321,33 +205,30 @@ leaveString (p, _, _, input) len =
 
 
 -- Adds a given character to the current string
-addCharToString :: Char -> GetTokenAction
-addCharToString c _ _ = addCharToLexerStringValue c >> alexMonadScan
-  where
-    addCharToLexerStringValue :: Char -> Alex ()
-    addCharToLexerStringValue c = Alex state
-    state s = Right (s{ alex_ust=(alex_ust s) {lexerStringValue=c:lexerStringValue (alex_ust s)}}, ()) -- TODO: WTF
+addCharToString :: Char -> TokenAction
+addCharToString c _ _ = addCharToLexerStringValue c >> lexerScan
+  where addCharToLexerStringValue :: Char -> SutMonad ()
+        addCharToLexerStringValue c = get >>= \s@SutState{lexerString=ss} -> put s{lexerString=c:ss}
 
 -- Adds an escaped character to the current string
-addEscapedToString :: GetTokenAction
+addEscapedToString :: TokenAction
 addEscapedToString i@(_, _, _, input) len = addCharToString (head $ drop 1 input) i len
 
 -- Adds current character to current sring
-addCurrentToString :: GetTokenAction
+addCurrentToString :: TokenAction
 addCurrentToString i@(_, _, _, input) len = addCharToString (head input) i len
 
+getLexerStringState :: SutMonad Bool
+getLexerStringState = get >>= \s@SutState{lexerStringOn=ss} -> return ss
 
-getLexerStringState :: Alex Bool
-getLexerStringState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerStringState ust)
+setLexerStringState :: Bool -> SutMonad ()
+setLexerStringState ss = get >>= \s -> put s{lexerStringOn=ss}
 
-setLexerStringState :: Bool -> Alex ()
-setLexerStringState ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringState=ss}}, ())
+getLexerStringValue :: SutMonad String
+getLexerStringValue = get >>= \s@SutState{lexerString=ss} -> return ss
 
-getLexerStringValue :: Alex String
-getLexerStringValue = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, lexerStringValue ust)
-
-setLexerStringValue :: String -> Alex ()
-setLexerStringValue ss = Alex $ \s -> Right (s{alex_ust=(alex_ust s){lexerStringValue=ss}}, ())
+setLexerStringValue :: String -> SutMonad ()
+setLexerStringValue ss = get >>= \s -> put s{lexerString=ss}
 
 
 
@@ -360,56 +241,95 @@ isValid (SutToken _ (SutTkError _))  = False
 isValid _                            = True
 
 
-lexerError :: String -> Alex a
-lexerError msg = do
-    (p, c, _, input) <- alexGetInput
-    let cleanInput   = clean input
-        errorPrefix  = if null msg then "Lexer error" else trim msg
-    alexError (errorPrefix ++ " at " ++ showSut p ++ placeError input cleanInput c)
-  where
-    clean       = shorten . removeBr . trim
-    trim        = dropWhileEnd isSpace . dropWhile isSpace
-    removeBr s  = filter (/= '\r') (takeWhile (/='\n') s)
-    shorten  s  = if (length s > 30)
-                  then trim (take 30 s) ++ "..."
-                  else trim s
-    placeError s1 s2 c  = if (null s1)
-                          then " at end of file"
-                          else if (null s2)
-                               then " before end of line"
-                               else " on char " ++ show c ++ " before : '" ++ s2 ++ "'"
-
-
-alexComplementError :: Alex a -> Alex (a, Maybe String)
-alexComplementError (Alex al) = Alex (\s -> case al s of
-                                                 Right (s', x) -> Right (s', (x, Nothing))
-                                                 Left  message -> Right (s, (undefined, Just message)))
+-- lexerError :: String -> SutMonad a
+-- lexerError msg = do
+--     (p, c, _, input) <- alexGetInput
+--     let cleanInput   = clean input
+--         errorPrefix  = if null msg then "Lexer error" else trim msg
+--     alexError (errorPrefix ++ " at " ++ showSut p ++ placeError input cleanInput c)
+--   where
+--     clean       = shorten . removeBr . trim
+--     trim        = dropWhileEnd isSpace . dropWhile isSpace
+--     removeBr s  = filter (/= '\r') (takeWhile (/='\n') s)
+--     shorten  s  = if (length s > 30)
+--                   then trim (take 30 s) ++ "..."
+--                   else trim s
+--     placeError s1 s2 c  = if (null s1)
+--                           then " at end of file"
+--                           else if (null s2)
+--                                then " before end of line"
+--                                else " on char " ++ show c ++ " before : '" ++ s2 ++ "'"
+--
+--
+-- alexComplementError :: SutMonad a -> SutMonad (a, Maybe String)
+-- alexComplementError a = \s -> case al s of
+--                                    Right (s', x) -> Right (s', (x, Nothing))
+--                                    Left  message -> Right (s, (undefined, Just message))
 
 
 
 -- Runner
 -- #---------------------------------------------------------------------------
-getAlexResult = do
-  (t, m) <- alexComplementError alexMonadScan
-  when (isJust m) (lexerError (fromJust m))
-  return t
+-- getAlexResult = do
+--   (t, m) <- alexComplementError lexerScan
+--   when (isJust m) (lexerError (fromJust m))
+--   return t
+--
+-- lexerHandleEOF tk = do
+--   isString <- getLexerStringState
+--   commentDepth <- getLexerCommentDepth
+--   if ((not isString) && (commentDepth == 0))
+--   then return [tk]
+--   else if (isString)
+--        then lexerError "String not closed"
+--        else lexerError "Comment not closed"
+--
+-- lexerLoop = do
+--   tk@(SutToken p tkc) <- getAlexResult
+--   if (tkc == SutTkEOF)
+--   then lexerHandleEOF tk
+--   else lexerLoop >>= \tks -> return (tk:tks)
+--
+-- runAlexScan s = runAlex s lexerLoop
 
-lexerHandleEOF tk = do
-  isString <- getLexerStringState
-  commentDepth <- getLexerCommentDepth
-  if ((not isString) && (commentDepth == 0))
-  then return [tk]
-  else if (isString)
-       then lexerError "String not closed"
-       else lexerError "Comment not closed"
+lexerScan :: SutMonad SutToken
+lexerScan = do
+  input <- lexerGetInput
+  sc <- lexerGetSC
+  case alexScan input sc of
+    AlexEOF -> return SutToken{ tokenPosn = (SutPosn 0 0 0), tokenClass = SutTkEOF }
+    AlexError (posn,_,_,_) -> error $ "Lexical error at " ++ show posn
+    AlexSkip  input' _len -> do
+        lexerSetInput input'
+        lexerScan
+    AlexToken input' len action -> do
+        lexerSetInput input'
+        action (ignorePendingBytes input) len
 
-lexerLoop = do
-  tk@(SutToken p tkc) <- getAlexResult
-  if (tkc == SutTkEOF)
-  then lexerHandleEOF tk
-  else lexerLoop >>= \tks -> return (tk:tks)
 
-runAlexScan s = runAlex s lexerLoop
 
+-- Lexer Actions (productions of lexer tokens)
+-- -------------------------------------------------------
+
+type LexerAction result = SutoriInput -> Int -> SutMonad result
+
+-- just ignore this token and scan another one
+skip :: LexerAction SutToken
+skip _input _len = lexerScan
+
+-- ignore this token, but set the start code to a new value
+begin :: Int -> LexerAction SutToken
+begin code _input _len = do lexerSetSC code; lexerScan
+
+-- perform an action for this token, and set the start code to a new value
+andBegin :: LexerAction SutToken -> Int -> LexerAction SutToken
+(action `andBegin` code) input__ len = do
+  lexerSetSC code
+  action input__ len
+
+token :: (SutoriInput -> Int -> SutToken) -> LexerAction SutToken
+token t input__ len = return (t input__ len)
 -- vim: set ft=haskell
+
+
 }

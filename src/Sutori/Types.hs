@@ -89,6 +89,15 @@ toTypeBool SutTypeInt  = SutTypeBool
 toTypeBool _           = SutTypeError
 
 -- Go to the most specific numerical type available
+toTypeInt :: SutType -> SutType
+toTypeInt SutTypeVoid  = SutTypeInt
+toTypeInt SutTypeBool  = SutTypeInt
+toTypeInt SutTypeChar  = SutTypeInt
+toTypeInt SutTypeInt   = SutTypeInt
+toTypeInt SutTypeFloat = SutTypeInt
+toTypeInt _            = SutTypeError
+
+-- Go to the most specific numerical type available
 toTypeNum :: SutType -> SutType
 toTypeNum SutTypeVoid  = SutTypeInt
 toTypeNum SutTypeBool  = SutTypeInt
