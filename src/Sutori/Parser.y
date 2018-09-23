@@ -6,10 +6,10 @@ import Data.Maybe
 import Sutori.Lexer
 import Sutori.Monad
 import Sutori.Logger
-import Sutori.Instructions(..)
-import Sutori.Expressions(..)
-import Sutori.Declarations(..)
-import Sutori.TypeConstruction(..)
+import Sutori.Instructions
+import Sutori.Expressions
+import Sutori.Declarations
+import Sutori.TypeConstruction
 
 }
 

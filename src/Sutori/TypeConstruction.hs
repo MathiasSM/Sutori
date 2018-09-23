@@ -22,11 +22,6 @@ buildTypeString :: SutMonad SutType
 buildTypeString = return SutTypeString
 
 buildTypeArray :: SutLiteral -> SutType -> SutMonad SutType
-buildTypeArray l@() t = do
-  let lt = toTypeInt l
-  when (lt == SutTypeError) do
-    logError ""
-  return SutTypeArray t 0 -- TODO: Get literal int?
 
 
 buildTypePointer :: SutType -> SutMonad SutType

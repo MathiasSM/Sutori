@@ -2,6 +2,7 @@ module Sutori.Logger
 ( SutLog(SutLogLeave, SutLogNode)
 , SutShow(showSut)
 , SutLogger(getLog)
+, fromLeave
 ) where
 
 
@@ -21,6 +22,9 @@ instance Monoid SutLogger where
 instance Show SutLogger where
   show (SutLogger a) = show a
 
+-- Extract log strings
+fromLeave :: SutLog -> String
+fromLeave (SutLogLeave l) = l
 
 -- Interface for showing Sutori constructs (token, actions, tables, ...)
 class SutShow a where

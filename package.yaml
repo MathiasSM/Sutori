@@ -29,6 +29,7 @@ dependencies:
   - array
   - mtl
   - containers
+  - unordered-containers
 
 build-tools:
   - alex

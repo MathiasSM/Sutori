@@ -13,10 +13,7 @@ import System.IO
 import Data.Maybe
 
 import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
-import Sutori.Types(SutType(..), SutTypedExpression(getExpressionType), showMember)
-
--- A Sutori ID is a string
-type SutID = String
+import Sutori.Types(SutTypeID, SutTypedExpression(getExpressionType), showMember)
 
 -- A SutBlock is a list of instructions
 type SutBlock = [SutInstruction]
