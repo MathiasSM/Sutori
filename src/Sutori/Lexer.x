@@ -11,12 +11,15 @@ import Data.List
 import Data.Maybe
 import Numeric( readDec )
 
-import Sutori.LexerInternals
-import Sutori.LexerTokens( SutToken(SutToken, tokenPosn, tokenClass), SutTokenClass(..) )
+import Sutori.Lexer.Internals
+import Sutori.Lexer.Posn (SutPosn(SutPosn))
+import Sutori.Lexer.Tokens (SutToken(..))
 import Sutori.Monad
-  ( SutMonad, SutPosn(SutPosn), sutStateInit
+  ( SutMonad
   , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth)
+  , initialSutoriState
   )
+import Sutori.Monad.Logger (logError, SutError(LexicalError))
 
 
 
@@ -134,32 +137,32 @@ type TokenAction = SutoriInput -> Int -> SutMonad SutToken
 
 -- just ignore this token and scan another one
 skip :: TokenAction
-skip _input _len = lexerScan
+skip _ _ = lexerScan
 
 -- ignore this token, but set the start code to a new value
 begin :: Int -> TokenAction
-begin code _input _len = do lexerSetSC code; lexerScan
+begin code _ _ = do lexerSetSC code; lexerScan
 
 -- perform an action for this token, and set the start code to a new value
 andBegin :: TokenAction -> Int -> TokenAction
-(action `andBegin` code) input__ len = do
+(action `andBegin` code) input len = do
   lexerSetSC code
-  action input__ len
+  action input len
 
 -- ### Token Getters
-tokenize :: SutTokenClass -> TokenAction
-tokenize c (p, _, _, str) len = return (SutToken p c)
+tokenize :: SutToken -> TokenAction
+tokenize c _ _ = return c
 
 tokenizeChar, tokenizeFloat, tokenizeInt, tokenizeID, tokenizeBool, tokenizeError :: TokenAction
-tokenizeChar    (p, _, _, str)   len = return (SutToken p (SutTkChar  (take len str)))
-tokenizeFloat   (p, _, _, str)   len = return (SutToken p (SutTkFloat (read $ take len str)))
-tokenizeInt     (p, _, _, str)   len = return (SutToken p (SutTkInt   (read $ take len str)))
-tokenizeID      (p, _, _, str)   len = return (SutToken p (SutTkID    (take len str)))
-tokenizeBool    (p, _, _, "on")  len = return (SutToken p (SutTkBool  (True)))
-tokenizeBool    (p, _, _, "off") len = return (SutToken p (SutTkBool  (False)))
-tokenizeError   (p, _, _, input) len = do
+tokenizeChar    (_, _, _, str)   len = return (SutTkChar  (take len str))
+tokenizeFloat   (_, _, _, str)   len = return (SutTkFloat (read $ take len str))
+tokenizeInt     (_, _, _, str)   len = return (SutTkInt   (read $ take len str))
+tokenizeID      (_, _, _, str)   len = return (SutTkID    (take len str))
+tokenizeBool    (_, _, _, "on")  len = return (SutTkBool  (True))
+tokenizeBool    (_, _, _, "off") len = return (SutTkBool  (False))
+tokenizeError   (_, _, _, input) len = do
   -- setLexerError True
-  return $ SutToken p $ SutTkError $ take len input
+  return $ SutTkError $ take len input
 
 -- Set the current state code (startcode for alex)
 setStateCode :: Int -> SutMonad ()
@@ -204,7 +207,7 @@ leaveString :: TokenAction
 leaveString (p, _, _, input) len = do
   s <- getLexerStringValue
   setLexerStringState False
-  return (SutToken p (SutTkString (reverse s)))
+  return (SutTkString (reverse s))
 
 -- Adds a given character to the current string
 addCharToString :: Char -> TokenAction
@@ -303,19 +306,18 @@ lexerScan = do
   SutState{lexerStateCode=sc} <- get
   input <- lexerGetInput
   case alexScan input sc of
-    AlexEOF -> return SutToken{ tokenPosn = (SutPosn 0 0 0), tokenClass = SutTkEOF }
-    AlexError (posn,_,_,_) -> error $ "Lexical error at " ++ show posn
-    AlexSkip  input' _len -> do
-        lexerSetInput input'
-        lexerScan
+    AlexEOF -> return SutTkEOF
+    AlexError (_,char,_,_) -> logError LexicalError >> return (SutTkError [char])
+    AlexSkip  input' _ -> do
+      lexerSetInput input'
+      lexerScan
     AlexToken input' len action -> do
-        lexerSetInput input'
-        action (ignorePendingBytes input) len
+      lexerSetInput input'
+      action (ignorePendingBytes input) len
 
--- Runs the lexer on an input string TODO: ??
 runLexer :: String -> (SutState -> Either String (b, a)) -> Either String a
 runLexer input f
-  = case f sutStateInit { lexerInput = input }
+  = case f initialSutoriState { lexerInput = input }
     of Left msg       -> Left msg
        Right ( _, a ) -> Right a
 

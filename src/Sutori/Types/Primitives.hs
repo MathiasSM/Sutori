@@ -2,6 +2,8 @@ module Sutori.Types.Primitives
 ( SutPrimitive(..)
 , SutTypeID
 , primitives
+, primitiveID
+, primitiveIDs
 , generalizePrimitives
 , toTypeLight
 , toTypeNum
@@ -10,9 +12,7 @@ module Sutori.Types.Primitives
 ) where
 
 import Data.Graph
-
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
-
+import Data.Maybe(fromJust)
 
 -- A type will be represented by an ID
 type SutTypeID = Int
@@ -27,28 +27,23 @@ data SutPrimitive = SutBag
                   | SutTypeError
                   deriving (Eq, Ord)
 
-instance SutShow SutPrimitive where
-  showSut SutBag           = SutLogLeave "Bag"
-  showSut SutWallet        = SutLogLeave "Wallet"
-  showSut SutPhrase        = SutLogLeave "Phrase"
-  showSut SutLight         = SutLogLeave "Light"
-  showSut SutLetter        = SutLogLeave "Letter"
-  showSut SutTypeVoid      = SutLogLeave "No Type"
-  showSut SutTypeError     = SutLogLeave "Type error"
-
 -- Predefined Sutori types to initialize symtable
 primitives :: [SutPrimitive]
-primitives = map (\(c,_,_) -> c) primitiveEdges
+primitives =
+  [ SutTypeError
+  , SutTypeVoid
+  , SutLight
+  , SutLetter
+  , SutBag
+  , SutWallet
+  , SutPhrase ]
+
+primitiveIDs :: [(SutPrimitive, SutTypeID)]
+primitiveIDs = zip primitives [1..]
 
 -- Eventual TypeIDs for the type graph
 primitiveID :: SutPrimitive -> SutTypeID
-primitiveID SutTypeError = 0
-primitiveID SutTypeVoid  = 1
-primitiveID SutLight     = 2
-primitiveID SutLetter    = 3
-primitiveID SutBag       = 4
-primitiveID SutWallet    = 5
-primitiveID SutPhrase    = 6
+primitiveID p = fromJust $ lookup p primitiveIDs
 
 -- Graph for primitives generalization
 primitiveEdges =

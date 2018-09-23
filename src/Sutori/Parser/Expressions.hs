@@ -1,7 +1,16 @@
-module Sutori.Expressions where
+module Sutori.Parser.Expressions where
 
 import Sutori.AST
 import Sutori.Monad
+
+-- Finds the existent typeID or inserts the type and gets the new ID
+findType :: SutType -> SutMonad SutTypeID
+findType t = do
+  SutState { typesGraph = TypeGraph graph, typesNextID = nextID } <- get
+  case Map.lookup t graph of
+    Just tid -> return tid
+    Nothing -> let newGraph = Map.insert t nextID graph
+                in put { typesGraph = TypeGraph newGraph, typesNextID = nextID + 1 } >> return nextID
 
 -- Literals
 literalBool :: SutToken -> SutExpression

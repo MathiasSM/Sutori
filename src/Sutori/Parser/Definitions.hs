@@ -1,4 +1,4 @@
-module Sutori.Definitions where
+module Sutori.Parser.Definitions where
 
 import Sutori.AST
 import Sutori.Monad

@@ -3,13 +3,14 @@ module Sutori.Parser (parseSut) where
 
 import Data.Maybe
 
-import Sutori.Lexer
-import Sutori.Monad
-import Sutori.Logger
-import Sutori.Instructions
-import Sutori.Expressions
-import Sutori.Declarations
-import Sutori.TypeConstruction
+
+import Sutori.Lexer.Tokens(SutToken(SutTkEOF))
+import Sutori.Monad(SutMonad)
+import Sutori.Monad.Logger(SutError(..), logError)
+
+import Sutori.Parser.Instructions
+import Sutori.Parser.Expressions
+import Sutori.Parser.Declarations
 
 }
 
@@ -17,7 +18,7 @@ import Sutori.TypeConstruction
 %tokentype { SutToken }
 %monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }
-%error     { sutoriError SutParserError }
+%error     { logError GrammaticalError }
 
 %token
     EOF                 { $$ }
@@ -157,11 +158,11 @@ Assignable        : ID             { $1 }
 ---------------------------------------------------------------------------------------------------
 Array             : '[' ArrayList ']'                 {% constructedArray $2 }
 ArrayList         : Expression                        { [ $1 ] }
-                  | Expression ';' ArrayList          { $1 : $3 }
+                  | ArrayList ';' Expression          { $3 : $1 }
 
 Struct            : '{' StructList '}'                {% constructedStruct $2 }
 StructList        : ID ':' Expression                 { [ ($1, $3) ] }
-                  | ID ':' Expression ';' StructList  { ($1, $3): $5 }
+                  | StructList  ';' ID ':' Expression { ($3, $5) : $1 }
 
 
 -- Operations
@@ -201,7 +202,7 @@ Call              : ID '(' WithCallParams ')' %prec PAR {% functionCall $1 $3 }
 WithCallParams    : WITH CallParams               { $2 }
                   | {-empty-}                     { [] }
 CallParams        : Expression                    { [$1]  }
-                  | Expression ',' CallParams     { $1:$3 }
+                  | CallParams ',' Expression     { $1:$3 }
 
 
 
@@ -227,17 +228,17 @@ addFunctionID     : ID                                                     {% in
 pushParams        : ParamsDef                                              {% mapM_ insertParam $1 }
 
 ParamsDef         : Type ID                    { [(SutParamVal, $1, $2)] }
-                  | Type ID ',' ParamsDef      { (SutParamVal, $1,$2):$4 }
                   | YOUR Type ID               { [(SutParamRef, $2, $3)] }
-                  | YOUR Type ID ',' ParamsDef { (SutParamVal, $2, $3):$5 }
+                  | ParamsDef ',' Type ID      {  (SutParamVal, $3, $4) : $1 }
+                  | ParamsDef ',' YOUR Type ID {  (SutParamRef, $4, $5) : $1 }
 
 
 VariableDef       : ID S_broughta Type ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }
 
-VariableList      : ID ',' VariableList                   { ($1,Nothing):$3 }
-                  | ID '=' Expression ',' VariableList    { ($1,Just $3):$5 }
-                  | ID '=' Expression                     { [($1,Just $3)] }
-                  | ID                                    { [($1,Nothing)] }
+VariableList      : VariableList ',' ID                   {  ($3, Nothing) : $1 }
+                  | VariableList ',' ID '=' Expression    {  ($3, Just $5) : $1 }
+                  | ID '=' Expression                     { [($1, Just $3)] }
+                  | ID                                    { [($1, Nothing)] }
 
 TypeDef           : ID S_invented ID ';' S_itsa Type      {% defType $1 $3 $6 }
 
@@ -255,11 +256,11 @@ Type              : TYPE_INT                                    { SutTypeInt }
                   | TYPE_POINTER '(' TO Type ')'                { SutTypePointer $4 }
                   | ID                                          { % checkId' $1 TypeSym >>= getType }
 
-StructTyping      : Type ID                                     { [($1,$2)] }
-                  | Type ID and StructTyping                    { ($1,$2):$4 }
+StructTyping      : Type ID                                     { [($1, $2)] }
+                  | StructTyping and Type ID                    {  ($2, $4) : $1 }
 
-UnionTyping       : Type ID                                     { [($1,$2)] }
-                  | Type ID or UnionTyping                      { ($1,$2):$4 }
+UnionTyping       : Type ID                                     { [($1, $2)] }
+                  | UnionTyping or Type ID                      {  ($2, $4) : $1 }
 
 
 -- Blocks
@@ -267,15 +268,15 @@ UnionTyping       : Type ID                                     { [($1,$2)] }
 InsertScope       : BLOCK_OPEN                                  { % insertScope }
 RemoveScope       : BLOCK_CLOSE                                 { % removeScope }
 
-Block             : InsertScope Statements RemoveScope           { $3 }
+Block             : InsertScope Statements RemoveScope          { $2 }
 
-Statements        : Statement Statements                      { $1: $2 }
+Statements        : Statements Statement                        { $2 : $1 }
                   | {-empty-}                                   { [] }
 
 BlockF            : InsertScope FunctionBlockCont RemoveScope   { $3 }
 
-FunctionBlockCont : Statement FunctionBlockCont              { $1:$2 }
-                  | Return FunctionBlockCont        { $1:$2 }
+FunctionBlockCont : FunctionBlockCont Statement                 { $2 : $1 }
+                  | FunctionBlockCont Return                    { $2 : $1 }
                   | {-empty-}                                   { [] }
 
 Statement         : Instruction                                 { $1 }

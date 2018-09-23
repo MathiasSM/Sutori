@@ -4,6 +4,8 @@ module Sutori.SymTable
 , SutSymOther(..)
 , SymTable
 , Scope
+, SutParamKind(..)
+, SutParam(..)
 , insert
 , insertSymbol
 , insertParams
@@ -11,10 +13,8 @@ module Sutori.SymTable
 
 import qualified Data.Map as Map
 
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
 import Sutori.AST(SutID, SutBlock)
-import Sutori.Types(SutType)
-
+import Sutori.Types.Primitives(SutTypeID)
 
 
 -- Data definition
@@ -22,7 +22,6 @@ import Sutori.Types(SutType)
 
 -- A Scope is just a number uniquely representing a scope (NOT a level)
 type Scope = Int
-
 
 -- A SutSymCategory. Can be shown by showSut
 data SutSymCategory = CatModule
@@ -32,66 +31,30 @@ data SutSymCategory = CatModule
                     | CatParameter
                     | CatType
 
-instance SutShow SutSymCategory where
-  showSut CatModule    = SutLogLeave "Category: Module"
-  showSut CatFunction  = SutLogLeave "Category: Function"
-  showSut CatPerson    = SutLogLeave "Category: Person"
-  showSut CatVariable  = SutLogLeave "Category: Variable"
-  showSut CatParameter = SutLogLeave "Category: Parameter"
-  showSut CatType      = SutLogLeave "Category: Type"
-
 -- A SutParam can be either a sutori reference or a value
 data SutParamKind = SutRef | SutVal
-
-instance SutShow SutParamKind where
-  showSut SutRef = SutLogLeave "Passed by: Reference"
-  showSut SutVal = SutLogLeave "Passed by: Value"
-
 
 -- A SutSymOther is either a Function definition AST, the parameter kind, the type definition or nothing
 data SutSymOther = SymAST       { otherASTParams :: [SutParam], otherASTBlock :: SutBlock }
                  | SymParamKind { otherParamKind :: SutParamKind }
-                 | SymTypeDef   { otherTypeDef   :: SutType }
+                 | SymTypeDef   { otherTypeDef   :: SutTypeID }
                  | SymNothing
-
-instance SutShow SutSymOther where
-  showSut (SymAST ps b)    = let params = SutLogNode "Parameters: " (map showSut ps)
-                                 block  = SutLogNode "AST: " (map showSut b)
-                              in SutLogNode "Function definition:" [params, block]
-  showSut (SymParamKind k) = showSut k
-  showSut (SymTypeDef t)   = SutLogNode  "Type definition: " [showSut t]
-  showSut  SymNothing      = SutLogLeave "-"
-
 
 -- A SutSymbol is made of a Token, a Category, a Scope, a Type, and perhaps other information
 data SutSymbol = SutSymbol {
   symID    :: SutID,
   symCat   :: SutSymCategory,
   symScope :: Scope,
-  symType  :: SutType,
+  symType  :: SutTypeID,
   symOther :: SutSymOther
 }
-
-instance SutShow SutSymbol where
-  showSut s = let etype = SutLogNode "Type:" [showSut (symType s)]
-                  cat   = showSut $ symCat s
-                  scope = SutLogLeave ("Scope: " ++ show (symScope s))
-                  other = showSut (symOther s)
-               in SutLogNode ("Symbol: " ++ symID s) [cat, etype, scope, other]
-
 
 -- A SutParam has a kind, a type and a token representing
 data SutParam = SutParam {
   paramKind :: SutParamKind,
-  paramType :: SutType,
+  paramType :: SutTypeID,
   paramID   :: SutID
 }
-
-instance SutShow SutParam where
-  showSut p = let kind  = showSut (paramKind p)
-                  etype = SutLogNode "Type:" [showSut (paramType p)]
-               in SutLogNode ("Parameter: " ++ paramID p) [etype, kind]
-
 
 -- A SymTable matches a SutID (symbol name) to a list of symbols
 type SymTable = Map.Map SutID [SutSymbol]
@@ -114,7 +77,7 @@ insertSymbol table s = let id   = symID s
                         in Map.insert id (s:syms) table
 
 -- Inserts new symbols into the table (from a list of IDs)
-insert :: SymTable -> Scope -> SutSymCategory -> SutType -> SutSymOther -> [SutID] -> SymTable
+insert :: SymTable -> Scope -> SutSymCategory -> SutTypeID -> SutSymOther -> [SutID] -> SymTable
 insert table scope cat t o ids = insertWith table ids insertID
   where insertID table id = let newSymbol = SutSymbol { symID    = id,
                                                         symCat   = cat,

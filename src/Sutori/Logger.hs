@@ -19,6 +19,7 @@ instance Monoid SutLogger where
   mempty = SutLogger []
   mappend (SutLogger a) (SutLogger b) = SutLogger (a++b)
 
+-- We'll print the log this way, probably. Need a better formatting
 instance Show SutLogger where
   show (SutLogger a) = show a
 
