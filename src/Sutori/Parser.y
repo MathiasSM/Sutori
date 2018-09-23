@@ -179,28 +179,28 @@ StructList_       : ID ':' Expression                 { [ ($1, $3) ] }
 -- Operations
 ---------------------------------------------------------------------------------------------------
 UnaryOp :: { SutMonad SutExpression }
-UnaryOp           : '+' Expression %prec POS   { unaryPlus   $2 }
-                  | '-' Expression %prec NEG   { unaryMinus  $2 }
-                  | '!' Expression             { unaryNot    $2 }
+UnaryOp           : '+' NumericExpr %prec POS   { unaryPlus   $2 }
+                  | '-' NumericExpr %prec NEG   { unaryMinus  $2 }
+                  | '!' BooleanExpr             { unaryNot    $2 }
 
 
 BinaryOp :: { SutMonad SutExpression }
-BinaryOp          : Expression '+' Expression  { opAddition       $1 $3 }
-                  | Expression '-' Expression  { opSubstraction   $1 $3 }
-                  | Expression '*' Expression  { opMultiplication $1 $3 }
-                  | Expression '%' Expression  { opModulo         $1 $3 }
-                  | Expression '/' Expression  { opDivision       $1 $3 }
-                  | Expression div Expression  { opIntDivision    $1 $3 }
-                  | Expression '^' Expression  { opPower          $1 $3 }
+BinaryOp          : NumericExpr '+' NumericExpr  { opAddition       $1 $3 }
+                  | NumericExpr '-' NumericExpr  { opSubstraction   $1 $3 }
+                  | NumericExpr '*' NumericExpr  { opMultiplication $1 $3 }
+                  | NumericExpr '%' NumericExpr  { opModulo         $1 $3 }
+                  | NumericExpr '/' NumericExpr  { opDivision       $1 $3 }
+                  | NumericExpr div NumericExpr  { opIntDivision    $1 $3 }
+                  | NumericExpr '^' NumericExpr  { opPower          $1 $3 }
 
-                  | Expression and  Expression { opAnd          $1 $3 }
-                  | Expression or   Expression { opOr           $1 $3 }
-                  | Expression '==' Expression { opEqual        $1 $3 }
-                  | Expression '/=' Expression { opNotEqual     $1 $3 }
-                  | Expression '>=' Expression { opGreaterEqual $1 $3 }
-                  | Expression '<=' Expression { opLessEqual    $1 $3 }
-                  | Expression '>'  Expression { opGreater      $1 $3 }
-                  | Expression '<'  Expression { opLess         $1 $3 }
+                  | BooleanExpr and  BooleanExpr { opAnd          $1 $3 }
+                  | BooleanExpr or   BooleanExpr { opOr           $1 $3 }
+                  | Expression  '==' Expression  { opEqual        $1 $3 }
+                  | Expression  '/=' Expression  { opNotEqual     $1 $3 }
+                  | NumericExpr '>=' NumericExpr { opGreaterEqual $1 $3 }
+                  | NumericExpr '<=' NumericExpr { opLessEqual    $1 $3 }
+                  | NumericExpr '>'  NumericExpr { opGreater      $1 $3 }
+                  | NumericExpr '<'  NumericExpr { opLess         $1 $3 }
 
 
 -- Complex operations
@@ -208,10 +208,10 @@ BinaryOp          : Expression '+' Expression  { opAddition       $1 $3 }
 
 Dereference       : '*' Expression %prec IND      {% dereference $2 }
 Assignment        : Assignable '=' Expression     {% assignment $1 $3 }
-GetArrayItem      : Assignable '[' Expression ']' {% arrayGet   $1 $3 }
+GetArrayItem      : Assignable '[' IndexExpr ']'  {% arrayGet   $1 $3 }
 GetMember         : Assignable '->' ID            {% memberGet  $1 $3 }
 
-NewPointer        : PersonID S_madea TypeExpr         {% createPointer $1 $3 }
+NewPointer        : PersonID S_madea TypeExpr     {% createPointer $1 $3 }
 
 Call              : FunctionID '(' WithParams ')' %prec PAR {% functionCall $1 $3 }
 
@@ -325,7 +325,7 @@ FreePointer       : PersonID S_brokea Assignable '.'                          { 
 Selection         : PersonID S_dreamsof Block WHEN Expression '.'             { Select $1 $3 $5 [] }
                   | PersonID S_dreamsof Block WHEN Expression OTHERWISE Block { Select $1 $3 $5 %7 }
 
-IterationU        : PersonID S_keepsdreamingof ConditionalExpr Block          { IterationU $1 $3 $4 }
+IterationU        : PersonID S_keepsdreamingof BooleanExpr Block              { IterationU $1 $3 $4 }
 
 IterationB        : Block PersonID S_toldthatstory IndexExpr TIMES '.'        { IterationU $2 $1 $4}
 
@@ -341,8 +341,9 @@ FunctionID        : ID         {% findFunctionID $1 }
 TypeID            : ID         {% findTypeID $1 }
 VariableID        : ID         {% findVariableID $1 }
 
-ConditionalExpr   : Expression {% checkConditional $1 }
 IndexExpr         : Expression {% checkIndex $1 }
+NumericExpr       : Expression {% checkNumeric $1 }
+BooleanExpr       : Expression {% checkBoolean $1 }
 
 
 {}

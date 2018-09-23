@@ -9,6 +9,7 @@ module Sutori.Types.Primitives
 , toTypeNum
 , toTypeBag
 , toTypeWallet
+, toTypePhrase
 ) where
 
 import Data.Graph
@@ -106,3 +107,8 @@ toTypeWallet SutLetter   = SutWallet
 toTypeWallet SutBag      = SutWallet
 toTypeWallet SutWallet   = SutWallet
 toTypeWallet _           = SutTypeError
+
+-- Go to the general string (printable) type
+toTypePhrase :: SutPrimitive -> SutPrimitive
+toTypePhrase SutTypeError = SutTypeError
+toTypePhrase _            = SutPhrase

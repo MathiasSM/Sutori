@@ -5,7 +5,7 @@ import Control.Monad.State (get, put)
 
 import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
 import Sutori.Utils (SutID)
-import Sutori.Types (SutType, SutTypeID, TypeGraph(TypeGraph))
+import Sutori.Types (SutType(SutPrimitiveType), SutTypeID, TypeGraph(TypeGraph))
 
 
 -- Finds the existent typeID or inserts the type and gets the new ID

@@ -4,15 +4,17 @@ import Sutori.AST (SutExpression(ExprLiteral), SutLiteral(..))
 import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
 import Sutori.Lexer.Tokens (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
 import Sutori.Utils (SutID)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
 import Sutori.Types.Primitives (SutPrimitive(..), primitiveID)
 
 -- Literals
 literalBool, literalChar, literalInt, literalFloat, literalString :: SutToken -> SutExpression
-literalBool   = ExprLiteral (primitiveID SutLight)  . SutBool . tokenBool
-literalChar   = ExprLiteral (primitiveID SutLetter) . SutChar . tokenChar
-literalInt    = ExprLiteral (primitiveID SutBag)    . SutInt . tokenInt
-literalFloat  = ExprLiteral (primitiveID SutWallet) . SutFloat . tokenFloat
-literalString = ExprLiteral (primitiveID SutPhrase) . SutString . tokenString
+literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool . tokenBool
+literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar . tokenChar
+literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt . tokenInt
+literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat . tokenFloat
+literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString . tokenString
+
 
 -- Data structure constructors
 constructArray :: [SutExpression] -> SutMonad SutExpression
@@ -20,6 +22,7 @@ constructArray = error "constructedArray"
 
 constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
 constructStruct = error "constructedStruct"
+
 
 -- Unary operations
 unaryPlus :: SutExpression -> SutExpression
@@ -33,6 +36,7 @@ negation = error "unaryNot"
 
 dereference :: SutExpression -> SutExpression
 dereference = error "dereference"
+
 
 -- Binary operations
 opAddition :: SutExpression -> SutExpression -> SutExpression
@@ -55,7 +59,6 @@ opPower = error "opPower"
 
 opModulo :: SutExpression -> SutExpression -> SutExpression
 opModulo = error "opModulo"
-
 
 opAnd :: SutExpression -> SutExpression -> SutExpression
 opAnd = error "opAnd"
