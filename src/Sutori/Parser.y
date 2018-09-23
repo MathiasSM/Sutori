@@ -245,11 +245,11 @@ FunctionWithP     : S_therewasa TypeExpr '(' S_madeof pushParams ')' BlockF    {
 addFunctionID     : ID                                                     {% insertFunctionID $1 }
 pushParams        : ParamsDef                                              {% mapM_ insertParam $1 }
 
-ParamsDef         : ParamsDef_                 { reverse $1 }
-ParamsDef_        : TypeExpr ID                    { [(SutParamVal, $1, $2)] }
-                  | YOUR TypeExpr ID               { [(SutParamRef, $2, $3)] }
-                  | ParamsDef ',' TypeExpr ID      {  (SutParamVal, $3, $4) : $1 }
-                  | ParamsDef ',' YOUR TypeExpr ID {  (SutParamRef, $4, $5) : $1 }
+ParamsDef         : ParamsDef_                       { reverse $1 }
+ParamsDef_        : TypeExpr ID                      { [(SutParamVal, $1, $2)] }
+                  | YOUR TypeExpr ID                 { [(SutParamRef, $2, $3)] }
+                  | ParamsDef ',' TypeExpr ID        {  (SutParamVal, $3, $4) : $1 }
+                  | ParamsDef ',' YOUR TypeExpr ID   {  (SutParamRef, $4, $5) : $1 }
 
 
 VariableDef       : PersonID S_broughta TypeExpr ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }

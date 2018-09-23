@@ -26,11 +26,11 @@ data SutErrorCode = SutNoError | SutErrorLexer | SutErrorParser | SutError
 
 -- Monadic Lexer/Parser current state.
 data SutState = SutState {
-  lexerPosn       :: !SutPosn,     -- position at current input location
+  lexerPosn       :: SutPosn,     -- position at current input location
   lexerInput      :: String,       -- the current input
-  lexerChar       :: !Char,        -- the character before the input
-  lexerStateCode  :: !Int,         -- the current startcode
-  lexerBytes      :: ![Word8],     -- the current bytes read
+  lexerChar       :: Char,        -- the character before the input
+  lexerStateCode  :: Int,         -- the current startcode
+  lexerBytes      :: [Word8],     -- the current bytes read
   lexerDepth      :: Int,
   lexerString     :: String,
   lexerStringOn   :: Bool,

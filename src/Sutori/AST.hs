@@ -32,22 +32,22 @@ data SutInstruction = InstAssignment SutExpression
                     | Return         SutID SutExpression
 
 -- A SutExpression
-data SutExpression = SutArrayItem       SutTypeID SutExpression SutExpression
-                   | SutBinaryOp        SutTypeID SutOperator SutExpression SutExpression
-                   | SutCall            SutTypeID SutID [SutExpression]
-                   | SutCreatePointer   SutTypeID SutExpression
-                   | SutExprConstructor SutTypeID SutConstructor
-                   | SutExprID          SutTypeID SutID
-                   | SutExprLiteral     SutTypeID SutLiteral
-                   | SutPointed         SutTypeID SutExpression
-                   | SutStructMember    SutTypeID SutExpression SutID
-                   | SutUnaryOp         SutTypeID SutOperator SutExpression
+data SutExpression = ArrayGet        SutTypeID SutExpression SutExpression
+                   | BinaryOp        SutTypeID SutOperator SutExpression SutExpression
+                   | UnaryOp         SutTypeID SutOperator SutExpression
+                   | SutCall         SutTypeID SutID [SutExpression]
+                   | CreatePointer   SutTypeID SutExpression
+                   | ExprConstructor SutTypeID SutConstructor
+                   | ExprID          SutTypeID SutID
+                   | ExprLiteral     SutTypeID SutLiteral
+                   | Pointed         SutTypeID SutExpression
+                   | MemberGet       SutTypeID SutExpression SutID
 
 -- A SutLiteral
 data SutLiteral = SutString String
                 | SutInt Int
                 | SutFloat Float
-                | SutChar Char
+                | SutChar String
                 | SutBool Bool
 
 -- Complex data structure constructors

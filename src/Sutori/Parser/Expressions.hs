@@ -1,39 +1,39 @@
 module Sutori.Parser.Expressions where
 
-import Sutori.AST
-import Sutori.Monad
+import qualified Data.Map.Strict as Map
+import Control.Monad.State (get, put)
+
+import Sutori.AST (SutExpression(ExprLiteral), SutLiteral(..))
+import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
+import Sutori.Lexer.Tokens (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
+import Sutori.Utils (SutID)
+import Sutori.Types (SutType, SutTypeID, TypeGraph(TypeGraph))
+import Sutori.Types.Primitives (SutPrimitive(..), primitiveID)
+
 
 -- Finds the existent typeID or inserts the type and gets the new ID
 findType :: SutType -> SutMonad SutTypeID
 findType t = do
-  SutState { typesGraph = TypeGraph graph, typesNextID = nextID } <- get
+  oldState@SutState { typesGraph = TypeGraph graph, typesNextID = nextID } <- get
   case Map.lookup t graph of
     Just tid -> return tid
     Nothing -> let newGraph = Map.insert t nextID graph
-                in put { typesGraph = TypeGraph newGraph, typesNextID = nextID + 1 } >> return nextID
+                in put oldState { typesGraph = TypeGraph newGraph, typesNextID = nextID + 1 } >> return nextID
 
 -- Literals
-literalBool :: SutToken -> SutExpression
-literalBool = error "literalBool"
-
-literalChar :: SutToken -> SutExpression
-literalChar = error "literalChar"
-
-literalInt :: SutToken -> SutExpression
-literalInt = error "literalChar"
-
-literalFloat :: SutToken -> SutExpression
-literalFloat = error "literalFloat"
-
-literalString :: SutToken -> SutExpression
-literalString = error "literalString"
+literalBool, literalChar, literalInt, literalFloat, literalString :: SutToken -> SutExpression
+literalBool   = ExprLiteral (primitiveID SutLight)  . SutBool . tokenBool
+literalChar   = ExprLiteral (primitiveID SutLetter) . SutChar . tokenChar
+literalInt    = ExprLiteral (primitiveID SutBag)    . SutInt . tokenInt
+literalFloat  = ExprLiteral (primitiveID SutWallet) . SutFloat . tokenFloat
+literalString = ExprLiteral (primitiveID SutPhrase) . SutString . tokenString
 
 -- Data structure constructors
-constructedArray :: [SutExpression] -> SutMonad SutExpression
-constructedArray = error "constructedArray"
+constructArray :: [SutExpression] -> SutMonad SutExpression
+constructArray = error "constructedArray"
 
-constructedStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
-constructedStrcut = error "constructedStruct"
+constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
+constructStruct = error "constructedStruct"
 
 -- Unary operations
 unaryPlus :: SutExpression -> SutExpression
