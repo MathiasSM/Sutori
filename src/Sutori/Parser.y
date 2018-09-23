@@ -157,11 +157,15 @@ Assignable        : ID             { $1 }
 -- Structures
 ---------------------------------------------------------------------------------------------------
 Array             : '[' ArrayList ']'                 {% constructedArray $2 }
-ArrayList         : Expression                        { [ $1 ] }
+
+ArrayList         : ArrayList_                        { reverse $1 }
+ArrayList_        : Expression                        { [ $1 ] }
                   | ArrayList ';' Expression          { $3 : $1 }
 
 Struct            : '{' StructList '}'                {% constructedStruct $2 }
-StructList        : ID ':' Expression                 { [ ($1, $3) ] }
+
+StructList        : StructList_                       { reverse $1 }
+StructList_       : ID ':' Expression                 { [ ($1, $3) ] }
                   | StructList  ';' ID ':' Expression { ($3, $5) : $1 }
 
 
@@ -199,9 +203,12 @@ GetMember         : Assignable '->' ID            {% memberGet  $1 $3 }
 NewPointer        : PersonID S_madea Type         {}
 
 Call              : ID '(' WithCallParams ')' %prec PAR {% functionCall $1 $3 }
+
 WithCallParams    : WITH CallParams               { $2 }
                   | {-empty-}                     { [] }
-CallParams        : Expression                    { [$1]  }
+
+CallParams        : CallParams_                   { reverse $1 }
+CallParams_       : Expression                    { [$1]  }
                   | CallParams ',' Expression     { $1:$3 }
 
 
@@ -215,7 +222,8 @@ Declaration       : PersonDef    { $1 }
 
 
 PersonDef         : S_therewas PersonNames {% mapM_ defPerson $2 }
-PersonNames       : ID                     { [$1] }
+PersonNames       : PersonNames_           { reverse $1 }
+PersonNames_      : ID                     { [$1] }
                   | ID ',' PersonNames     { $1:$3 }
                   | ID and PersonNames     { $1:$3 }
 
@@ -227,7 +235,8 @@ FunctionWithP     : S_therewasa Type '(' S_madeof pushParams ')' BlockF    {% de
 addFunctionID     : ID                                                     {% insertFunctionID $1 }
 pushParams        : ParamsDef                                              {% mapM_ insertParam $1 }
 
-ParamsDef         : Type ID                    { [(SutParamVal, $1, $2)] }
+ParamsDef         : ParamsDef_                 { reverse $1 }
+ParamsDef_        : Type ID                    { [(SutParamVal, $1, $2)] }
                   | YOUR Type ID               { [(SutParamRef, $2, $3)] }
                   | ParamsDef ',' Type ID      {  (SutParamVal, $3, $4) : $1 }
                   | ParamsDef ',' YOUR Type ID {  (SutParamRef, $4, $5) : $1 }
@@ -235,7 +244,8 @@ ParamsDef         : Type ID                    { [(SutParamVal, $1, $2)] }
 
 VariableDef       : ID S_broughta Type ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }
 
-VariableList      : VariableList ',' ID                   {  ($3, Nothing) : $1 }
+VariableList      : VariableList_                         { reverse $1 }
+VariableList_     : VariableList ',' ID                   {  ($3, Nothing) : $1 }
                   | VariableList ',' ID '=' Expression    {  ($3, Just $5) : $1 }
                   | ID '=' Expression                     { [($1, Just $3)] }
                   | ID                                    { [($1, Nothing)] }
@@ -256,10 +266,12 @@ Type              : TYPE_INT                                    { SutTypeInt }
                   | TYPE_POINTER '(' TO Type ')'                { SutTypePointer $4 }
                   | ID                                          { % checkId' $1 TypeSym >>= getType }
 
-StructTyping      : Type ID                                     { [($1, $2)] }
+StructTyping      : StructTyping_                               { reverse $1 }
+StructTyping_     : Type ID                                     { [($1, $2)] }
                   | StructTyping and Type ID                    {  ($2, $4) : $1 }
 
-UnionTyping       : Type ID                                     { [($1, $2)] }
+UnionTyping       : UnionTyping_                                { reverse $1 }
+UnionTyping_      : Type ID                                     { [($1, $2)] }
                   | UnionTyping or Type ID                      {  ($2, $4) : $1 }
 
 
@@ -270,12 +282,14 @@ RemoveScope       : BLOCK_CLOSE                                 { % removeScope 
 
 Block             : InsertScope Statements RemoveScope          { $2 }
 
-Statements        : Statements Statement                        { $2 : $1 }
+Statements        : Statements_                                 { reverse $1 }
+Statements_       : Statements Statement                        { $2 : $1 }
                   | {-empty-}                                   { [] }
 
 BlockF            : InsertScope FunctionBlockCont RemoveScope   { $3 }
 
-FunctionBlockCont : FunctionBlockCont Statement                 { $2 : $1 }
+FunctionBlockCont : FunctionBlockCont_                          { reverse $1 }
+FunctionBlockCont_: FunctionBlockCont Statement                 { $2 : $1 }
                   | FunctionBlockCont Return                    { $2 : $1 }
                   | {-empty-}                                   { [] }
 
