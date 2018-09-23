@@ -22,14 +22,14 @@ type SutBlock = [SutInstruction]
 data SutModule = SutModule SutID SutBlock
 
 -- A SutIntruction
-data SutInstruction = SutInstExpression SutExpression
-                    | SutSelection      SutID SutExpression SutBlock SutBlock
-                    | SutIterationU     SutID SutExpression SutBlock
-                    | SutIterationB     SutID SutExpression SutBlock
-                    | SutFreePointer    SutID SutExpression
-                    | SutPrintVal       SutID SutExpression
-                    | SutReadVal        SutID SutExpression
-                    | SutReturn         SutID SutExpression
+data SutInstruction = InstAssignment SutExpression
+                    | Selection      SutID SutExpression SutBlock SutBlock
+                    | IterationU     SutID SutExpression SutBlock
+                    | IterationB     SutID SutExpression SutBlock
+                    | FreePointer    SutID SutExpression
+                    | PrintVal       SutID SutExpression
+                    | ReadVal        SutID SutExpression
+                    | Return         SutID SutExpression
 
 -- A SutExpression
 data SutExpression = SutArrayItem       SutTypeID SutExpression SutExpression

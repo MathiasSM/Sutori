@@ -13,10 +13,10 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Zip
 
-import Sutori.Types(SutTypeID, SutPrimitive(SutTypeVoid), primitives, TypeGraph, initialTypeGraphState)
-import Sutori.SymTable(SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
-import Sutori.Lexer.Posn(SutPosn, initialPosn)
-import Sutori.Logger(SutLogger)
+import Sutori.Types      (SutTypeID, SutPrimitive(SutTypeVoid), primitives, TypeGraph, initialTypeGraphState)
+import Sutori.SymTable   (SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
+import Sutori.Lexer.Posn (SutPosn, initialPosn)
+import Sutori.Logger     (SutLogger)
 
 
 -- Different errors the sutori compiler can turn up with
