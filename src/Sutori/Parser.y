@@ -211,7 +211,7 @@ Assignment        : Assignable '=' Expression     {% assignment $1 $3 }
 GetArrayItem      : Assignable '[' Expression ']' {% arrayGet   $1 $3 }
 GetMember         : Assignable '->' ID            {% memberGet  $1 $3 }
 
-NewPointer        : PersonID S_madea Type         {% createPointer $1 $3 }
+NewPointer        : PersonID S_madea TypeExpr         {% createPointer $1 $3 }
 
 Call              : FunctionID '(' WithParams ')' %prec PAR {% functionCall $1 $3 }
 
@@ -223,7 +223,7 @@ CallParams        : Expression                    { [$1]  }
 
 
 
--- Declaration
+-- Declarations
 -- ================================================================================================
 Declaration       : PersonDef    { $1 }
                   | FunctionDef  { $1 }
@@ -240,19 +240,19 @@ PersonNames_      : ID                     { [$1] }
 FunctionDef       : FUNCTION_INI addFunctionID ',' FunctionWithP FUNCTION_FIN    { }
                   | FUNCTION_INI addFunctionID ',' FunctionWOutP FUNCTION_FIN    { }
 
-FunctionWOutP     : S_therewasa Type BlockF                                {% defFunction' $2 $3 }
-FunctionWithP     : S_therewasa Type '(' S_madeof pushParams ')' BlockF    {% defFunction' $2 $7 }
+FunctionWOutP     : S_therewasa TypeExpr BlockF                                {% defFunction' $2 $3 }
+FunctionWithP     : S_therewasa TypeExpr '(' S_madeof pushParams ')' BlockF    {% defFunction' $2 $7 }
 addFunctionID     : ID                                                     {% insertFunctionID $1 }
 pushParams        : ParamsDef                                              {% mapM_ insertParam $1 }
 
 ParamsDef         : ParamsDef_                 { reverse $1 }
-ParamsDef_        : Type ID                    { [(SutParamVal, $1, $2)] }
-                  | YOUR Type ID               { [(SutParamRef, $2, $3)] }
-                  | ParamsDef ',' Type ID      {  (SutParamVal, $3, $4) : $1 }
-                  | ParamsDef ',' YOUR Type ID {  (SutParamRef, $4, $5) : $1 }
+ParamsDef_        : TypeExpr ID                    { [(SutParamVal, $1, $2)] }
+                  | YOUR TypeExpr ID               { [(SutParamRef, $2, $3)] }
+                  | ParamsDef ',' TypeExpr ID      {  (SutParamVal, $3, $4) : $1 }
+                  | ParamsDef ',' YOUR TypeExpr ID {  (SutParamRef, $4, $5) : $1 }
 
 
-VariableDef       : PersonID S_broughta Type ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }
+VariableDef       : PersonID S_broughta TypeExpr ':' VariableList   {% mapM_ (defVariable $1 $3) $5 }
 
 VariableList      : VariableList_                               { reverse $1 }
 VariableList_     : VariableList ',' ID                         {  ($3, Nothing) : $1 }
@@ -260,33 +260,34 @@ VariableList_     : VariableList ',' ID                         {  ($3, Nothing)
                   | ID '=' Expression                           { [($1, Just $3)] }
                   | ID                                          { [($1, Nothing)] }
 
-TypeDef           : PersonID S_invented ID ';' S_itsa Type      {% defType $1 $3 $6 }
+TypeDef           : PersonID S_invented ID ';' S_itsa TypeExpr  {% defType $1 $3 $6 }
 
 
 -- Type Expressions
--- ====================================================================================================================
-Type              : TYPE_INT                                    { SutPrimitiveType SutBag }
-                  | TYPE_FLOAT                                  { SutPrimitiveType SutWallet }
-                  | TYPE_CHAR                                   { SutPrimitiveType SutLetter }
-                  | TYPE_BOOL                                   { SutPrimitiveType SutLight }
-                  | TYPE_STRING                                 { SutPrimitiveType SutPhrase }
-                  | TYPE_POINTER '(' TO Type ')'                { SutDirection $4 }
-                  | TYPE_ARRAY '(' OF LITERAL_INT Type ')'      { SutChain $4 $5 }
-                  | TYPE_STRUCT '(' WITH StructTyping ')'       { SutMachine $4 }
-                  | TYPE_UNION '(' EITHER UnionTyping ')'       { SutThing $4 }
-                  | TypeID                                      { $1 }
+-- ================================================================================================
+TypeExpr :: { SutTypeID }
+TypeExpr          : TYPE_INT                                    {% createType (SutPrimitiveType SutBag) }
+                  | TYPE_FLOAT                                  {% createType (SutPrimitiveType SutWallet) }
+                  | TYPE_CHAR                                   {% createType (SutPrimitiveType SutLetter) }
+                  | TYPE_BOOL                                   {% createType (SutPrimitiveType SutLight) }
+                  | TYPE_STRING                                 {% createType (SutPrimitiveType SutPhrase) }
+                  | TYPE_POINTER '(' TO TypeExpr ')'            {% createType (SutDirection $4) }
+                  | TYPE_ARRAY '(' OF LITERAL_INT TypeExpr ')'  {% createType (SutChain $4 $5) }
+                  | TYPE_STRUCT '(' WITH StructTyping ')'       {% createType (SutMachine $4) }
+                  | TYPE_UNION '(' EITHER UnionTyping ')'       {% createType (SutThing $4) }
+                  | TypeID                                      {% findType $1 }
 
 StructTyping      : StructTyping_                               { reverse $1 }
-StructTyping_     : Type ID                                     { [($1, $2)] }
-                  | StructTyping and Type ID                    {  ($2, $4) : $1 }
+StructTyping_     : TypeExpr ID                                 { [($1, $2)] }
+                  | StructTyping and TypeExpr ID                {  ($2, $4) : $1 }
 
 UnionTyping       : UnionTyping_                                { reverse $1 }
-UnionTyping_      : Type ID                                     { [($1, $2)] }
-                  | UnionTyping or Type ID                      {  ($2, $4) : $1 }
+UnionTyping_      : TypeExpr ID                                 { [($1, $2)] }
+                  | UnionTyping or TypeExpr ID                  {  ($2, $4) : $1 }
 
 
 -- Blocks
--- ====================================================================================================================
+-- ================================================================================================
 InsertScope       : BLOCK_OPEN                                  {% insertScope }
 RemoveScope       : BLOCK_CLOSE                                 {% removeScope }
 
@@ -310,7 +311,7 @@ Return            : S_andthatswhere Expression S_comesfrom      { Return $2 }
 
 
 -- Instructions
------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 Instruction       : Assignment '.'     { InstAssignment $1 }
                   | FreePointer        { $1 }
                   | Print              { $1 }
@@ -332,6 +333,9 @@ Print             : PersonID ':' Expression '.'                               { 
 
 Read              : Assignable '?'                                            { Read $1 }
 
+
+-- Checks to the SymTable
+---------------------------------------------------------------------------------------------------
 PersonID          : ID         {% findPersonID $1 }
 FunctionID        : ID         {% findFunctionID $1 }
 TypeID            : ID         {% findTypeID $1 }
