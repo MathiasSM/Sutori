@@ -9,10 +9,10 @@ import Sutori.Types.Primitives (SutPrimitive(..), primitiveID)
 
 -- Literals
 literalBool, literalChar, literalInt, literalFloat, literalString :: SutToken -> SutExpression
-literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool . tokenBool
-literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar . tokenChar
-literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt . tokenInt
-literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat . tokenFloat
+literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool   . tokenBool
+literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar   . tokenChar
+literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt    . tokenInt
+literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat  . tokenFloat
 literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString . tokenString
 
 
