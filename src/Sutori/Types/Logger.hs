@@ -3,7 +3,7 @@ module Sutori.Types.Logger() where
 import Data.List(intercalate)
 
 import Sutori.Utils(SutID)
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
+import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
 
 import Sutori.Types.Graph(TypeGraph(TypeGraph), orderedGraph)
 import Sutori.Types.Primitives(SutPrimitive(..))
@@ -12,7 +12,7 @@ import Sutori.Types.Constructors(SutType(..), SutTypeID)
 -- The graph prints as a list of types
 instance SutShow TypeGraph where
   showSut g = SutLogNode "Type Graph" $ map showType $ orderedGraph g
-    where showType (c,v) = let (SutLogLeave s) = showSut c in SutLogLeave $ show v ++ s
+    where showType (id, t) = SutLogLeave $ "Type#" ++ show id ++ " : " ++ (fromLeave.showSut) t
 
 -- Each primitive prints as its natural name
 instance SutShow SutPrimitive where

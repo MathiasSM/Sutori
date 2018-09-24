@@ -2,24 +2,41 @@ module Sutori.Types.Graph
 ( TypeGraph(TypeGraph)
 , TypeGraphState
 , initialTypeGraphState
+, insertType
+, lookupTypeID
+, lookupType
 , orderedGraph
 ) where
 
 import qualified Data.Map.Strict as Map
-import Data.List(sortOn)
+import Data.List(sortOn, foldl')
 import Control.Arrow(first)
 
 import Sutori.Types.Primitives(primitiveIDs)
 import Sutori.Types.Constructors(SutType(SutPrimitiveType), SutID, SutTypeID)
 
+type TypeToIDMap = Map.Map SutType SutTypeID
+type IDToTypeMap = Map.Map SutTypeID SutType
 
--- The type graph implemented as a stateful hashmap
-newtype TypeGraph = TypeGraph (Map.Map SutType SutTypeID)
+-- The type graph must be a biderectional map (as there's a bijection between type and its ID)
+data TypeGraph = TypeGraph {typeToIDMap :: TypeToIDMap, idToTypeMap :: IDToTypeMap}
+emptyTypeGraph = TypeGraph{ typeToIDMap = Map.empty, idToTypeMap = Map.empty }
+initialTypeGraph = foldl' (flip insertType) emptyTypeGraph (map (first SutPrimitiveType) primitiveIDs)
 
 type TypeGraphState = (TypeGraph, SutTypeID)
+initialTypeGraphState = (initialTypeGraph, length primitiveIDs)
 
-initialTypeGraphState :: TypeGraphState
-initialTypeGraphState = (TypeGraph $ Map.fromList (map (first SutPrimitiveType) primitiveIDs), length primitiveIDs)
 
-orderedGraph :: TypeGraph -> [(SutType, SutTypeID)]
-orderedGraph (TypeGraph g) = sortOn snd $ Map.toList g
+insertType :: (SutType, SutTypeID) -> TypeGraph -> TypeGraph
+insertType (t,id) TypeGraph{typeToIDMap = l, idToTypeMap = r} = TypeGraph{typeToIDMap = l', idToTypeMap = r'}
+  where l' = Map.insert t id l
+        r' = Map.insert id t r
+
+lookupTypeID :: SutType -> TypeGraph -> Maybe SutTypeID
+lookupTypeID t g = Map.lookup t $ typeToIDMap g
+
+lookupType :: SutTypeID -> TypeGraph -> Maybe SutType
+lookupType id g = Map.lookup id $ idToTypeMap g
+
+orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
+orderedGraph g = sortOn snd $ Map.toList $ idToTypeMap g

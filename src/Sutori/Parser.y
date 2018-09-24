@@ -341,9 +341,9 @@ FunctionID        : ID         {% findFunctionID $1 }
 TypeID            : ID         {% findTypeID $1 }
 VariableID        : ID         {% findVariableID $1 }
 
-IndexExpr         : Expression {% checkIndex $1 }
-NumericExpr       : Expression {% checkNumeric $1 }
-BooleanExpr       : Expression {% checkBoolean $1 }
+IndexExpr         : Expression { checkIndex   $1 }
+NumericExpr       : Expression { checkNumeric $1 }
+BooleanExpr       : Expression { checkBoolean $1 }
 
 
 {}
