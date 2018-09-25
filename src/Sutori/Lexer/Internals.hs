@@ -1,4 +1,4 @@
-module Sutori.LexerInternals where
+module Sutori.Lexer.Internals where
 
 
 import Control.Monad.State
@@ -11,9 +11,10 @@ import qualified Data.Bits
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import Sutori.LexerTokens
 import Sutori.Monad
 import Sutori.SymTable
+
+import Sutori.Lexer.Posn(SutPosn(SutPosn), initialPosn)
 
 
 -- | Encode a Haskell String to a list of Word8 values, in UTF8 format.

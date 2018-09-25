@@ -13,41 +13,36 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Zip
 
-import Sutori.Types(SutType(SutTypeVoid), primitiveTypes)
-import Sutori.SymTable(SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
-import Sutori.Logger(SutLogger, SutShow(showSut), SutLog(SutLogLeave))
+import Sutori.Types      (SutTypeID, SutPrimitive(SutTypeVoid), primitives, TypeGraph, initialTypeGraphState)
+import Sutori.SymTable   (SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
+import Sutori.Lexer.Posn (SutPosn, initialPosn)
+import Sutori.Logger     (SutLogger)
 
 
 -- Different errors the sutori compiler can turn up with
 data SutErrorCode = SutNoError | SutErrorLexer | SutErrorParser | SutError
 
--- Source position: Number of characters before, row, col
-data SutPosn = SutPosn !Int !Int !Int
-  deriving (Eq,Show)
 
-posnInit = SutPosn 0 1 1
-
--- AlexPosn can be shown with SutShow
-instance SutShow SutPosn where
-  showSut (SutPosn _ line col) = SutLogLeave $ show line ++ ":" ++ show col
 
 -- Monadic Lexer/Parser current state.
 data SutState = SutState {
-  lexerPosn       :: !SutPosn,     -- position at current input location
+  lexerPosn       :: SutPosn,     -- position at current input location
   lexerInput      :: String,       -- the current input
-  lexerChar       :: !Char,        -- the character before the input
-  lexerStateCode  :: !Int,         -- the current startcode
-  lexerBytes      :: ![Word8],     -- the current bytes read
+  lexerChar       :: Char,        -- the character before the input
+  lexerStateCode  :: Int,         -- the current startcode
+  lexerBytes      :: [Word8],     -- the current bytes read
   lexerDepth      :: Int,
   lexerString     :: String,
   lexerStringOn   :: Bool,
   parserTable     :: SymTable,      -- The symtable
   parserStack     :: [Scope],       -- The scopes stack
   parserScopes    :: Set.Set Scope, -- The set of open scopes
-  parserNextScope :: Scope          -- The next scope ID to open
+  parserNextScope :: Scope,         -- The next scope ID to open
+  typesGraph      :: TypeGraph,     -- The constructed type graph
+  typesNextID     :: SutTypeID      -- The next type ID to be introduced
 }
-sutStateInit = SutState {
-  lexerPosn       = posnInit,
+initialSutoriState = SutState {
+  lexerPosn       = initialPosn,
   lexerInput      = "",
   lexerChar       = '\n',
   lexerBytes      = [],
@@ -58,7 +53,9 @@ sutStateInit = SutState {
   parserTable     = Map.empty,
   parserStack     = [0],
   parserScopes    = Set.insert 0 Set.empty,
-  parserNextScope = 0
+  parserNextScope = 0,
+  typesGraph      = fst initialTypeGraphState,
+  typesNextID     = snd initialTypeGraphState
 }
 
 -- Sutori monad: Composes state and logging
@@ -98,6 +95,7 @@ removeScope = do
 -- Get the current open scope
 parserCurrentScope :: SutState -> Scope
 parserCurrentScope = head . parserStack
+
 
 
 -- -- Insertion and modification of symbols

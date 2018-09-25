@@ -4,12 +4,13 @@ module Sutori.Utils
 , filterBy
 , repeated
 , repeatedBy
+, SutID
 ) where
 
-import Data.List
+import Data.List(group, groupBy, sort, sortBy)
 
-
-
+-- Global type for Sutori IDs
+type SutID = String
 
 -- Helper general functions
 anyf :: [a -> Bool] -> a -> Bool

@@ -1,7 +1,9 @@
-module Sutori.Definitions where
+module Sutori.Parser.Definitions where
 
-import Sutori.AST
-import Sutori.Monad
+import Sutori.Utils (SutID)
+import Sutori.AST (SutExpression, SutBlock, SutModule)
+import Sutori.Monad (SutMonad)
+import Sutori.Types (SutType)
 
 -- Declarations / Definitions
 defPerson :: SutID -> SutMonad ()

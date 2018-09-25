@@ -1,30 +1,28 @@
-module Sutori.Expressions where
+module Sutori.Parser.Expressions where
 
-import Sutori.AST
-import Sutori.Monad
+import Sutori.AST (SutExpression(ExprLiteral), SutLiteral(..))
+import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
+import Sutori.Lexer.Tokens (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
+import Sutori.Utils (SutID)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Primitives (SutPrimitive(..), primitiveID)
 
 -- Literals
-literalBool :: SutToken -> SutExpression
-literalBool = error "literalBool"
+literalBool, literalChar, literalInt, literalFloat, literalString :: SutToken -> SutExpression
+literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool   . tokenBool
+literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar   . tokenChar
+literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt    . tokenInt
+literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat  . tokenFloat
+literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString . tokenString
 
-literalChar :: SutToken -> SutExpression
-literalChar = error "literalChar"
-
-literalInt :: SutToken -> SutExpression
-literalInt = error "literalChar"
-
-literalFloat :: SutToken -> SutExpression
-literalFloat = error "literalFloat"
-
-literalString :: SutToken -> SutExpression
-literalString = error "literalString"
 
 -- Data structure constructors
-constructedArray :: [SutExpression] -> SutMonad SutExpression
-constructedArray = error "constructedArray"
+constructArray :: [SutExpression] -> SutMonad SutExpression
+constructArray = error "constructedArray"
 
-constructedStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
-constructedStrcut = error "constructedStruct"
+constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
+constructStruct = error "constructedStruct"
+
 
 -- Unary operations
 unaryPlus :: SutExpression -> SutExpression
@@ -38,6 +36,7 @@ negation = error "unaryNot"
 
 dereference :: SutExpression -> SutExpression
 dereference = error "dereference"
+
 
 -- Binary operations
 opAddition :: SutExpression -> SutExpression -> SutExpression
@@ -60,7 +59,6 @@ opPower = error "opPower"
 
 opModulo :: SutExpression -> SutExpression -> SutExpression
 opModulo = error "opModulo"
-
 
 opAnd :: SutExpression -> SutExpression -> SutExpression
 opAnd = error "opAnd"

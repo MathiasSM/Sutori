@@ -1,16 +1,10 @@
-module Sutori.LexerTokens where
-
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
-import Sutori.Monad(SutPosn)
-
--- A Sutori Token. Can be shown with SutShow
-data SutToken = SutToken { tokenPosn :: SutPosn, tokenClass :: SutTokenClass } deriving (Eq,Show)
-instance SutShow SutToken where
-  showSut (SutToken _ SutTkEOF) = SutLogLeave "Token EOF"
-  showSut tk  = SutLogNode "Token:" [showSut $ tokenClass tk, showSut $ tokenPosn tk]
+module Sutori.Lexer.Tokens
+( SutToken(..)
+, isValid
+) where
 
 -- Sutori token classes. Can be shown with SutShow
-data SutTokenClass = SutTkEOF
+data SutToken = SutTkEOF
 
                    | BLOCK_OPEN
                    | BLOCK_CLOSE
@@ -95,11 +89,8 @@ data SutTokenClass = SutTkEOF
                    | SutTkID     { tokenID :: String }
   deriving (Eq,Show)
 
-instance SutShow SutTokenClass where
-  showSut = SutLogLeave . show
-
 
 -- Says if the given token is valid (not an error) or not
 isValid :: SutToken -> Bool
-isValid (SutToken _ (SutTkError _))  = False
-isValid _                            = True
+isValid (SutTkError _)  = False
+isValid _               = True
