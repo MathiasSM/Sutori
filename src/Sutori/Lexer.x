@@ -258,6 +258,10 @@ lexerScan = do
     AlexSkip  input' _          -> lexerSetInput input' >> lexerScan
     AlexToken input' len action -> lexerSetInput input' >> action (ignorePendingBytes input) len
 
+-- Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
+
 -- Passes tokens through, reports error tokens
 checkTokenError :: SutToken -> SutMonad SutToken
 checkTokenError tk = if isValid tk
@@ -275,20 +279,23 @@ checkTokenEOF tk = do
            in logError LexicalError errString
 
 -- Gets all tokens recursively
-lexerLoop :: SutMonad [SutToken]
+lexerLoop :: SutMonad (Maybe [SutToken])
 lexerLoop = do
-  tk <- lexerScan >>= checkTokenError >>= checkTokenEOF
-  lexerLoop >>= \tks -> return (tk:tks)
+  tk <- lexerScanClean
+  if not $ isValid tk
+     then return Nothing
+     else do
+       tks <- lexerLoop
+       case tks of
+         Just tks' -> return $ Just (tk:tks')
+         Nothing   -> return Nothing
 
 -- Run the lexer on a given input string, with a given function
-runLexer :: String -> (SutState -> Either String (b, a)) -> Either String a
-runLexer input f
-  = case f initialSutoriState { lexerInput = input } of
-      Left msg      -> Left msg
-      Right ( _, a) -> Right a
+runLexer :: String -> (SutState -> a) -> a
+runLexer input f = f initialSutoriState { lexerInput = input }
 
 -- External API: Run the lexer on a given string, get the results
-runLexerScan :: String -> Either String a
+runLexerScan :: String -> SutMonad (Maybe [SutToken])
 runLexerScan input = runLexer input lexerLoop
 
 
