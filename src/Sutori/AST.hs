@@ -12,7 +12,6 @@ module Sutori.AST
 , asTypeError
 ) where
 
-import System.IO
 import Data.Maybe
 
 import Sutori.Utils(SutID)
