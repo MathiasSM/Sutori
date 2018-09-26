@@ -5,16 +5,21 @@ module Sutori.Lexer
 ) where
 
 import Control.Monad (when)
-import Control.Monad.State (get, put)
+import Control.Monad.State.Lazy
+import Control.Monad.Writer.Lazy
+import Control.Monad.Except
+
 import Data.Char( chr, isSpace )
 import Data.List
 import Data.Maybe
 import Numeric( readDec )
 
-import Sutori.Monad.Logger (logError, SutError(LexicalError))
+import Sutori.Logger (SutLogger(..))
+import Sutori.Monad.Logger (SutError, lexerError)
 import Sutori.Monad
   ( SutMonad
   , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth)
+  , runSutMonad
   , initialSutoriState
   )
 
@@ -266,7 +271,7 @@ lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 checkTokenError :: SutToken -> SutMonad SutToken
 checkTokenError tk = if isValid tk
                         then return tk
-                        else logError LexicalError "Unrecognized Token"
+                        else lexerError "Unrecognized Token"
 
 -- Passes tokens through, reports unexpected EOF
 checkTokenEOF :: SutToken -> SutMonad SutToken
@@ -276,26 +281,21 @@ checkTokenEOF tk = do
   if ((not isString) && (commentDepth == 0))
      then return tk
      else let errString = if isString then "String not closed" else "Comment not closed"
-           in logError LexicalError errString
+           in lexerError errString
 
 -- Gets all tokens recursively
-lexerLoop :: SutMonad (Maybe [SutToken])
+lexerLoop :: SutMonad [SutToken]
 lexerLoop = do
   tk <- lexerScanClean
-  if not $ isValid tk
-     then return Nothing
-     else do
-       tks <- lexerLoop
-       case tks of
-         Just tks' -> return $ Just (tk:tks')
-         Nothing   -> return Nothing
+  tks <- lexerLoop
+  return (tk:tks)
 
 -- Run the lexer on a given input string, with a given function
-runLexer :: String -> (SutState -> a) -> a
-runLexer input f = f initialSutoriState { lexerInput = input }
+runLexer :: String -> SutMonad a -> Except SutError (a, SutLogger)
+runLexer input f = runWriterT $ evalStateT f initialSutoriState { lexerInput = input }
 
--- External API: Run the lexer on a given string, get the results
-runLexerScan :: String -> SutMonad (Maybe [SutToken])
+-- -- External API: Run the lexer on a given string, get the results
+runLexerScan :: String -> Except SutError ([SutToken], SutLogger)
 runLexerScan input = runLexer input lexerLoop
 
 

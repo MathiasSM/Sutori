@@ -1,19 +1,20 @@
 module Sutori.Monad.Logger
 ( SutError(..)
 , logError
+, lexerError
 ) where
 
-import Control.Monad.State(get)
+import Control.Monad.State.Lazy  (get)
+import Control.Monad.Writer.Lazy (tell)
+import Control.Monad.Except      (throwError)
+
 import Data.List (dropWhileEnd)
 import Data.Char (isSpace)
 
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
+import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave, SutLogger(SutLogger))
 import Sutori.Lexer.Logger
 
-import Sutori.Monad(SutMonad, SutState(SutState, lexerPosn, lexerChar, lexerInput))
-
-
-data SutError = LexicalError | GrammaticalError | TypeError | InternalError deriving Show
+import Sutori.Monad(SutMonad, SutState(SutState, lexerPosn, lexerChar, lexerInput), SutError(..))
 
 instance SutShow SutError where
   showSut = SutLogLeave . show
@@ -38,7 +39,8 @@ lexerError msg = do
         -- logPosn = SutLogLeave $ "On position: " ++ (fromLeave (showSut posn))
         -- logChar = SutLogLeave $ "On char: " ++ char
         -- logBefore
-    error $ errorTitle ++ " at " ++ fromLeave (showSut posn) ++ placeError input cleanInput char
+    tell $ SutLogger $ errorTitle ++ " at " ++ fromLeave (showSut posn) ++ placeError input cleanInput char
+    throwError LexicalError
   where
     clean        = shorten . removeBreaks . trim
     trim         = dropWhileEnd isSpace . dropWhile isSpace

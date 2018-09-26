@@ -86,8 +86,3 @@ lexerSetInput :: SutoriInput -> SutMonad ()
 lexerSetInput (pos,c,bs,input) = do
   oldState <- get
   put oldState{ lexerPosn=pos, lexerChar=c, lexerBytes=bs, lexerInput=input }
-
-lexerSetSC :: Int -> SutMonad ()
-lexerSetSC sc = do
-  oldState <- get
-  put oldState{ lexerStateCode=sc }

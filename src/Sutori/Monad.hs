@@ -16,12 +16,7 @@ import Control.Monad.Zip
 import Sutori.Types      (SutTypeID, SutPrimitive(SutTypeVoid), primitives, TypeGraph, initialTypeGraphState)
 import Sutori.SymTable   (SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
 import Sutori.Lexer.Posn (SutPosn, initialPosn)
-import Sutori.Logger     (SutLogger)
-
-
--- Different errors the sutori compiler can turn up with
-data SutErrorCode = SutNoError | SutErrorLexer | SutErrorParser | SutError
-
+import Sutori.Logger     (SutLogger(SutLogger))
 
 
 -- Monadic Lexer/Parser current state.
@@ -58,8 +53,14 @@ initialSutoriState = SutState {
   typesNextID     = snd initialTypeGraphState
 }
 
+
+-- Different possible Sutori Errors
+data SutError = LexicalError | GrammaticalError | TypeError | InternalError
+  deriving Show
+
 -- Sutori monad: Composes state and logging
-type SutMonad a = StateT SutState (WriterT SutLogger (Either SutErrorCode)) a
+type SutMonad a = StateT SutState (WriterT SutLogger (Except SutError)) a
+
 
 -- sutoriError :: String -> SutMonad a
 -- sutoriError message = SutMonad $ const $ Left message
@@ -73,7 +74,7 @@ type SutMonad a = StateT SutState (WriterT SutLogger (Either SutErrorCode)) a
 
 -- Regular Actions
 ---------------------------------------------------------------------------------------------------
-runSutMonad :: SutMonad a -> SutState -> Either SutErrorCode ((a, SutState), SutLogger)
+runSutMonad :: SutMonad a -> SutState -> Except SutError ((a, SutState), SutLogger)
 runSutMonad f a = runWriterT $ runStateT f a
 
 -- Inserts a new scope into the parsing
