@@ -13,7 +13,6 @@ data Options = Options
   , optInput        :: Maybe FilePath
   , optStopOnLexer  :: Bool
   , optStopOnParser :: Bool
-  , optStopOnTable  :: Bool
   } deriving Show
 
 defaultOptions = Options
@@ -24,7 +23,6 @@ defaultOptions = Options
   , optInput        = Nothing
   , optStopOnLexer  = False
   , optStopOnParser = False
-  , optStopOnTable  = False
   }
 
 -- Description of the different command-line options
@@ -47,10 +45,7 @@ options =
       "stop after running lexer (prints Token list)"
   , Option ['p'] ["parser", "ast"]
       (NoArg (\opts -> opts { optStopOnParser = True }))
-      "stop after running parser (prints AST)"
-  , Option ['c'] ["context", "symtable"]
-      (NoArg (\opts -> opts { optStopOnTable = True }))
-      "stop after building symbol table (prints SymTable)"
+      "stop after running parser (prints AST, Symbols and Types)"
 
   -- Optional argument
   , Option ['o'] ["output"]

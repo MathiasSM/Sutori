@@ -9,8 +9,15 @@ module Sutori.Logger
 -- Simple tree data structure to allow pretty printing of sutori logs
 data SutLog = SutLogLeave String
             | SutLogNode String [SutLog]
-            deriving Show
 
+instance Show SutLog where
+  show = showNested 0
+
+showNested :: Int -> SutLog -> String
+showNested lvl (SutLogLeave s) = showIndent lvl ++ s ++ "\n"
+showNested lvl (SutLogNode s n) = showIndent lvl ++ s ++ "\n" ++ concatMap (showNested (lvl+1)) n
+
+showIndent n = (concat . replicate n) "  "
 
 -- The logger is just a string for the time being
 newtype SutLogger = SutLogger {getLog :: String}

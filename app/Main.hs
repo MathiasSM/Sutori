@@ -5,6 +5,8 @@ import Control.Monad
 import Data.Either
 
 import Sutori.Options
+import Sutori.Options.Logger
+import Sutori.Logger
 -- import Sutori.Lexer
 -- import Sutori.Parser
 -- import Sutori.AST
@@ -16,7 +18,7 @@ import Sutori.Options
 main = do
   argv             <- getArgs
   (options, files) <- handleFlags argv
-  print (show options)
+  print (showSut options)
   --
   -- let sr = runAlexScan s
   -- when (isLeft sr) $ error $ extractL sr
