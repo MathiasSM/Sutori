@@ -31,8 +31,8 @@ data SutInstruction = InstAssignment SutExpression
                     | IterationB     SutID SutExpression SutBlock
                     | FreePointer    SutID SutExpression
                     | PrintVal       SutID SutExpression
-                    | ReadVal        SutID SutExpression
-                    | Return         SutID SutExpression
+                    | ReadVal              SutExpression
+                    | ReturnVal            SutExpression
 
 -- A SutExpression
 data SutExpression = ArrayGet        SutType SutExpression SutExpression

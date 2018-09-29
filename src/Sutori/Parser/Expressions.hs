@@ -5,15 +5,19 @@ import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
 import Sutori.Lexer.Tokens (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
 import Sutori.Utils (SutID)
 import Sutori.Types.Constructors (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives (SutPrimitive(..), primitiveID)
+import Sutori.Types.Primitives (SutTypeID, SutPrimitive(..), primitiveID)
 
 -- Literals
-literalBool, literalChar, literalInt, literalFloat, literalString :: SutToken -> SutExpression
-literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool   . tokenBool
-literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar   . tokenChar
-literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt    . tokenInt
-literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat  . tokenFloat
-literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString . tokenString
+literalBool :: Bool -> SutExpression
+literalBool   = ExprLiteral (SutPrimitiveType SutLight)  . SutBool
+literalChar :: String -> SutExpression
+literalChar   = ExprLiteral (SutPrimitiveType SutLetter) . SutChar
+literalInt :: Int -> SutExpression
+literalInt    = ExprLiteral (SutPrimitiveType SutBag)    . SutInt
+literalFloat :: Float -> SutExpression
+literalFloat  = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat
+literalString :: String -> SutExpression
+literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString
 
 
 -- Data structure constructors
@@ -25,63 +29,63 @@ constructStruct = error "constructedStruct"
 
 
 -- Unary operations
-unaryPlus :: SutExpression -> SutExpression
+unaryPlus :: SutExpression -> SutMonad SutExpression
 unaryPlus = error "unaryPlus"
 
-unaryMinus :: SutExpression -> SutExpression
+unaryMinus :: SutExpression -> SutMonad SutExpression
 unaryMinus = error "unaryMinus"
 
-negation :: SutExpression -> SutExpression
-negation = error "unaryNot"
+unaryNot :: SutExpression -> SutMonad SutExpression
+unaryNot = error "unaryNot"
 
-dereference :: SutExpression -> SutExpression
+dereference :: SutExpression -> SutMonad SutExpression
 dereference = error "dereference"
 
 
 -- Binary operations
-opAddition :: SutExpression -> SutExpression -> SutExpression
+opAddition :: SutExpression -> SutExpression -> SutMonad SutExpression
 opAddition = error "opAddition"
 
-opSubstraction :: SutExpression -> SutExpression -> SutExpression
+opSubstraction :: SutExpression -> SutExpression -> SutMonad SutExpression
 opSubstraction = error "opSubstraction"
 
-opMultiplication :: SutExpression -> SutExpression -> SutExpression
+opMultiplication :: SutExpression -> SutExpression -> SutMonad SutExpression
 opMultiplication = error "opMultiplication"
 
-opDivision :: SutExpression -> SutExpression -> SutExpression
+opDivision :: SutExpression -> SutExpression -> SutMonad SutExpression
 opDivision = error "opDivision"
 
-opIntDivision :: SutExpression -> SutExpression -> SutExpression
+opIntDivision :: SutExpression -> SutExpression -> SutMonad SutExpression
 opIntDivision = error "opIntDivision"
 
-opPower :: SutExpression -> SutExpression -> SutExpression
+opPower :: SutExpression -> SutExpression -> SutMonad SutExpression
 opPower = error "opPower"
 
-opModulo :: SutExpression -> SutExpression -> SutExpression
+opModulo :: SutExpression -> SutExpression -> SutMonad SutExpression
 opModulo = error "opModulo"
 
-opAnd :: SutExpression -> SutExpression -> SutExpression
+opAnd :: SutExpression -> SutExpression -> SutMonad SutExpression
 opAnd = error "opAnd"
 
-opOr :: SutExpression -> SutExpression -> SutExpression
+opOr :: SutExpression -> SutExpression -> SutMonad SutExpression
 opOr = error "opOr"
 
-opEqual :: SutExpression -> SutExpression -> SutExpression
+opEqual :: SutExpression -> SutExpression -> SutMonad SutExpression
 opEqual = error "opEqual"
 
-opNotEqual :: SutExpression -> SutExpression -> SutExpression
+opNotEqual :: SutExpression -> SutExpression -> SutMonad SutExpression
 opNotEqual = error "opNotEqual"
 
-opGreaterEqual :: SutExpression -> SutExpression -> SutExpression
+opGreaterEqual :: SutExpression -> SutExpression -> SutMonad SutExpression
 opGreaterEqual = error "opGreaterEqual"
 
-opLessEqual :: SutExpression -> SutExpression -> SutExpression
+opLessEqual :: SutExpression -> SutExpression -> SutMonad SutExpression
 opLessEqual = error "opLessEqual"
 
-opGreater :: SutExpression -> SutExpression -> SutExpression
+opGreater :: SutExpression -> SutExpression -> SutMonad SutExpression
 opGreater = error "opGreater"
 
-opLess :: SutExpression -> SutExpression -> SutExpression
+opLess :: SutExpression -> SutExpression -> SutMonad SutExpression
 opLess = error "opLess"
 
 
@@ -97,3 +101,6 @@ memberGet = error "memberGet"
 
 functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
 functionCall = error "functionCall"
+
+createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
+createPointer = error "createPointer"

@@ -29,3 +29,8 @@ checkBoolean = checkPrimitiveType toTypeLight
 -- Returns the expression with its type converted if possible
 checkIndex :: SutExpression -> SutExpression
 checkIndex = checkPrimitiveType toTypeBag
+
+-- Checks if expression is or can be converted to string for printing
+-- Returns the expression with its type converted if possible
+checkPrintable :: SutExpression -> SutExpression
+checkPrintable = checkPrimitiveType toTypePhrase

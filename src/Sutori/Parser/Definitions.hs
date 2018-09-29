@@ -1,29 +1,33 @@
 module Sutori.Parser.Definitions where
 
 import Sutori.Utils (SutID)
+import Sutori.SymTable (SutParamKind)
 import Sutori.AST (SutExpression, SutBlock, SutModule)
 import Sutori.Monad (SutMonad)
-import Sutori.Types (SutType)
+import Sutori.Types (SutTypeID)
 
 -- Declarations / Definitions
 defPerson :: SutID -> SutMonad ()
 defPerson = error "defPerson"
 
 -- Define a function with ID pushed and no parameters
-defFunction :: SutType -> SutBlock -> SutMonad ()
+defFunction :: SutTypeID -> SutBlock -> SutMonad ()
 defFunction = error "defFunction"
 
 -- Define a function with ID and parameters pushed
-defFunction' :: SutID -> SutBlock -> SutMonad ()
+defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
 defFunction' = error "defFunction'"
 
-insertFunctionID :: SutID -> SutMonad ()
+insertFunctionID :: SutID -> SutMonad SutID
 insertFunctionID = error "insertFunctionID"
 
-defVariable :: SutID -> SutType -> [(SutID, Maybe SutExpression)] -> SutMonad ()
+insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
+insertParam (pt, tid, id) = error "insertParams"
+
+defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
 defVariable = error "defVariable"
 
-defType :: SutID -> SutID -> SutType -> SutMonad ()
+defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
 defType = error "detType"
 
 defModule :: SutID -> SutBlock -> SutMonad ()
