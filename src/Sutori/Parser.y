@@ -12,9 +12,10 @@ import Sutori.AST                 (SutModule, SutBlock, SutExpression(..), SutIn
 import Sutori.SymTable            (SutParamKind(SutVal, SutRef))
 
 import Sutori.Lexer.Tokens        (SutToken(..))
+import Sutori.Lexer               (lexwrap)
 
 import Sutori.Monad               (SutMonad, insertScope, removeScope)
-import Sutori.Monad.Logger        (SutError(..), logError)
+import Sutori.Monad.Logger        (SutError(..), parserError)
 
 import Sutori.Parser.Definitions
 import Sutori.Parser.Expressions
@@ -27,7 +28,7 @@ import Sutori.Parser.TypeCheck
 %tokentype { SutToken }
 %monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }
-%error     { logError GrammaticalError }
+%error     { parserError }
 
 %token
     EOF                 { $$ }

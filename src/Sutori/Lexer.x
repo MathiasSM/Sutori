@@ -2,6 +2,7 @@
 module Sutori.Lexer
 ( lexerScan
 , runLexer
+, lexwrap
 ) where
 
 import Control.Monad (when)
@@ -294,9 +295,12 @@ lexerLoop = do
 runLexer :: String -> SutMonad a -> Except SutError (a, SutLogger)
 runLexer input f = runWriterT $ evalStateT f initialSutoriState { lexerInput = input }
 
--- -- External API: Run the lexer on a given string, get the results
+-- External API: Run the lexer on a given string, get the results
 runLexerScan :: String -> Except SutError ([SutToken], SutLogger)
 runLexerScan input = runLexer input lexerLoop
 
+-- External API: Run the lexer, but receive a continuation
+lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+lexwrap = (lexerScan >>=)
 
 }

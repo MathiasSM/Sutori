@@ -16,7 +16,7 @@ import Sutori.Options
 main = do
   argv             <- getArgs
   (options, files) <- handleFlags argv
-  printLn (show options)
+  print (show options)
   --
   -- let sr = runAlexScan s
   -- when (isLeft sr) $ error $ extractL sr
