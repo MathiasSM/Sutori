@@ -1,8 +1,8 @@
 module Sutori.Parser.TypeCheck where
 
-import Sutori.Types (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives (SutPrimitive, toTypeNum, toTypeWallet, toTypePhrase, toTypeLight, toTypeBag)
-import Sutori.AST (SutExpression, expressionType, withPrimitiveType, asTypeError)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Primitives   (SutPrimitive, toTypeNum, toTypeWallet, toTypePhrase, toTypeLight, toTypeBag)
+import Sutori.AST                (SutExpression, expressionType, withPrimitiveType, asTypeError)
 
 -- Checks
 -- ===============================================================================================
@@ -29,3 +29,8 @@ checkBoolean = checkPrimitiveType toTypeLight
 -- Returns the expression with its type converted if possible
 checkIndex :: SutExpression -> SutExpression
 checkIndex = checkPrimitiveType toTypeBag
+
+-- Checks if expression is or can be converted to string for printing
+-- Returns the expression with its type converted if possible
+checkPrintable :: SutExpression -> SutExpression
+checkPrintable = checkPrimitiveType toTypePhrase

@@ -12,12 +12,11 @@ module Sutori.AST
 , asTypeError
 ) where
 
-import System.IO
 import Data.Maybe
 
 import Sutori.Utils(SutID)
-import Sutori.Types (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives (SutPrimitive(SutTypeError))
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Primitives   (SutPrimitive(SutTypeError))
 
 -- A SutBlock is a list of instructions
 type SutBlock = [SutInstruction]
@@ -32,8 +31,8 @@ data SutInstruction = InstAssignment SutExpression
                     | IterationB     SutID SutExpression SutBlock
                     | FreePointer    SutID SutExpression
                     | PrintVal       SutID SutExpression
-                    | ReadVal        SutID SutExpression
-                    | Return         SutID SutExpression
+                    | ReadVal              SutExpression
+                    | ReturnVal            SutExpression
 
 -- A SutExpression
 data SutExpression = ArrayGet        SutType SutExpression SutExpression

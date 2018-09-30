@@ -5,8 +5,8 @@ import Sutori.Lexer.Tokens(SutToken(..))
 import Sutori.Lexer.Posn(SutPosn(SutPosn))
 
 instance SutShow SutToken where
-  showSut SutTkEOF = SutLogLeave "Token EOF"
+  showSut SutTkEOF = SutLogLeave   "Token: EOF"
   showSut tk       = SutLogLeave $ "Token: " ++ show tk
 
 instance SutShow SutPosn where
-  showSut (SutPosn _ line col) = SutLogLeave $ show line ++ ":" ++ show col
+  showSut (SutPosn _ line col) = SutLogLeave $ "Line " ++ show line ++ ": Column " ++ show col
