@@ -15,8 +15,8 @@ module Sutori.AST
 import Data.Maybe
 
 import Sutori.Utils(SutID)
-import Sutori.Types (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives (SutPrimitive(SutTypeError))
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Primitives   (SutPrimitive(SutTypeError))
 
 -- A SutBlock is a list of instructions
 type SutBlock = [SutInstruction]

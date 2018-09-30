@@ -4,12 +4,13 @@ import qualified Data.Map.Strict as Map
 import Control.Monad.State (get, put)
 import Data.List (find)
 
-import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
-import Sutori.Utils (SutID)
-import Sutori.Types (SutType(SutPrimitiveType), SutTypeID, TypeGraph(TypeGraph))
-import Sutori.Types.Graph (TypeGraph, lookupType, lookupTypeID, insertType)
-import Sutori.SymTable (SutSymbol(symCat), SutSymCategory(CatType), symTypeDef, lookupID)
-import Sutori.AST (SutExpression)
+import Sutori.AST                (SutExpression)
+import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
+import Sutori.SymTable           (SutSymbol(symCat), SutSymCategory(CatType), symTypeDef, lookupID)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Graph        (TypeGraph(TypeGraph), lookupType, lookupTypeID, insertType)
+import Sutori.Types.Primitives   (SutTypeID)
+import Sutori.Utils              (SutID)
 
 
 -- Finds the existent typeID or inserts the type and gets the new ID

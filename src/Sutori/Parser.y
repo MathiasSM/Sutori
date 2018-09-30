@@ -1,13 +1,13 @@
 {
-module Sutori.Parser (parseSut) where
+module Sutori.Parser where
 
 import Data.Maybe
 
 
 import Sutori.Utils               (SutID)
 
-import Sutori.Types               (SutType(..), SutTypeID)
-import Sutori.Types.Primitives    (SutPrimitive(..))
+import Sutori.Types.Constructors  (SutType(..))
+import Sutori.Types.Primitives    (SutTypeID, SutPrimitive(..))
 import Sutori.AST                 (SutModule, SutBlock, SutExpression(..), SutInstruction(..))
 import Sutori.SymTable            (SutParamKind(SutVal, SutRef))
 
@@ -24,7 +24,7 @@ import Sutori.Parser.TypeCheck
 
 }
 
-%name      parseSut
+%name      sutoriParser
 %tokentype { SutToken }
 %monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }

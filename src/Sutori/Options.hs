@@ -1,4 +1,4 @@
-module Sutori.Options(Options(..), handleFlags) where
+module Sutori.Options(Options(..), handleFlags, usage) where
 
 import Data.Maybe
 import System.Console.GetOpt
@@ -7,20 +7,20 @@ import System.Console.GetOpt
 -- Options for command-line parsing
 data Options = Options
   { optVerbose      :: Bool
+  , optDebugging    :: Bool
   , optShowVersion  :: Bool
   , optShowHelp     :: Bool
   , optOutput       :: Maybe FilePath
-  , optInput        :: Maybe FilePath
   , optStopOnLexer  :: Bool
   , optStopOnParser :: Bool
-  } deriving Show
+  }
 
 defaultOptions = Options
   { optVerbose      = False
+  , optDebugging    = False
   , optShowVersion  = False
   , optShowHelp     = False
   , optOutput       = Nothing
-  , optInput        = Nothing
   , optStopOnLexer  = False
   , optStopOnParser = False
   }
@@ -33,6 +33,10 @@ options =
     Option  ['v'] ["verbose"]
       (NoArg (\opts -> opts { optVerbose = True }))
       "chatty output"
+  , Option  ['d'] ["debug", "debugging"]
+      (NoArg (\opts -> opts { optDebugging = True }))
+      "chatty output"
+
   , Option ['V'] ["version"]
       (NoArg (\opts -> opts { optShowVersion = True }))
       "show version number"
@@ -51,9 +55,6 @@ options =
   , Option ['o'] ["output"]
       (OptArg ((\f opts -> opts { optOutput = Just f }) . fromMaybe "output") "FILE")
       "output FILE"
-  , Option ['i'] ["input"]
-      (OptArg ((\f opts -> opts { optInput = Just f }) . fromMaybe "input") "FILE")
-      "input FILE"
   ]
 
 
@@ -62,5 +63,6 @@ options =
 handleFlags :: [String] -> IO (Options, [String])
 handleFlags argv = case getOpt Permute options argv of
     (o,n,[]  ) -> return (foldl (flip id) defaultOptions o, n)
-    (_,_,errs) -> ioError (userError (concat errs ++ usageInfo header options))
-  where header = "Usage: sutori [OPTION...] files..."
+    (_,_,errs) -> ioError (userError (concat errs ++ usage))
+
+usage = usageInfo "Usage: sutori [OPTION...] files..." options

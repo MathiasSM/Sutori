@@ -1,10 +1,10 @@
 module Sutori.Parser.Definitions where
 
-import Sutori.Utils (SutID)
-import Sutori.SymTable (SutParamKind)
-import Sutori.AST (SutExpression, SutBlock, SutModule)
-import Sutori.Monad (SutMonad)
-import Sutori.Types (SutTypeID)
+import Sutori.AST              (SutExpression, SutBlock, SutModule)
+import Sutori.Monad            (SutMonad)
+import Sutori.SymTable         (SutParamKind)
+import Sutori.Types.Primitives (SutTypeID)
+import Sutori.Utils            (SutID)
 
 -- Declarations / Definitions
 defPerson :: SutID -> SutMonad ()

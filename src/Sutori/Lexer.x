@@ -1,8 +1,9 @@
 {
 module Sutori.Lexer
-( lexerScan
-, runLexer
-, lexwrap
+( lexerScanClean -- We only export the clean version (has lexical error handling)
+, runLexer       -- Runs the lexer with the given action (parsing?)
+, runLexerScan   -- Runs the lexer by itself (with the usual scan loop)
+, lexwrap        -- Wrapper around scan used by happy
 ) where
 
 import Control.Monad (when)
@@ -15,13 +16,15 @@ import Data.List
 import Data.Maybe
 import Numeric( readDec )
 
-import Sutori.Logger (SutLogger(..))
-import Sutori.Monad.Logger (SutError, lexerError)
+import Sutori.Options      (Options(..), usage)
+import Sutori.Logger       (SutLogger(..), SutLog)
+import Sutori.Monad.Logger (SutError(LexicalError), lexerError)
 import Sutori.Monad
   ( SutMonad
-  , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth)
+  , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth, logVerbose)
   , runSutMonad
   , initialSutoriState
+  , setErrorCode
   )
 
 import Sutori.Lexer.Internals
@@ -270,37 +273,40 @@ lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 
 -- Passes tokens through, reports error tokens
 checkTokenError :: SutToken -> SutMonad SutToken
-checkTokenError tk = if isValid tk
-                        then return tk
-                        else lexerError "Unrecognized Token"
+checkTokenError tk = do
+  when (not $ isValid tk) $ lexerError "Unrecognized Token"
+  return tk
 
 -- Passes tokens through, reports unexpected EOF
 checkTokenEOF :: SutToken -> SutMonad SutToken
 checkTokenEOF tk = do
   isString <- getLexerStringState
   commentDepth <- getLexerCommentDepth
-  if ((not isString) && (commentDepth == 0))
-     then return tk
-     else let errString = if isString then "String not closed" else "Comment not closed"
-           in lexerError errString
+  when isString $ lexerError "String not closed at EOF"
+  when (commentDepth > 0) $ lexerError "Comment not closed at EOF"
+  return tk
 
 -- Gets all tokens recursively
 lexerLoop :: SutMonad [SutToken]
 lexerLoop = do
-  tk <- lexerScanClean
-  tks <- lexerLoop
-  return (tk:tks)
+  tk' <- lexerScanClean
+  case tk' of
+    SutTkEOF -> return [tk']
+    tk       -> do
+      tks <- lexerLoop
+      return (tk:tks)
 
 -- Run the lexer on a given input string, with a given function
-runLexer :: String -> SutMonad a -> Except SutError (a, SutLogger)
-runLexer input f = runWriterT $ evalStateT f initialSutoriState { lexerInput = input }
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
+runLexer Options{ optVerbose = v } input f =
+  runExcept $ runWriterT $ evalStateT f initialSutoriState { lexerInput = input, logVerbose = v }
 
 -- External API: Run the lexer on a given string, get the results
-runLexerScan :: String -> Except SutError ([SutToken], SutLogger)
-runLexerScan input = runLexer input lexerLoop
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ([SutToken], SutLogger)
+runLexerScan opt input = runLexer opt input lexerLoop
 
--- External API: Run the lexer, but receive a continuation
+-- External API: Run the lexer, but receive a continuation (Used by Happy)
 lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
-lexwrap = (lexerScan >>=)
+lexwrap = (lexerScanClean >>=)
 
 }

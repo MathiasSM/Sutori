@@ -1,7 +1,7 @@
 module Sutori.Types.Graph
 ( TypeGraph(TypeGraph)
-, TypeGraphState
-, initialTypeGraphState
+, initialTypeGraph
+, initialNextTypeID
 , insertType
 , lookupTypeID
 , lookupType
@@ -22,10 +22,7 @@ type IDToTypeMap = Map.Map SutTypeID SutType
 data TypeGraph = TypeGraph {typeToIDMap :: TypeToIDMap, idToTypeMap :: IDToTypeMap}
 emptyTypeGraph = TypeGraph{ typeToIDMap = Map.empty, idToTypeMap = Map.empty }
 initialTypeGraph = foldl' (flip insertType) emptyTypeGraph (map (first SutPrimitiveType) primitiveIDs)
-
-type TypeGraphState = (TypeGraph, SutTypeID)
-initialTypeGraphState = (initialTypeGraph, length primitiveIDs)
-
+initialNextTypeID = length primitiveIDs
 
 insertType :: (SutType, SutTypeID) -> TypeGraph -> TypeGraph
 insertType (t,id) TypeGraph{typeToIDMap = l, idToTypeMap = r} = TypeGraph{typeToIDMap = l', idToTypeMap = r'}

@@ -1,6 +1,7 @@
 module Sutori.AST.Logger() where
 
-import Sutori.Logger (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
+import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
+import Sutori.Types.Logger ()
 import Sutori.AST
 
 
