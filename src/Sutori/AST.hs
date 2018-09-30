@@ -14,7 +14,7 @@ module Sutori.AST
 
 import Data.Maybe
 
-import Sutori.Utils(SutID)
+import Sutori.Utils              (SutID)
 import Sutori.Types.Constructors (SutType(SutPrimitiveType))
 import Sutori.Types.Primitives   (SutPrimitive(SutTypeError))
 

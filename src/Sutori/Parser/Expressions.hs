@@ -1,11 +1,12 @@
 module Sutori.Parser.Expressions where
 
-import Sutori.AST (SutExpression(ExprLiteral), SutLiteral(..))
-import Sutori.Monad (SutMonad, SutState(SutState, typesGraph, typesNextID))
-import Sutori.Lexer.Tokens (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
-import Sutori.Utils (SutID)
+import Sutori.AST                (SutExpression(ExprLiteral), SutLiteral(..))
+import Sutori.Lexer.Tokens       (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
+import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID))
 import Sutori.Types.Constructors (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives (SutTypeID, SutPrimitive(..), primitiveID)
+import Sutori.Types.Primitives   (SutTypeID, SutPrimitive(..), primitiveID)
+import Sutori.Utils              (SutID)
+
 
 -- Literals
 literalBool :: Bool -> SutExpression
