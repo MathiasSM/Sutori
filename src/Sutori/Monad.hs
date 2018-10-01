@@ -37,7 +37,7 @@ data SutState = SutState
   , typesGraph      :: TypeGraph     -- The constructed type graph
   , typesNextID     :: SutTypeID     -- The next type ID to be introduced
   , logVerbose      :: Bool          -- Set the output to verbose of not
-  , errorCode      :: SutError }    -- Current error code, if any
+  , errorCode       :: SutError }    -- Current error code, if any
 initialSutoriState = SutState
   { lexerPosn       = initialPosn
   , lexerInput      = ""
@@ -54,7 +54,7 @@ initialSutoriState = SutState
   , typesGraph      = initialTypeGraph
   , typesNextID     = initialNextTypeID
   , logVerbose      = False
-  , errorCode      = NoError }
+  , errorCode       = NoError }
 
 -- Sutori monad: Composes state and logging
 type SutMonad a = StateT SutState (WriterT SutLogger (Except (SutError, SutLog))) a

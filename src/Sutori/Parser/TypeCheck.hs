@@ -1,8 +1,10 @@
 module Sutori.Parser.TypeCheck where
 
-import Sutori.Types.Constructors (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives   (SutPrimitive, toTypeNum, toTypeWallet, toTypePhrase, toTypeLight, toTypeBag)
 import Sutori.AST                (SutExpression, expressionType, withPrimitiveType, asTypeError)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Types.Primitives
+  ( SutPrimitive
+  , toTypeNum, toTypeWallet, toTypePhrase, toTypeLight, toTypeBag, toTypeSortable, toTypeEq)
 
 -- Checks
 -- ===============================================================================================
@@ -20,15 +22,35 @@ checkPrimitiveType toType expr = let typeDef = expressionType expr
 checkNumeric :: SutExpression -> SutExpression
 checkNumeric = checkPrimitiveType toTypeNum
 
+-- Checks if expression is checked for equality
+-- Returns the expression with its type converted if possible
+checkEq :: SutExpression -> SutExpression
+checkEq = checkPrimitiveType toTypeEq
+
+-- Checks if expression is or can be converted to a sortable type
+-- Returns the expression with its type converted if possible
+checkSortable :: SutExpression -> SutExpression
+checkSortable = checkPrimitiveType toTypeSortable
+
 -- Checks if expression is or can be converted to boolean
 -- Returns the expression with its type converted if possible
 checkBoolean :: SutExpression -> SutExpression
 checkBoolean = checkPrimitiveType toTypeLight
 
--- Checks if expression is or can be converted to integer (index type)
+-- Checks if expression is or can be converted to an index type
 -- Returns the expression with its type converted if possible
 checkIndex :: SutExpression -> SutExpression
-checkIndex = checkPrimitiveType toTypeBag
+checkIndex = checkInt
+
+-- Checks if expression is or can be converted to integer (index type)
+-- Returns the expression with its type converted if possible
+checkInt :: SutExpression -> SutExpression
+checkInt = checkPrimitiveType toTypeBag
+
+-- Checks if expression is or can be converted to float
+-- Returns the expression with its type converted if possible
+checkFloat :: SutExpression -> SutExpression
+checkFloat = checkPrimitiveType toTypeWallet
 
 -- Checks if expression is or can be converted to string for printing
 -- Returns the expression with its type converted if possible

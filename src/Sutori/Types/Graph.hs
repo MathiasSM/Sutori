@@ -12,8 +12,9 @@ import qualified Data.Map.Strict as Map
 import Data.List(sortOn, foldl')
 import Control.Arrow(first)
 
-import Sutori.Types.Primitives(primitiveIDs)
-import Sutori.Types.Constructors(SutType(SutPrimitiveType), SutID, SutTypeID)
+import Sutori.Types.Primitives   (primitiveIDs)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType), SutTypeID)
+import Sutori.Utils              (SutID)
 
 type TypeToIDMap = Map.Map SutType SutTypeID
 type IDToTypeMap = Map.Map SutTypeID SutType

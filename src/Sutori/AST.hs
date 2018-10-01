@@ -85,25 +85,26 @@ data SutConstructor = SutArray [SutExpression]
                     | SutStruct [(SutID, SutExpression)]
 
 -- Sutori operators
-data SutOperator = SutOpPos
-                 | SutOpNeg
-                 | SutOpNot
-                 | SutOpDer
-                 | SutOpAdd
-                 | SutOpSub
-                 | SutOpMul
-                 | SutOpDiv
-                 | SutOpIntDiv
-                 | SutOpMod
-                 | SutOpPow
-                 | SutOpAnd
-                 | SutOpOr
-                 | SutOpEqual
-                 | SutOpNotEq
-                 | SutOpGEq
-                 | SutOpLEq
-                 | SutOpGreater
-                 | SutOpLess
-                 | SutOpAssign
-                 | SutOpIndex
-                 | SutOpMember
+data SutOperator = SutOpPos     -- Unary plus/make positive
+                 | SutOpNeg     -- Unary minus/negate
+                 | SutOpNot     -- Unary not
+                 | SutOpDer     -- Unary dereference
+
+                 | SutOpAdd     -- Binary addition
+                 | SutOpSub     -- Binary substraction
+                 | SutOpMul     -- Binary multiplication
+                 | SutOpDiv     -- Binary division
+                 | SutOpIntDiv  -- Binary integer division
+                 | SutOpMod     -- Binary modulo
+                 | SutOpPow     -- Binary power
+                 | SutOpAnd     -- Binary and
+                 | SutOpOr      -- Binary or
+                 | SutOpEqual   -- Binary equal
+                 | SutOpNotEq   -- Binary not equal
+                 | SutOpGEq     -- Binary greater or equal than
+                 | SutOpLEq     -- Binary less or equal than
+                 | SutOpGreater -- Binary greater than
+                 | SutOpLess    -- Binary less than
+                 | SutOpAssign  -- Binary assignment
+                 | SutOpIndex   -- Binary indexation
+                 | SutOpMember  -- Binary member get
