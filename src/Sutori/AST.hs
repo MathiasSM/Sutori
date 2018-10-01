@@ -39,7 +39,7 @@ data SutExpression = ArrayGet        SutType SutExpression SutExpression
                    | BinaryOp        SutType SutOperator SutExpression SutExpression
                    | UnaryOp         SutType SutOperator SutExpression
                    | SutCall         SutType SutID [SutExpression]
-                   | CreatePointer   SutType SutExpression
+                   | CreatePointer   SutType SutID
                    | ExprConstructor SutType SutConstructor
                    | ExprID          SutType SutID
                    | ExprLiteral     SutType SutLiteral

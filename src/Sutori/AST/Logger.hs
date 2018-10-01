@@ -40,8 +40,8 @@ instance SutShow SutExpression where
   showSut (SutCall t id es)      = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        args  = SutLogNode "Arguments:" (map showSut es)
                                     in SutLogNode ("Function call to `" ++ show id ++ "` :") [etype, args]
-  showSut (CreatePointer t e)    = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       expr  = SutLogNode "Expression:" [showSut e]
+  showSut (CreatePointer t p)    = let etype = SutLogLeave $ "Type:  " ++ fromLeave (showSut t)
+                                       expr  = SutLogLeave $ "Owner: " ++ show p
                                        in SutLogNode "NewPointer" [etype, expr]
   showSut (ExprConstructor t c)  = let etype  = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        constr = SutLogNode "Constructor:" [showSut c]

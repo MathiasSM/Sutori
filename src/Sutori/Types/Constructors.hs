@@ -1,6 +1,7 @@
 module Sutori.Types.Constructors
 ( SutTypeID
 , SutType(..)
+, typeError
 , primitiveType
 , generalizeTypes
 ) where
@@ -26,3 +27,6 @@ generalizeTypes :: SutType -> SutType -> SutType
 generalizeTypes t1 t2 = let p1 = primitiveType t1
                             p2 = primitiveType t2
                          in SutPrimitiveType $ generalizePrimitives p1 p2
+
+typeError :: SutType
+typeError = SutPrimitiveType SutTypeError
