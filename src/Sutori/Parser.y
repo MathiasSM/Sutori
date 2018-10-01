@@ -31,77 +31,75 @@ import Sutori.Parser.TypeCheck
 %error     { parserError }
 
 %token
-    EOF                 { $$ }
+    BLOCK_OPEN          { BLOCK_OPEN }
+    BLOCK_CLOSE         { BLOCK_CLOSE }
 
-    BLOCK_OPEN          { $$ }
-    BLOCK_CLOSE         { $$ }
+    PROGRAM_INI         { PROGRAM_INI }
+    PROGRAM_FIN         { PROGRAM_FIN }
+    FUNCTION_INI        { FUNCTION_INI }
+    FUNCTION_FIN        { FUNCTION_FIN }
 
-    PROGRAM_INI         { $$ }
-    PROGRAM_FIN         { $$ }
-    FUNCTION_INI        { $$ }
-    FUNCTION_FIN        { $$ }
+    S_andthatswhere     { S_andthatswhere }
+    S_therewas          { S_therewas }
+    S_brokea            { S_brokea }
+    S_broughta          { S_broughta }
+    S_comesfrom         { S_comesfrom }
+    S_dreamsof          { S_dreamsof }
+    S_keepsdreamingof   { S_keepsdreamingof }
+    S_madeof            { S_madeof }
+    S_madea             { S_madea }
+    S_invented          { S_invented }
+    S_therewasa         { S_therewasa }
+    S_toldthatstory     { S_toldthatstory }
+    S_itsa              { S_itsa }
 
-    S_andthatswhere     { $$ }
-    S_therewas          { $$ }
-    S_brokea            { $$ }
-    S_broughta          { $$ }
-    S_comesfrom         { $$ }
-    S_dreamsof          { $$ }
-    S_keepsdreamingof   { $$ }
-    S_madeof            { $$ }
-    S_madea             { $$ }
-    S_invented          { $$ }
-    S_therewasa         { $$ }
-    S_toldthatstory     { $$ }
-    S_itsa              { $$ }
+    TYPE_INT            { TYPE_INT }
+    TYPE_FLOAT          { TYPE_FLOAT }
+    TYPE_CHAR           { TYPE_CHAR }
+    TYPE_BOOL           { TYPE_BOOL }
+    TYPE_ARRAY          { TYPE_ARRAY }
+    TYPE_STRUCT         { TYPE_STRUCT }
+    TYPE_UNION          { TYPE_UNION }
+    TYPE_STRING         { TYPE_STRING }
+    TYPE_POINTER        { TYPE_POINTER }
 
-    TYPE_INT            { $$ }
-    TYPE_FLOAT          { $$ }
-    TYPE_CHAR           { $$ }
-    TYPE_BOOL           { $$ }
-    TYPE_ARRAY          { $$ }
-    TYPE_STRUCT         { $$ }
-    TYPE_UNION          { $$ }
-    TYPE_STRING         { $$ }
-    TYPE_POINTER        { $$ }
-
-    '('                 { $$ }
-    '['                 { $$ }
-    '{'                 { $$ }
-    ')'                 { $$ }
-    ']'                 { $$ }
-    '}'                 { $$ }
-    '.'                 { $$ }
-    ','                 { $$ }
-    ':'                 { $$ }
-    ';'                 { $$ }
-    '!'                 { $$ }
-    '?'                 { $$ }
-    '->'                { $$ }
-    '+'                 { $$ }
-    '-'                 { $$ }
-    '=='                { $$ }
-    '='                 { $$ }
-    '*'                 { $$ }
-    '%'                 { $$ }
-    '/'                 { $$ }
-    div                 { $$ }
-    '/='                { $$ }
-    '>='                { $$ }
-    '<='                { $$ }
-    '>'                 { $$ }
-    '<'                 { $$ }
-    '^'                 { $$ }
-    and                 { $$ }
-    or                  { $$ }
-    WITH                { $$ }
-    YOUR                { $$ }
-    OF                  { $$ }
-    EITHER              { $$ }
-    TO                  { $$ }
-    WHEN                { $$ }
-    OTHERWISE           { $$ }
-    TIMES               { $$ }
+    '('                 { OPEN_PAREN }
+    '['                 { OPEN_BRACKETS }
+    '{'                 { OPEN_BRACES }
+    ')'                 { CLOSE_PAREN }
+    ']'                 { CLOSE_BRACKETS }
+    '}'                 { CLOSE_BRACES }
+    '.'                 { PERIOD }
+    ','                 { COMMA }
+    ':'                 { COLON }
+    ';'                 { SEMICOLON }
+    '!'                 { EXCLAMATION }
+    '?'                 { QUESTIONMARK }
+    '->'                { ARROW_RIGHT }
+    '+'                 { PLUS }
+    '-'                 { MINUS }
+    '=='                { EQUAL }
+    '='                 { ASSIGNMENT }
+    '*'                 { ASTERISK }
+    '%'                 { PERCENT }
+    '/'                 { SLASH }
+    div                 { DIV }
+    '/='                { NOT_EQUAL }
+    '>='                { GREATER_EQUAL }
+    '<='                { LESS_EQUAL }
+    '>'                 { GREATER }
+    '<'                 { LESS }
+    '^'                 { POWER }
+    and                 { AND }
+    or                  { OR }
+    WITH                { WITH }
+    YOUR                { YOUR }
+    OF                  { OF }
+    EITHER              { EITHER }
+    TO                  { TO }
+    WHEN                { WHEN }
+    OTHERWISE           { OTHERWISE }
+    TIMES               { TIMES }
 
     LITERAL_BOOL        { SutTkBool $$ }
     LITERAL_CHAR        { SutTkChar $$ }
@@ -129,7 +127,7 @@ import Sutori.Parser.TypeCheck
 -- Modules
 -- ================================================================================================
 InitModule        :: { () }
-InitModule        : PROGRAM_INI ID BlockGlobal PROGRAM_FIN EOF   {% defModule $2 $3 }
+InitModule        : PROGRAM_INI ID BlockGlobal PROGRAM_FIN      {% defModule $2 $3 }
 
 
 

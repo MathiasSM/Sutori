@@ -44,7 +44,7 @@ errorExpr :: SutMonad SutLog
 errorExpr = return $ SutLogLeave $ "On expression: " ++ "<TODO: Get current expression>"
 
 
--- API: The different possible errora
+-- API: The different possible errors
 -- ------------------------------------------------------------------------------------------------
 lexerError :: String -> SutMonad ()
 lexerError msg = do
@@ -62,7 +62,7 @@ parserError tk = do
   pos <- errorPos
   let code     = GrammaticalError
       logTitle = "Grammatical Error"
-      log      = SutLogNode logTitle [pos]
+      log      = SutLogNode logTitle [showSut tk, pos]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code

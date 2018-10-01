@@ -1,0 +1,11 @@
+-- Sets the prompt to multiline
+-- First line lists the modules currently loaded
+-- Second line shows `λ>` as the prompt
+putStrLn "* Multiline input mode enabled."
+:set +m
+:set prompt "\ESC[38;5;245m%l: [ %s ]\n\ESC[38;5;61mλ ❯ \ESC[m"
+:set prompt-cont "\ESC[38;5;61m  | \ESC[m"
+
+-- Adds hoogle command
+:def hoogle \str -> return $ ":! hoogle --count=15 \"" ++ str ++ "\""
+

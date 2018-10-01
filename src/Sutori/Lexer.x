@@ -267,10 +267,6 @@ lexerScan = do
     AlexSkip  input' _          -> lexerSetInput input' >> lexerScan
     AlexToken input' len action -> lexerSetInput input' >> action (ignorePendingBytes input) len
 
--- Scans for next token, but passes it though checks first
-lexerScanClean :: SutMonad SutToken
-lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
-
 -- Passes tokens through, reports error tokens
 checkTokenError :: SutToken -> SutMonad SutToken
 checkTokenError tk = do
@@ -286,6 +282,17 @@ checkTokenEOF tk = do
   when (commentDepth > 0) $ lexerError "Comment not closed at EOF"
   return tk
 
+-- External API: Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
+
+
+-- External API: Run the lexer on a given input string, with a given function
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
+runLexer Options{ optVerbose = v } input f =
+  runExcept $ runWriterT $ evalStateT f initialSutoriState { lexerInput = input, logVerbose = v }
+
+
 -- Gets all tokens recursively
 lexerLoop :: SutMonad [SutToken]
 lexerLoop = do
@@ -296,14 +303,11 @@ lexerLoop = do
       tks <- lexerLoop
       return (tk:tks)
 
--- Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
-runLexer Options{ optVerbose = v } input f =
-  runExcept $ runWriterT $ evalStateT f initialSutoriState { lexerInput = input, logVerbose = v }
 
 -- External API: Run the lexer on a given string, get the results
 runLexerScan :: Options -> String -> Either (SutError, SutLog) ([SutToken], SutLogger)
 runLexerScan opt input = runLexer opt input lexerLoop
+
 
 -- External API: Run the lexer, but receive a continuation (Used by Happy)
 lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
