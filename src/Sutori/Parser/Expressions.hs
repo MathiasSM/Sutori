@@ -56,10 +56,6 @@ unaryMinus e' = let e = checkNumeric e' in return $ UnaryOp (expressionType e) S
 unaryNot :: SutExpression -> SutMonad SutExpression
 unaryNot e' = let e = checkBoolean e' in return $ UnaryOp (expressionType e) SutOpNot e
 
-dereference :: SutExpression -> SutMonad SutExpression
-dereference = error "dereference"
-
-
 
 -- Binary operations
 -- ================================================================================================
@@ -174,12 +170,26 @@ memberGet struct id = case expressionType struct of
           t   = fromMaybe typeError (lookupType tid tg)
       return $ MemberGet t struct id
 
--- Left side is known to be existent function
--- Right side must be list of matching-type arguments
-functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
-functionCall = error "functionCall"
-
 -- Left side is known to be a person
 -- Right side is known to be an existent type
 createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
 createPointer pid tid = return $ CreatePointer (SutDirection tid) pid
+
+-- It is know the expression is assignable
+-- I must be a pointer/direction
+dereference :: SutExpression -> SutMonad SutExpression
+dereference e = do
+  let t' = expressionType e
+  case t' of
+    SutDirection tid -> do
+      SutState{typesGraph = tg} <- get
+      let t = fromMaybe typeError (lookupType tid tg)
+      return $ Dereference t e
+    _ -> do
+      -- TODO: report type error: not a direction type
+      return $ Dereference typeError e
+
+-- Left side is known to be existent function
+-- Right side must be list of matching-type arguments
+functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
+functionCall = error "functionCall"

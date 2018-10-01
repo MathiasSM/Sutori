@@ -43,7 +43,7 @@ data SutExpression = ArrayGet        SutType SutExpression SutExpression
                    | ExprConstructor SutType SutConstructor
                    | ExprID          SutType SutID
                    | ExprLiteral     SutType SutLiteral
-                   | Pointed         SutType SutExpression
+                   | Dereference     SutType SutExpression
                    | MemberGet       SutType SutExpression SutID
 
 expressionType :: SutExpression -> SutType
@@ -55,7 +55,7 @@ expressionType (CreatePointer t _)   = t
 expressionType (ExprConstructor t _) = t
 expressionType (ExprID t _)          = t
 expressionType (ExprLiteral t _)     = t
-expressionType (Pointed t _)         = t
+expressionType (Dereference t _)     = t
 expressionType (MemberGet t _ _ )    = t
 
 withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
@@ -67,7 +67,7 @@ withPrimitiveType p (CreatePointer _ e)   = CreatePointer (SutPrimitiveType p) e
 withPrimitiveType p (ExprConstructor _ c) = ExprConstructor (SutPrimitiveType p) c
 withPrimitiveType p (ExprID _ id)         = ExprID (SutPrimitiveType p) id
 withPrimitiveType p (ExprLiteral _ l)     = ExprLiteral (SutPrimitiveType p) l
-withPrimitiveType p (Pointed _ e)         = Pointed (SutPrimitiveType p) e
+withPrimitiveType p (Dereference _ e)     = Dereference (SutPrimitiveType p) e
 withPrimitiveType p (MemberGet _ e id)    = MemberGet (SutPrimitiveType p) e id
 
 asTypeError :: SutExpression -> SutExpression
