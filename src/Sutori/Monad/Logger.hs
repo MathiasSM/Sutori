@@ -3,6 +3,10 @@ module Sutori.Monad.Logger
 , logError
 , lexerError
 , parserError
+, typeError
+, undefinedError
+, duplicateSymbolError
+, argumentsNumberError
 ) where
 
 import Control.Monad             (when)
@@ -13,12 +17,16 @@ import Control.Monad.Except
 import Data.List (dropWhileEnd)
 import Data.Char (isSpace)
 
-import Sutori.Logger(SutShow(showSut), SutLog(..), SutLogger(..), SutError(..), fromLeave)
+import Sutori.AST                (SutExpression)
+import Sutori.AST.Logger
 import Sutori.Lexer.Logger
-import Sutori.Lexer.Tokens (SutToken)
-
-import Sutori.Types.Constructors (SutTypeID)
-import Sutori.Monad(SutMonad, SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose), setErrorCode)
+import Sutori.Lexer.Tokens       (SutToken)
+import Sutori.Logger             (SutShow(showSut), SutLog(..), SutLogger(..), SutError(..), fromLeave)
+import Sutori.Monad              (SutMonad, SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose), setErrorCode)
+import Sutori.SymTable           (SutSymCategory)
+import Sutori.SymTable.Logger
+import Sutori.Types.Constructors (SutType)
+import Sutori.Utils              (SutID)
 
 instance SutShow SutError where
   showSut = SutLogLeave . show
@@ -68,13 +76,46 @@ parserError tk = do
   setErrorCode code
   throwError errMsg
 
-typeError :: SutTypeID -> SutMonad ()
-typeError tid = do
+typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
+typeError e expected actual msg = do
   let code     = TypeError
   pos  <- errorPos
-  expr <- errorExpr
-  let logTitle = "Type Error: Expected " ++ show tid ++ "<TODO: find expected>"
-      log      = SutLogNode logTitle [pos, expr]
+  let logTitle    = "Type Error: " ++ msg
+      logExpected = SutLogLeave $ "Expected type: " ++ fromLeave (showSut expected)
+      logActual   = SutLogLeave $ "Actual type:   " ++ fromLeave (showSut actual)
+      log      = SutLogNode logTitle [pos, showSut e, logExpected, logActual]
+      errMsg   = (code, log)
+  tell mempty{logError = [errMsg]}
+  setErrorCode code
+
+undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
+undefinedError id cat msg = do
+  let code     = UndefinedSymbolError
+  pos  <- errorPos
+  let logTitle = "Undefined symbol '" ++ id ++ "': " ++ msg
+      log      = SutLogNode logTitle [pos, showSut cat]
+      errMsg   = (code, log)
+  tell mempty{logError = [errMsg]}
+  setErrorCode code
+
+argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
+argumentsNumberError id expected actual = do
+  let code     = ArgumentsNumberError
+  pos  <- errorPos
+  let logTitle    = "Wrong number of arguments in call to '" ++ id ++"'"
+      logExpected = SutLogLeave $ "Number of formal parameters: " ++ show expected
+      logActual   = SutLogLeave $ "Number of actual arguments:  " ++ show actual
+      log      = SutLogNode logTitle [pos, logExpected, logActual]
+      errMsg   = (code, log)
+  tell mempty{logError = [errMsg]}
+  setErrorCode code
+
+duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
+duplicateSymbolError id cat msg = do
+  let code     = DuplicateSymbolError
+  pos  <- errorPos
+  let logTitle    = "Duplicate definition for  '" ++ id ++"': " ++ msg
+      log      = SutLogNode logTitle [pos, showSut cat]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code

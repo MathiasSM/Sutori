@@ -11,6 +11,7 @@ module Sutori.SymTable
 , insertParams
 , symTypeDef
 , lookupID
+, compareParamTypes
 ) where
 
 import qualified Data.Map as Map
@@ -32,6 +33,7 @@ data SutSymCategory = CatModule
                     | CatVariable
                     | CatParameter
                     | CatType
+                    | CatMember
                     deriving Eq
 
 -- A SutParam can be either a sutori reference or a value
@@ -120,3 +122,6 @@ lookupsInScope table scope = map (lookupInScope table scope)
 -- Get a type symbol type definition (SutTypeID)
 symTypeDef :: SutSymbol -> SutTypeID
 symTypeDef = otherTypeDef . symOther
+
+compareParamTypes :: SutParam -> SutParam -> Bool
+compareParamTypes fp p = paramType fp == paramType p

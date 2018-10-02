@@ -1,8 +1,9 @@
 module Sutori.Parser.Symbols where
 
 import qualified Data.Map.Strict as Map
-import Control.Monad.State (get, put)
-import Data.List (find)
+import Control.Monad.State       (get, put)
+import Data.List                 (find)
+import Data.Maybe                (fromJust)
 
 import Sutori.AST                (SutExpression)
 import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
@@ -35,7 +36,10 @@ findType id = do
     Just s  -> return $ symTypeDef s
     Nothing -> error "No type symbol found from SutID"
 
-
+-- Finds an existent type from its ID
+findExistentType :: SutTypeID -> SutMonad SutType
+findExistentType tid = get >>= \SutState{typesGraph = tg} -> retJust (lookupType tid tg)
+  where retJust = return . fromJust
 
 findPerson :: SutID -> SutMonad SutID
 findPerson id = error "findPerson"

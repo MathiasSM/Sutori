@@ -35,16 +35,16 @@ data SutInstruction = InstAssignment SutExpression
                     | ReturnVal            SutExpression
 
 -- A SutExpression
-data SutExpression = ArrayGet        SutType SutExpression SutExpression
-                   | BinaryOp        SutType SutOperator SutExpression SutExpression
-                   | UnaryOp         SutType SutOperator SutExpression
-                   | SutCall         SutType SutID [SutExpression]
+data SutExpression = ArrayGet        SutType SutExpression  SutExpression
+                   | BinaryOp        SutType SutOperator    SutExpression   SutExpression
+                   | UnaryOp         SutType SutOperator    SutExpression
+                   | SutCall         SutType SutID          [SutExpression]
                    | CreatePointer   SutType SutID
                    | ExprConstructor SutType SutConstructor
                    | ExprID          SutType SutID
                    | ExprLiteral     SutType SutLiteral
                    | Dereference     SutType SutExpression
-                   | MemberGet       SutType SutExpression SutID
+                   | MemberGet       SutType SutExpression  SutID
 
 expressionType :: SutExpression -> SutType
 expressionType (ArrayGet t _ _)      = t
