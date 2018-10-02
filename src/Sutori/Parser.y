@@ -24,7 +24,9 @@ import Sutori.Parser.TypeCheck
 
 }
 
-%name      sutoriParser
+%name      parseModule     Module
+%name      parseExpression Expression
+%name      parseType       TypeExpr
 %tokentype { SutToken }
 %monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }
@@ -126,8 +128,8 @@ import Sutori.Parser.TypeCheck
 
 -- Modules
 -- ================================================================================================
-InitModule        :: { () }
-InitModule        : PROGRAM_INI ID BlockGlobal PROGRAM_FIN      {% defModule $2 $3 }
+Module            :: { () }
+Module            : PROGRAM_INI ID BlockGlobal PROGRAM_FIN      {% defModule $2 $3 }
 
 
 

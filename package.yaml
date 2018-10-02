@@ -16,7 +16,6 @@ extra-source-files:
   - src/Sutori/Lexer.x
   - src/Sutori/Parser.y
   - README.md
-  - GRAMMAR.md
   - ChangeLog.md
 
 synopsis: Sutori language compiler

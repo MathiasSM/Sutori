@@ -1,31 +1,31 @@
-.stack-work/
+# Generated code
 sutori.cabal
-*~
-# Created by https://www.gitignore.io/api/haskell
+Parser.hs
+Lexer.hs
 
-### Haskell ###
-dist
-dist-*
-cabal-dev
+# Generated Binaries
 *.o
 *.hi
 *.chi
 *.chs.h
 *.dyn_o
 *.dyn_hi
+
+# Generated
+*.aux
+*.eventlog
+*.hp
+*.prof
+.HTF/
+.cabal-sandbox/
 .hpc
 .hsenv
-.cabal-sandbox/
-cabal.sandbox.config
-*.prof
-*.aux
-*.hp
-*.eventlog
 .stack-work/
+cabal-dev
 cabal.project.local
-.HTF/
+cabal.sandbox.config
+dist
+dist-*
 
-
-# End of https://www.gitignore.io/api/haskell
-Parser.hs
-Lexer.hs
+# Temp files
+*~

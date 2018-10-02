@@ -10,6 +10,8 @@ module Sutori.Types.Primitives
 , toTypeBag
 , toTypeWallet
 , toTypePhrase
+, toTypeSortable
+, toTypeEq
 ) where
 
 import Data.Graph
@@ -112,3 +114,19 @@ toTypeWallet _           = SutTypeError
 toTypePhrase :: SutPrimitive -> SutPrimitive
 toTypePhrase SutTypeError = SutTypeError
 toTypePhrase _            = SutPhrase
+
+-- Go to a sortable type or error
+toTypeSortable :: SutPrimitive -> SutPrimitive
+toTypeSortable SutTypeVoid = SutLetter
+toTypeSortable SutLight    = SutLetter
+toTypeSortable SutLetter   = SutLetter
+toTypeSortable SutBag      = SutBag
+toTypeSortable SutWallet   = SutWallet
+toTypeSortable SutPhrase   = SutPhrase
+toTypeSortable _           = SutTypeError
+
+-- Go to a sortable type or error
+toTypeEq :: SutPrimitive -> SutPrimitive
+toTypeEq SutTypeVoid  = SutTypeError
+toTypeEq SutTypeError = SutTypeError
+toTypeEq a            = a

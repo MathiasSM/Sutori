@@ -13,7 +13,7 @@ import Sutori.Options        (Options(..), usage)
 import Sutori.Options.Logger ()
 import Sutori.Lexer          (runLexerScan, runLexer)
 import Sutori.Logger         (SutLogger(..), SutLog, SutError, SutShow(showSut))
-import Sutori.Parser         (sutoriParser)
+import Sutori.Parser         (parseModule)
 
 
 route :: (Options, [FilePath]) -> IO ()
@@ -70,7 +70,7 @@ runLexerOnly opt@Options{ optOutput = output' } inputFiles = do
 runFrontendOnly :: Options -> [FilePath] -> IO ()
 runFrontendOnly opt@Options{ optOutput = output' } inputFiles = do
   input <- readInput inputFiles
-  let result = runLexer opt input sutoriParser
+  let result = runLexer opt input parseModule
 
   reportResult printTokens result
     where printTokens (e, SutLogger{logInfo = info, logError = err}) = do

@@ -9,7 +9,14 @@ module Sutori.Logger
 import Data.List (intercalate)
 
 -- Different possible Sutori Errors
-data SutError = LexicalError | GrammaticalError | TypeError | InternalError | NoError
+data SutError = LexicalError
+              | GrammaticalError
+              | TypeError
+              | UndefinedSymbolError
+              | ArgumentsNumberError
+              | DuplicateSymbolError
+              | InternalError
+              | NoError
   deriving Show
 
 -- Simple tree data structure to allow pretty printing of sutori logs

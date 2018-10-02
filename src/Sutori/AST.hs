@@ -35,16 +35,16 @@ data SutInstruction = InstAssignment SutExpression
                     | ReturnVal            SutExpression
 
 -- A SutExpression
-data SutExpression = ArrayGet        SutType SutExpression SutExpression
-                   | BinaryOp        SutType SutOperator SutExpression SutExpression
-                   | UnaryOp         SutType SutOperator SutExpression
-                   | SutCall         SutType SutID [SutExpression]
-                   | CreatePointer   SutType SutExpression
+data SutExpression = ArrayGet        SutType SutExpression  SutExpression
+                   | BinaryOp        SutType SutOperator    SutExpression   SutExpression
+                   | UnaryOp         SutType SutOperator    SutExpression
+                   | SutCall         SutType SutID          [SutExpression]
+                   | CreatePointer   SutType SutID
                    | ExprConstructor SutType SutConstructor
                    | ExprID          SutType SutID
                    | ExprLiteral     SutType SutLiteral
-                   | Pointed         SutType SutExpression
-                   | MemberGet       SutType SutExpression SutID
+                   | Dereference     SutType SutExpression
+                   | MemberGet       SutType SutExpression  SutID
 
 expressionType :: SutExpression -> SutType
 expressionType (ArrayGet t _ _)      = t
@@ -55,7 +55,7 @@ expressionType (CreatePointer t _)   = t
 expressionType (ExprConstructor t _) = t
 expressionType (ExprID t _)          = t
 expressionType (ExprLiteral t _)     = t
-expressionType (Pointed t _)         = t
+expressionType (Dereference t _)     = t
 expressionType (MemberGet t _ _ )    = t
 
 withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
@@ -67,7 +67,7 @@ withPrimitiveType p (CreatePointer _ e)   = CreatePointer (SutPrimitiveType p) e
 withPrimitiveType p (ExprConstructor _ c) = ExprConstructor (SutPrimitiveType p) c
 withPrimitiveType p (ExprID _ id)         = ExprID (SutPrimitiveType p) id
 withPrimitiveType p (ExprLiteral _ l)     = ExprLiteral (SutPrimitiveType p) l
-withPrimitiveType p (Pointed _ e)         = Pointed (SutPrimitiveType p) e
+withPrimitiveType p (Dereference _ e)     = Dereference (SutPrimitiveType p) e
 withPrimitiveType p (MemberGet _ e id)    = MemberGet (SutPrimitiveType p) e id
 
 asTypeError :: SutExpression -> SutExpression
@@ -85,25 +85,26 @@ data SutConstructor = SutArray [SutExpression]
                     | SutStruct [(SutID, SutExpression)]
 
 -- Sutori operators
-data SutOperator = SutOpPos
-                 | SutOpNeg
-                 | SutOpNot
-                 | SutOpDer
-                 | SutOpAdd
-                 | SutOpSub
-                 | SutOpMul
-                 | SutOpDiv
-                 | SutOpIntDiv
-                 | SutOpMod
-                 | SutOpPow
-                 | SutOpAnd
-                 | SutOpOr
-                 | SutOpEqual
-                 | SutOpNotEq
-                 | SutOpGEq
-                 | SutOpLEq
-                 | SutOpGreater
-                 | SutOpLess
-                 | SutOpAssign
-                 | SutOpIndex
-                 | SutOpMember
+data SutOperator = SutOpPos     -- Unary plus/make positive
+                 | SutOpNeg     -- Unary minus/negate
+                 | SutOpNot     -- Unary not
+                 | SutOpDer     -- Unary dereference
+
+                 | SutOpAdd     -- Binary addition
+                 | SutOpSub     -- Binary substraction
+                 | SutOpMul     -- Binary multiplication
+                 | SutOpDiv     -- Binary division
+                 | SutOpIntDiv  -- Binary integer division
+                 | SutOpMod     -- Binary modulo
+                 | SutOpPow     -- Binary power
+                 | SutOpAnd     -- Binary and
+                 | SutOpOr      -- Binary or
+                 | SutOpEqual   -- Binary equal
+                 | SutOpNotEq   -- Binary not equal
+                 | SutOpGEq     -- Binary greater or equal than
+                 | SutOpLEq     -- Binary less or equal than
+                 | SutOpGreater -- Binary greater than
+                 | SutOpLess    -- Binary less than
+                 | SutOpAssign  -- Binary assignment
+                 | SutOpIndex   -- Binary indexation
+                 | SutOpMember  -- Binary member get

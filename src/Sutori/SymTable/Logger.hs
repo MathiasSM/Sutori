@@ -11,6 +11,7 @@ instance SutShow SutSymCategory where
   showSut CatVariable  = SutLogLeave "Category: Variable"
   showSut CatParameter = SutLogLeave "Category: Parameter"
   showSut CatType      = SutLogLeave "Category: Type"
+  showSut CatMember    = SutLogLeave "Category: Member"
 
 
 instance SutShow SutParamKind where
