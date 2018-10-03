@@ -14,14 +14,28 @@ import Sutori.Types.Primitives  (SutTypeID)
 import Sutori.Utils             (SutID)
 
 import Sutori.SymTable
-  ( SutSymbol(symCat), SutParamKind, SutSymCategory(..), SutSymOther(SymTypeDef)
+  ( SutSymbol(symCat), SutParamKind(..), SutSymCategory(..), SutSymOther(..)
   , lookupID, insert
   , isPerson, isType, isVariable)
 
 
 -- |Includes a new person into the story
+--
+-- TODO: Refactor code. all these functions use mostly repeated code
 defPerson :: SutID -> SutMonad ()
-defPerson = error "defPerson"
+defPerson pid = do
+  state@SutState{ parserTable = table } <- get
+  let syms = lookupID table pid
+      sym  = find (isPerson . symCat) syms
+  case sym of
+    Just s  -> do
+      duplicateSymbolError pid CatPerson ""
+      return ()
+    Nothing -> do
+      let newTable     = insert table currentScope CatPerson 0 SymNothing [pid]
+          currentScope = parserCurrentScope state
+      put state{ parserTable = newTable }
+
 
 -- |Defines a new variable of given type and optionally assigns it an initial value.
 --
@@ -30,10 +44,10 @@ defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
 defVariable pid tid (id, mexp) = do
   state@SutState{ parserTable = table } <- get
   let syms = lookupID table id
-      sym  = find (isPerson . symCat) syms
+      sym  = find (isVariable . symCat) syms
   case sym of
     Just s  -> do
-      duplicateSymbolError id CatType ("Type '" ++ id ++ "' already present in the current story")
+      duplicateSymbolError id CatType ""
       return ()
     Nothing -> do
       let newTable     = insert table currentScope CatType 0 (SymTypeDef tid) [id]
@@ -49,7 +63,7 @@ defType pid id tid = do
       sym  = find (isType . symCat) syms
   case sym of
     Just s  -> do
-      duplicateSymbolError id CatType ("Type '" ++ id ++ "' already present in the current story")
+      duplicateSymbolError id CatType ""
       return ()
     Nothing -> do
       let newTable     = insert table currentScope CatType 0 (SymTypeDef tid) [id]
