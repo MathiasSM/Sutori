@@ -5,17 +5,16 @@ module Sutori.Router
 ( route
 ) where
 
-import Paths_sutori          (version)
-import Data.Version          (showVersion)
-
 import Control.Monad.Except  ()
-
+import Data.Version          (showVersion)
+import Paths_sutori          (version)
 import System.Exit           (exitSuccess, die)
 
-import Sutori.Options        (Options(..), usage)
-import Sutori.Options.Logger ()
 import Sutori.Lexer          (runLexerScan, runLexer)
 import Sutori.Logger         (SutLogger(..), SutLog, SutError, SutShow(showSut))
+import Sutori.Monad          (SutState(SutState, mainModule))
+import Sutori.Options        (Options(..), usage)
+import Sutori.Options.Logger ()
 import Sutori.Parser         (parseModule)
 
 
@@ -56,26 +55,30 @@ showSutoriVersion _ = do
   exitSuccess
 
 -- |Runs the lexer and outputs the list of read tokens
+--
+-- TODO: Check state for error code and fail
 runLexerOnly :: Options -> [FilePath] -> IO ()
 runLexerOnly opt@Options{ optOutput = output' } inputFiles = do
   input <- readInput inputFiles
   let result = runLexerScan opt input
 
   reportResult printTokens result
-    where printTokens (tks, SutLogger{logInfo = info, logError = err}) = do
+    where printTokens ((tks, _), SutLogger{logInfo = info, logError = err}) = do
             mapM_ (print.showSut) tks
             mapM_ print info
             mapM_ printError err
 
 -- |Runs the parser/lexer monad without code generation
+--
+-- TODO: Check state for error code and fail
 runFrontendOnly :: Options -> [FilePath] -> IO ()
 runFrontendOnly opt@Options{ optOutput = output' } inputFiles = do
   input <- readInput inputFiles
   let result = runLexer opt input parseModule
 
   reportResult printTokens result
-    where printTokens (e, SutLogger{logInfo = info, logError = err}) = do
-            print e
+    where printTokens ((e, SutState{ mainModule = m }), SutLogger{logInfo = info, logError = err}) = do
+            print $ showSut m
             mapM_ print info
             mapM_ printError err
 

@@ -16,6 +16,7 @@ import Control.Monad.State
 import Control.Monad.Writer
 import Control.Monad.Zip
 
+import Sutori.AST              (SutModule)
 import Sutori.Lexer.Posn       (SutPosn, initialPosn)
 import Sutori.Logger           (SutLogger(SutLogger), SutError(NoError), SutLog)
 import Sutori.SymTable         (SymTable, Scope, SutSymCategory(CatType), SutSymOther(SymTypeDef), insert)
@@ -37,6 +38,7 @@ data SutState = SutState
   , parserStack     :: [Scope]       -- ^ The scopes stack
   , parserScopes    :: Set.Set Scope -- ^ The set of open scopes
   , parserNextScope :: Scope         -- ^ The next scope ID to open
+  , mainModule      :: SutModule     -- ^ The main module (where compilation began)
   , typesGraph      :: TypeGraph     -- ^ The constructed type graph
   , typesNextID     :: SutTypeID     -- ^ The next type ID to be introduced
   , logVerbose      :: Bool          -- ^ Set the output to verbose of not
@@ -57,6 +59,7 @@ initialSutoriState = SutState
   , parserStack     = [0]
   , parserScopes    = Set.insert 0 Set.empty
   , parserNextScope = 0
+  , mainModule      = undefined
   , typesGraph      = initialTypeGraph
   , typesNextID     = initialNextTypeID
   , logVerbose      = False

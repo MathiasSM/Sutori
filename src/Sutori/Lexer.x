@@ -293,9 +293,9 @@ lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 
 
 -- |Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
 runLexer Options{ optVerbose = v } input f =
-  runExcept $ runWriterT $ evalStateT f initialSutoriState { lexerInput = input, logVerbose = v }
+  runExcept $ runWriterT $ runStateT f initialSutoriState { lexerInput = input, logVerbose = v }
 
 
 -- |Gets all tokens recursively
@@ -310,7 +310,7 @@ lexerLoop = do
 
 
 -- |Run the lexer on a given string, get the results
-runLexerScan :: Options -> String -> Either (SutError, SutLog) ([SutToken], SutLogger)
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
 runLexerScan opt input = runLexer opt input lexerLoop
 
 
