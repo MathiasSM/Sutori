@@ -5,14 +5,16 @@ Description : Defines finder functions for symbols: Most assume the symbol exist
 module Sutori.Parser.Symbols where
 
 import qualified Data.Map.Strict as Map
+import Control.Monad             (unless)
 import Control.Monad.State       (get, put)
 import Data.List                 (find)
-import Data.Maybe                (fromJust)
+import Data.Maybe                (fromJust, isJust)
 
-import Sutori.AST                (SutExpression)
+import Sutori.AST                (SutExpression(ExprID))
 import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
-import Sutori.SymTable           (SutSymbol(symCat), SutSymCategory(CatType), symTypeDef, lookupID)
-import Sutori.Types.Constructors (SutType(SutPrimitiveType))
+import Sutori.Monad.Logger       (undefinedError)
+import Sutori.SymTable           (SutSymbol(..), SutSymCategory(..), SutSymOther(..), lookupID, symTypeDef)
+import Sutori.Types.Constructors (SutType(SutPrimitiveType), primitiveError)
 import Sutori.Types.Graph        (TypeGraph(TypeGraph), lookupType, lookupTypeID, insertType)
 import Sutori.Types.Primitives   (SutTypeID)
 import Sutori.Utils              (SutID)
@@ -38,7 +40,10 @@ findType id = do
               isType _       = False
   case sym of
     Just s  -> return $ symTypeDef s
-    Nothing -> error "No type symbol found from SutID"
+    Nothing -> do
+      undefinedError id CatType ("Type '" ++ id ++ "' not present in the current story")
+      findTypeID primitiveError
+
 
 -- |Finds an existent type from its ID
 findExistentType :: SutTypeID -> SutMonad SutType
@@ -47,12 +52,41 @@ findExistentType tid = get >>= \SutState{typesGraph = tg} -> retJust (lookupType
 
 -- |Checks if the given person already exists
 findPerson :: SutID -> SutMonad SutID
-findPerson id = error "findPerson"
+findPerson id = do
+  SutState { parserTable = table } <- get
+  let syms = lookupID table id
+      sym  = find (isPerson . symCat) syms
+        where isPerson :: SutSymCategory -> Bool
+              isPerson CatPerson = True
+              isPerson _         = False
+  unless (isJust sym) $ undefinedError id CatPerson ("Person '" ++ id ++ "' not present in the current story")
+  return id
 
 -- |Checks if the given function already exists
 findFunction :: SutID -> SutMonad SutID
-findFunction id = error "findFunction"
+findFunction id = do
+  SutState { parserTable = table } <- get
+  let syms = lookupID table id
+      sym  = find (isFunction . symCat) syms
+        where isFunction :: SutSymCategory -> Bool
+              isFunction CatFunction = True
+              isFunction _           = False
+  unless (isJust sym) $ undefinedError id CatFunction ("Function '" ++ id ++ "' not present in the current story")
+  return id
 
--- |Checks if the given variable already exists
+-- |Checks if the given variable already exists, returns the ID wrapped as an expression
 findVariable :: SutID -> SutMonad SutExpression
-findVariable id = error "findVariable"
+findVariable id = do
+  SutState { parserTable = table } <- get
+  let syms = lookupID table id
+      sym  = find (isVariable . symCat) syms
+        where isVariable :: SutSymCategory -> Bool
+              isVariable CatVariable = True
+              isVariable _           = False
+  case sym of
+    Just s  -> do
+      t <- findExistentType (symType s)
+      return $ ExprID t id
+    Nothing -> do
+      unless (isJust sym) $ undefinedError id CatFunction ("Function '" ++ id ++ "' not present in the current story")
+      return $ ExprID primitiveError id
