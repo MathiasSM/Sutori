@@ -1,9 +1,12 @@
-module Sutori.Options.Logger
-() where
+{-|
+Description : Provides 'ShowSut' instances for "Sutori.Options"
+-}
+module Sutori.Options.Logger() where
 
 import Sutori.Options
 import Sutori.Logger  (SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
 
+-- |The execution options can be printed nicely
 instance SutShow Options where
   showSut Options
     { optVerbose = verbose

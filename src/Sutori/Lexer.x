@@ -1,4 +1,7 @@
 {
+{-|
+Description : Alex-generated lexer for Sutori language
+-}
 module Sutori.Lexer
 ( lexerScanClean -- We only export the clean version (has lexical error handling)
 , runLexer       -- Runs the lexer with the given action (parsing?)
@@ -140,34 +143,36 @@ tokens :-
 -- Actions
 -- ================================================================================================
 
--- An action for SutMonad to run on a given token
+-- |An action for 'SutMonad' to run on a given token
 type TokenAction = SutoriInput -> Int -> SutMonad SutToken
 
 
 -- General actions
 -- ------------------------------------------------------------------------------------------------
--- Ignore this token and scan another one
+-- |Ignore this token and scan another one
 skip :: TokenAction
 skip _ _ = lexerScan
 
--- Ignore this token, but set the start code to a new value
+-- |Ignore this token, but set the start code to a new value
 begin :: Int -> TokenAction
 begin code _ _ = do setStateCode code; lexerScan
 
--- Perform an action for this token, and set the start code to a new value
+-- |Perform an action for this token, and set the start code to a new value
 andBegin :: TokenAction -> Int -> TokenAction
 (action `andBegin` code) input len = setStateCode code >> action input len
 
--- Set the current state code (startcode for alex)
+-- |Set the current state code (startcode for alex)
 setStateCode :: Int -> SutMonad ()
 setStateCode c = get >>= \s -> put s{lexerStateCode=c}
 
 
 -- Token Getters
 -- ------------------------------------------------------------------------------------------------
+-- |Basic token constructor
 tokenize :: SutToken -> TokenAction
 tokenize c _ _ = return c
 
+-- |Different token constructors
 tokenizeChar, tokenizeFloat, tokenizeInt, tokenizeID, tokenizeBool, tokenizeError :: TokenAction
 tokenizeChar    (_, _, _, str)   len = return (SutTkChar  (take len str))
 tokenizeFloat   (_, _, _, str)   len = return (SutTkFloat (read $ take len str))
@@ -182,22 +187,22 @@ tokenizeError   (_, _, _, input) len = do
 
 -- Comment nesting
 -- ------------------------------------------------------------------------------------------------
--- Get current comment depth
+-- |Get current comment depth
 getLexerCommentDepth :: SutMonad Int
 getLexerCommentDepth = get >>= \SutState{lexerDepth=d} -> return d
 
--- Set current comment depth
+-- |Set current comment depth
 setLexerCommentDepth :: Int -> SutMonad ()
 setLexerCommentDepth d = get >>= \s -> put s{lexerDepth=d}
 
--- Go one level deeper
+-- |Go one level deeper
 embedComment :: TokenAction
 embedComment input len = do
   cd <- getLexerCommentDepth
   setLexerCommentDepth (cd + 1)
   skip input len
 
--- Go one level up
+-- |Go one level up
 unembedComment :: TokenAction
 unembedComment input len = do
   cd <- getLexerCommentDepth
@@ -208,47 +213,47 @@ unembedComment input len = do
 
 -- Strings
 -- ------------------------------------------------------------------------------------------------
--- Enters "string" state
+-- |Enters "string" state
 enterString :: TokenAction
 enterString _ _ = do
   setLexerStringState True
   setLexerStringValue ""
   lexerScan
 
--- Leaves "string" state
+-- |Leaves "string" state
 leaveString :: TokenAction
 leaveString (p, _, _, input) len = do
   s <- getLexerStringValue
   setLexerStringState False
   return (SutTkString (reverse s))
 
--- Adds a given character to the current string
+-- |Adds a given character to the current string
 addCharToString :: Char -> TokenAction
 addCharToString c _ _ = addCharToLexerStringValue c >> lexerScan
   where addCharToLexerStringValue :: Char -> SutMonad ()
         addCharToLexerStringValue c = get >>= \s@SutState{lexerString=ss} -> put s{lexerString=c:ss}
 
--- Adds an escaped character to the current string
+-- |Adds an escaped character to the current string
 addEscapedToString :: TokenAction
 addEscapedToString i@(_, _, _, input) = addCharToString (input!!1) i
 
--- Adds current character to current sring
+-- |Adds current character to current sring
 addCurrentToString :: TokenAction
 addCurrentToString i@(_, _, _, input) = addCharToString (head input) i
 
--- Know if currently on a string
+-- |Know if currently on a string
 getLexerStringState :: SutMonad Bool
 getLexerStringState = get >>= \s@SutState{lexerStringOn=ss} -> return ss
 
--- Set the string state (if entering/leaving string)
+-- |Set the string state (if entering/leaving string)
 setLexerStringState :: Bool -> SutMonad ()
 setLexerStringState ss = get >>= \s -> put s{lexerStringOn=ss}
 
--- Get the currently built string
+-- |Get the currently built string
 getLexerStringValue :: SutMonad String
 getLexerStringValue = get >>= \s@SutState{lexerString=ss} -> return ss
 
--- Set the string value
+-- |Set the string value
 setLexerStringValue :: String -> SutMonad ()
 setLexerStringValue ss = get >>= \s -> put s{lexerString=ss}
 
@@ -256,7 +261,7 @@ setLexerStringValue ss = get >>= \s -> put s{lexerString=ss}
 
 -- Runner
 -- ================================================================================================
--- Scan for the next token based on Alex' alexGetInput
+-- |Scan for the next token based on Alex' alexGetInput
 lexerScan :: SutMonad SutToken
 lexerScan = do
   SutState{lexerStateCode=sc} <- get
@@ -267,13 +272,13 @@ lexerScan = do
     AlexSkip  input' _          -> lexerSetInput input' >> lexerScan
     AlexToken input' len action -> lexerSetInput input' >> action (ignorePendingBytes input) len
 
--- Passes tokens through, reports error tokens
+-- |Passes tokens through, reports error tokens
 checkTokenError :: SutToken -> SutMonad SutToken
 checkTokenError tk = do
   when (not $ isValid tk) $ lexerError "Unrecognized Token"
   return tk
 
--- Passes tokens through, reports unexpected EOF
+-- |Passes tokens through, reports unexpected EOF
 checkTokenEOF :: SutToken -> SutMonad SutToken
 checkTokenEOF tk = do
   isString <- getLexerStringState
@@ -282,18 +287,18 @@ checkTokenEOF tk = do
   when (commentDepth > 0) $ lexerError "Comment not closed at EOF"
   return tk
 
--- External API: Scans for next token, but passes it though checks first
+-- |Scans for next token, but passes it though checks first
 lexerScanClean :: SutMonad SutToken
 lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 
 
--- External API: Run the lexer on a given input string, with a given function
+-- |Run the lexer on a given input string, with a given function
 runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
 runLexer Options{ optVerbose = v } input f =
   runExcept $ runWriterT $ evalStateT f initialSutoriState { lexerInput = input, logVerbose = v }
 
 
--- Gets all tokens recursively
+-- |Gets all tokens recursively
 lexerLoop :: SutMonad [SutToken]
 lexerLoop = do
   tk' <- lexerScanClean
@@ -304,12 +309,12 @@ lexerLoop = do
       return (tk:tks)
 
 
--- External API: Run the lexer on a given string, get the results
+-- |Run the lexer on a given string, get the results
 runLexerScan :: Options -> String -> Either (SutError, SutLog) ([SutToken], SutLogger)
 runLexerScan opt input = runLexer opt input lexerLoop
 
 
--- External API: Run the lexer, but receive a continuation (Used by Happy)
+-- |Run the lexer, but receive a continuation (Used by Happy)
 lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
 lexwrap = (lexerScanClean >>=)
 

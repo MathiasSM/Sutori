@@ -1,3 +1,6 @@
+{-|
+Description : Provides 'ShowSut' instances for "Sutori.Types"
+-}
 module Sutori.Types.Logger() where
 
 import Data.List(intercalate)
@@ -9,12 +12,12 @@ import Sutori.Types.Graph(TypeGraph(TypeGraph), orderedGraph)
 import Sutori.Types.Primitives(SutPrimitive(..))
 import Sutori.Types.Constructors(SutType(..), SutTypeID)
 
--- The graph prints as a list of types
+-- |The graph prints as a list of types
 instance SutShow TypeGraph where
   showSut g = SutLogNode "Type Graph" $ map showType $ orderedGraph g
     where showType (id, t) = SutLogLeave $ "Type#" ++ show id ++ " : " ++ (fromLeave.showSut) t
 
--- Each primitive prints as its natural name
+-- |Each primitive prints as its natural name
 instance SutShow SutPrimitive where
   showSut SutBag           = SutLogLeave "Bag"
   showSut SutWallet        = SutLogLeave "Wallet"
@@ -24,6 +27,7 @@ instance SutShow SutPrimitive where
   showSut SutTypeVoid      = SutLogLeave "No Type"
   showSut SutTypeError     = SutLogLeave "Type error"
 
+-- |Each type construct prints nicely
 instance SutShow SutType where
   showSut (SutPrimitiveType t) = showSut t
   showSut (SutDirection t) = SutLogLeave $ "Direction to type " ++ show t
@@ -31,6 +35,6 @@ instance SutShow SutType where
   showSut (SutMachine ms)  = SutLogLeave $ "Machine with " ++ showMembers " and a " ms
   showSut (SutThing ms)    = SutLogLeave $ "Thing that is either " ++ showMembers " or a " ms
 
--- Helper function to print a list of members
+-- |Print a list of members
 showMembers :: String -> [(SutID, SutTypeID)] -> String
 showMembers sep ms = intercalate sep (map (\(id, tid) -> (id ++ " of type " ++ show tid)) ms)

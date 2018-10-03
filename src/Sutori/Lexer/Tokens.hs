@@ -1,9 +1,12 @@
+{-|
+Description : Defines all the different tokens of the languages
+-}
 module Sutori.Lexer.Tokens
 ( SutToken(..)
 , isValid
 ) where
 
--- Sutori token classes. Can be shown with SutShow
+-- |Sutori token classes. Their RegEx' are defined in Alex file
 data SutToken = SutTkEOF
 
               | BLOCK_OPEN
@@ -90,7 +93,7 @@ data SutToken = SutTkEOF
   deriving (Eq,Show)
 
 
--- Says if the given token is valid (not an error) or not
+-- |Says if the given token is valid (not an error) or not
 isValid :: SutToken -> Bool
 isValid (SutTkError _)  = False
 isValid _               = True

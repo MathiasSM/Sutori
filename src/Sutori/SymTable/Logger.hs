@@ -1,9 +1,13 @@
+{-|
+Description : Provides 'ShowSut' instances for "Sutori.SymTable"
+-}
 module Sutori.SymTable.Logger() where
 
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
-import Sutori.SymTable
 import Sutori.AST.Logger
+import Sutori.Logger     (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
+import Sutori.SymTable
 
+-- |A symbol category can be printed nicely
 instance SutShow SutSymCategory where
   showSut CatModule    = SutLogLeave "Category: Module"
   showSut CatFunction  = SutLogLeave "Category: Function"
@@ -13,11 +17,12 @@ instance SutShow SutSymCategory where
   showSut CatType      = SutLogLeave "Category: Type"
   showSut CatMember    = SutLogLeave "Category: Member"
 
-
+-- |A parameter kind can be printed nicely
 instance SutShow SutParamKind where
   showSut SutRef = SutLogLeave "Passed by: Reference"
   showSut SutVal = SutLogLeave "Passed by: Value"
 
+-- |The extra payload of a symbol can be printed nicely
 instance SutShow SutSymOther where
   showSut (SymAST ps b)    = let params = SutLogNode "Parameters: " (map showSut ps)
                                  block  = SutLogNode "AST: " (map showSut b)
@@ -26,7 +31,7 @@ instance SutShow SutSymOther where
   showSut (SymTypeDef t)   = SutLogLeave  $ "Type definition: " ++ show t
   showSut  SymNothing      = SutLogLeave "-"
 
-
+-- |A sutori symbol in the table can be printed nicely
 instance SutShow SutSymbol where
   showSut s = let etype = SutLogLeave $ "Type: " ++ show (symType s)
                   cat   = showSut $ symCat s
@@ -34,7 +39,7 @@ instance SutShow SutSymbol where
                   other = showSut (symOther s)
                in SutLogNode ("Symbol: " ++ symID s) [cat, etype, scope, other]
 
-
+-- |A parameter can be printed nicely
 instance SutShow SutParam where
   showSut p = let kind  = showSut (paramKind p)
                   etype = SutLogLeave $ "Type: " ++ show (paramType p)

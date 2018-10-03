@@ -1,3 +1,7 @@
+{-|
+Description : Provides definition functions that add the appropiate symbols to the table,
+              given that all checks passed and the definition is legal.
+-}
 module Sutori.Parser.Definitions where
 
 import Sutori.AST              (SutExpression, SutBlock, SutModule)

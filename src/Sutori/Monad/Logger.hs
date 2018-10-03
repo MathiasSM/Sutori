@@ -1,3 +1,7 @@
+{-|
+Description : Provides 'ShowSut' instances for "Sutori.Monad".
+              Right now it also provides error handling functions
+-}
 module Sutori.Monad.Logger
 ( SutError(..)
 , logError
@@ -14,8 +18,8 @@ import Control.Monad.State.Lazy  (get)
 import Control.Monad.Writer.Lazy (tell)
 import Control.Monad.Except
 
-import Data.List (dropWhileEnd)
-import Data.Char (isSpace)
+import Data.List                 (dropWhileEnd)
+import Data.Char                 (isSpace)
 
 import Sutori.AST                (SutExpression)
 import Sutori.AST.Logger
@@ -28,6 +32,7 @@ import Sutori.SymTable.Logger
 import Sutori.Types.Constructors (SutType)
 import Sutori.Utils              (SutID)
 
+-- |A 'SutError' can be printed nicely
 instance SutShow SutError where
   showSut = SutLogLeave . show
 
@@ -38,22 +43,22 @@ instance SutShow SutError where
 
 -- Information gathering
 -- ------------------------------------------------------------------------------------------------
+-- |Gets the current position and formats it as an error log
 errorPos :: SutMonad SutLog
 errorPos = do
   SutState{ lexerPosn = posn, lexerChar = char, lexerInput = input } <- get
   return $ SutLogLeave $ "On position: " ++ fromLeave (showSut posn)
 
+-- |Gets the current character from the state and formats it as an error log
 errorChar :: SutMonad SutLog
 errorChar = do
   SutState{ lexerPosn = posn, lexerChar = char, lexerInput = input } <- get
   return $ SutLogLeave $ "On char: " ++ [char]
 
-errorExpr :: SutMonad SutLog
-errorExpr = return $ SutLogLeave $ "On expression: " ++ "<TODO: Get current expression>"
-
 
 -- API: The different possible errors
 -- ------------------------------------------------------------------------------------------------
+-- |Logs a lexical error and continues
 lexerError :: String -> SutMonad ()
 lexerError msg = do
   pos  <- errorPos
@@ -65,6 +70,7 @@ lexerError msg = do
   tell mempty{logError = [errMsg]}
   setErrorCode LexicalError
 
+-- |Logs a parsing error and throws out
 parserError :: SutToken -> SutMonad a
 parserError tk = do
   pos <- errorPos
@@ -76,6 +82,7 @@ parserError tk = do
   setErrorCode code
   throwError errMsg
 
+-- |Logs a type error and continues
 typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
 typeError e expected actual msg = do
   let code     = TypeError
@@ -88,6 +95,7 @@ typeError e expected actual msg = do
   tell mempty{logError = [errMsg]}
   setErrorCode code
 
+-- |Logs an undefined symbol error and continues
 undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
 undefinedError id cat msg = do
   let code     = UndefinedSymbolError
@@ -98,6 +106,7 @@ undefinedError id cat msg = do
   tell mempty{logError = [errMsg]}
   setErrorCode code
 
+-- |Logs a wrong number of parameters error and continues
 argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
 argumentsNumberError id expected actual = do
   let code     = ArgumentsNumberError
@@ -110,6 +119,7 @@ argumentsNumberError id expected actual = do
   tell mempty{logError = [errMsg]}
   setErrorCode code
 
+-- |Logs a duplicate symbol error and continues
 duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
 duplicateSymbolError id cat msg = do
   let code     = DuplicateSymbolError

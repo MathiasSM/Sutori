@@ -1,3 +1,6 @@
+{-|
+Description : Provides 'ShowSut' instances for "Sutori.AST"
+-}
 module Sutori.AST.Logger() where
 
 import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
@@ -5,10 +8,12 @@ import Sutori.Types.Logger ()
 import Sutori.AST
 
 
+-- |Modules can be printed nicely
 instance SutShow SutModule where
   showSut (SutModule id b) = SutLogNode ("Module: " ++ show id) (map showSut b)
 
 
+-- |Instructions of the AST can be printed nicely
 instance SutShow SutInstruction where
   showSut (InstAssignment e)             = SutLogNode "Expression as instruction:" [showSut e]
   showSut (Selection who cond ifb elseb) = let condition = SutLogNode "Condition:" [showSut cond]
@@ -27,6 +32,7 @@ instance SutShow SutInstruction where
   showSut (ReturnVal e)                  = SutLogNode "Returned value:" [showSut e]
 
 
+-- |Expressions of the AST can be printed nicely
 instance SutShow SutExpression where
   showSut (ArrayGet t ae ie)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        array = SutLogNode "Array:" [showSut ae]
@@ -58,6 +64,7 @@ instance SutShow SutExpression where
                                     in SutLogNode "UnaryOperation" [etype, operator, expr]
 
 
+-- |Literals can be printed nicely
 instance SutShow SutLiteral where
   showSut (SutString s)  = SutLogLeave $ "Literal: Phrase(" ++ show s ++ ")"
   showSut (SutInt i)     = SutLogLeave $ "Literal: Bag(" ++ show i ++")"
@@ -65,14 +72,14 @@ instance SutShow SutLiteral where
   showSut (SutChar c)    = SutLogLeave $ "Literal: Letter(" ++ show c ++")"
   showSut (SutBool b)    = SutLogLeave $ "Literal: Light(" ++ show b ++")"
 
-
+-- |Constructs can be printed nicely
 instance SutShow SutConstructor where
   showSut (SutArray es)  = SutLogNode "Chain:" (map showSut es)
   showSut (SutStruct es) = SutLogNode "Machine:" (map showMember es)
 
 showMember (id, e) = SutLogNode ("Member: " ++ show id) [showSut e]
 
-
+-- |Operators can be printed nicely
 instance SutShow SutOperator where
   showSut SutOpNeg     = SutLogLeave "Operator: -negative"
   showSut SutOpNot     = SutLogLeave "Operator: !negation"

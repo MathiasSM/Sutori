@@ -1,3 +1,7 @@
+{-|
+Description : Defines finder functions for symbols: Most assume the symbol exist, so
+              an error for undefined symbol is logged if they can't find it
+-}
 module Sutori.Parser.Symbols where
 
 import qualified Data.Map.Strict as Map
@@ -14,7 +18,7 @@ import Sutori.Types.Primitives   (SutTypeID)
 import Sutori.Utils              (SutID)
 
 
--- Finds the existent typeID or inserts the type and gets the new ID
+-- |Finds the existent typeID or inserts the type and gets the new ID
 findTypeID :: SutType -> SutMonad SutTypeID
 findTypeID t = do
   oldState@SutState { typesGraph = graph, typesNextID = nextID } <- get
@@ -23,7 +27,7 @@ findTypeID t = do
     Nothing -> let newGraph = insertType (t, nextID) graph
                 in put oldState { typesGraph = newGraph, typesNextID = nextID + 1 } >> return nextID
 
--- Finds the typeID from a SutID
+-- |Finds the typeID from a SutID
 findType :: SutID -> SutMonad SutTypeID
 findType id = do
   SutState { parserTable = table, typesGraph = graph, typesNextID = nextID } <- get
@@ -36,16 +40,19 @@ findType id = do
     Just s  -> return $ symTypeDef s
     Nothing -> error "No type symbol found from SutID"
 
--- Finds an existent type from its ID
+-- |Finds an existent type from its ID
 findExistentType :: SutTypeID -> SutMonad SutType
 findExistentType tid = get >>= \SutState{typesGraph = tg} -> retJust (lookupType tid tg)
   where retJust = return . fromJust
 
+-- |Checks if the given person already exists
 findPerson :: SutID -> SutMonad SutID
 findPerson id = error "findPerson"
 
+-- |Checks if the given function already exists
 findFunction :: SutID -> SutMonad SutID
 findFunction id = error "findFunction"
 
+-- |Checks if the given variable already exists
 findVariable :: SutID -> SutMonad SutExpression
 findVariable id = error "findVariable"

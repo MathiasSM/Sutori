@@ -1,18 +1,21 @@
+{-|
+Description : Defines the different CLI options and a parser function to get them
+-}
 module Sutori.Options(Options(..), handleFlags, usage) where
 
 import Data.Maybe
 import System.Console.GetOpt
 
 
--- Options for command-line parsing
+-- |Options for command-line parsing
 data Options = Options
-  { optVerbose      :: Bool
-  , optDebugging    :: Bool
-  , optShowVersion  :: Bool
-  , optShowHelp     :: Bool
-  , optOutput       :: Maybe FilePath
-  , optStopOnLexer  :: Bool
-  , optStopOnParser :: Bool
+  { optVerbose      :: Bool            -- ^ Verbose switch
+  , optDebugging    :: Bool            -- ^ Debugging switch
+  , optOutput       :: Maybe FilePath  -- ^ Output file
+  , optShowVersion  :: Bool            -- ^ Mode: Show version
+  , optShowHelp     :: Bool            -- ^ Mode: Show help
+  , optStopOnLexer  :: Bool            -- ^ Mode: Run only lexer
+  , optStopOnParser :: Bool            -- ^ Mode: Run only frontend
   }
 
 defaultOptions = Options
@@ -25,7 +28,7 @@ defaultOptions = Options
   , optStopOnParser = False
   }
 
--- Description of the different command-line options
+-- |Description of the different command-line options
 options :: [OptDescr (Options -> Options)]
 options =
   [
@@ -59,10 +62,12 @@ options =
 
 
 
--- Parse command-line flags
+-- |Parse command-line flags
 handleFlags :: [String] -> IO (Options, [String])
 handleFlags argv = case getOpt Permute options argv of
     (o,n,[]  ) -> return (foldl (flip id) defaultOptions o, n)
     (_,_,errs) -> ioError (userError (concat errs ++ usage))
 
+-- |Complete usage information
+usage :: String
 usage = usageInfo "Usage: sutori [OPTION...] files..." options

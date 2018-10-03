@@ -1,3 +1,7 @@
+{-|
+Description : Defines Sutori primitive types, build a generalization graph fro them
+              and provides functions to get the most general type of two primitives
+-}
 module Sutori.Types.Primitives
 ( SutPrimitive(..)
 , SutTypeID
@@ -17,20 +21,20 @@ module Sutori.Types.Primitives
 import Data.Graph
 import Data.Maybe(fromJust)
 
--- A type will be represented by an ID
+-- |A type will be represented by an ID
 type SutTypeID = Int
 
--- Sutori primitives follow (their IDs are presented below)
-data SutPrimitive = SutBag
-                  | SutWallet
-                  | SutPhrase
-                  | SutLight
-                  | SutLetter
-                  | SutTypeVoid
-                  | SutTypeError
+-- |Sutori primitives
+data SutPrimitive = SutBag        -- ^ A bag (Int)
+                  | SutWallet     -- ^ A wallet (Float)
+                  | SutPhrase     -- ^ A phrase (String)
+                  | SutLight      -- ^ A light (Bool)
+                  | SutLetter     -- ^ A letter (Char)
+                  | SutTypeVoid   -- ^ A void element (Void)
+                  | SutTypeError  -- ^ A Type Error (&^%$#)
                   deriving (Eq, Ord)
 
--- Predefined Sutori types to initialize symtable
+-- |Predefined Sutori types to initialize symtable
 primitives :: [SutPrimitive]
 primitives =
   [ SutTypeError
@@ -41,14 +45,15 @@ primitives =
   , SutWallet
   , SutPhrase ]
 
+-- |Zipped primitives with their IDs
 primitiveIDs :: [(SutPrimitive, SutTypeID)]
 primitiveIDs = zip primitives [1..]
 
--- Eventual TypeIDs for the type graph
+-- |Eventual TypeIDs for the type graph
 primitiveID :: SutPrimitive -> SutTypeID
 primitiveID p = fromJust $ lookup p primitiveIDs
 
--- Graph for primitives generalization
+-- |Graph for primitives generalization
 primitiveEdges =
   [ (SutTypeError, primitiveID SutTypeError, []                 )
   , (SutTypeVoid,  primitiveID SutTypeVoid,  [primitiveID SutLight]  )
@@ -62,7 +67,8 @@ primitiveEdges =
 (primitiveG, _, _) = graphFromEdges primitiveEdges
 
 
--- From two types, return the most general one (Right now LCA is just always one of them)
+-- |Given two types, this is the most general one (LCA)
+-- Right now LCA is just always one of them
 generalizePrimitives :: SutPrimitive -> SutPrimitive -> SutPrimitive
 generalizePrimitives SutTypeError _ = SutTypeError
 generalizePrimitives _ SutTypeError = SutTypeError
@@ -75,7 +81,7 @@ generalizePrimitives t1 t2 = let reaches = path primitiveG
                                          then t2
                                          else SutTypeError
 
--- Go to a boolean type
+-- |Convert primitive to boolean type
 toTypeLight :: SutPrimitive -> SutPrimitive
 toTypeLight SutTypeVoid = SutLight
 toTypeLight SutLight    = SutLight
@@ -83,7 +89,7 @@ toTypeLight SutLetter   = SutLight
 toTypeLight SutBag      = SutLight
 toTypeLight _           = SutTypeError
 
--- Go to the most specific numerical type available
+-- |Convert primitive to the most specific numerical type available
 toTypeBag :: SutPrimitive -> SutPrimitive
 toTypeBag SutTypeVoid = SutBag
 toTypeBag SutLight    = SutBag
@@ -92,7 +98,7 @@ toTypeBag SutBag      = SutBag
 toTypeBag SutWallet   = SutBag
 toTypeBag _           = SutTypeError
 
--- Go to the most specific numerical type available
+-- |Convert primitive to the most specific numerical type available
 toTypeNum :: SutPrimitive -> SutPrimitive
 toTypeNum SutTypeVoid = SutBag
 toTypeNum SutLight    = SutBag
@@ -101,7 +107,7 @@ toTypeNum SutBag      = SutBag
 toTypeNum SutWallet   = SutWallet
 toTypeNum _           = SutTypeError
 
--- Go to the general float type
+-- |Convert primitive to the general float type
 toTypeWallet :: SutPrimitive -> SutPrimitive
 toTypeWallet SutTypeVoid = SutWallet
 toTypeWallet SutLight    = SutWallet
@@ -110,12 +116,12 @@ toTypeWallet SutBag      = SutWallet
 toTypeWallet SutWallet   = SutWallet
 toTypeWallet _           = SutTypeError
 
--- Go to the general string (printable) type
+-- |Convert primitive to the most general string (printable) type
 toTypePhrase :: SutPrimitive -> SutPrimitive
 toTypePhrase SutTypeError = SutTypeError
 toTypePhrase _            = SutPhrase
 
--- Go to a sortable type or error
+-- |Convert primitive to a sortable type or error
 toTypeSortable :: SutPrimitive -> SutPrimitive
 toTypeSortable SutTypeVoid = SutLetter
 toTypeSortable SutLight    = SutLetter
@@ -125,7 +131,7 @@ toTypeSortable SutWallet   = SutWallet
 toTypeSortable SutPhrase   = SutPhrase
 toTypeSortable _           = SutTypeError
 
--- Go to a sortable type or error
+-- |Convert primitive to a equalable type or error
 toTypeEq :: SutPrimitive -> SutPrimitive
 toTypeEq SutTypeVoid  = SutTypeError
 toTypeEq SutTypeError = SutTypeError

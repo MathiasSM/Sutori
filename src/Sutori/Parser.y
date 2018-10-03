@@ -1,5 +1,12 @@
 {
-module Sutori.Parser where
+{-|
+Description : Happy-generated parser for Sutori language
+-}
+module Sutori.Parser
+( parseModule
+, parseExpression
+, parseType
+) where
 
 import Data.Maybe
 
@@ -24,9 +31,9 @@ import Sutori.Parser.TypeCheck
 
 }
 
-%name      parseModule     Module
-%name      parseExpression Expression
-%name      parseType       TypeExpr
+%name      parseModule_     Module
+%name      parseExpression_ Expression
+%name      parseType_       TypeExpr
 %tokentype { SutToken }
 %monad     { SutMonad }
 %lexer     { lexwrap } { SutTkEOF }
@@ -426,4 +433,15 @@ PrintableExpr     :: { SutExpression }
 PrintableExpr     : Expression                    { checkPrintable $1 }
 
 
-{}
+{
+
+-- |Parses an entire Sutori file (module)
+parseModule     = parseModule_
+
+-- |Parses a Sutori expression
+parseExpression = parseExpression_
+
+-- |Parses a Sutori type expression
+parseType       = parseType_
+
+}
