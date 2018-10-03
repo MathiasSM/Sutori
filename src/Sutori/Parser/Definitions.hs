@@ -7,8 +7,8 @@ module Sutori.Parser.Definitions where
 import Control.Monad.State.Lazy (get, put)
 import Data.List                (find)
 
-import Sutori.AST               (SutExpression, SutBlock, SutModule)
-import Sutori.Monad             (SutMonad, SutState(SutState, parserTable), parserCurrentScope)
+import Sutori.AST               (SutExpression, SutBlock, SutModule(SutModule))
+import Sutori.Monad             (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
 import Sutori.Monad.Logger      (duplicateSymbolError)
 import Sutori.Types.Primitives  (SutTypeID)
 import Sutori.Utils             (SutID)
@@ -76,21 +76,23 @@ defType pid id tid = do
 -- Right now it's basically a stub as there's only one module and
 -- the data structure only keeps the 'SutID' and "AST"
 defModule :: SutID -> SutBlock -> SutMonad ()
-defModule = error "defModule"
+defModule id b = do
+  state <- get
+  put state{ mainModule = SutModule id b }
 
 
 -- |Defines a function with ID pushed and no parameters
 defFunction :: SutTypeID -> SutBlock -> SutMonad ()
-defFunction = error "defFunction"
+defFunction _ _ = return ()
 
 -- |Defines a function with ID and parameters already present
 defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
-defFunction' = error "defFunction'"
+defFunction' _ _ = return ()
 
 -- |Defines a new function with a given name (no parameters or body yet)
 insertFunctionID :: SutID -> SutMonad SutID
-insertFunctionID = error "insertFunctionID"
+insertFunctionID id = return id
 
 -- |Defines a new parameter in the last function defined
 insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
-insertParam (pt, tid, id) = error "insertParams"
+insertParam (pt, tid, id) = return ()
