@@ -807,27 +807,6 @@ checkFloat :: SutExpression -> SutExpression
 checkPrintable :: SutExpression -> SutExpression
 
 
-module Sutori.Parser.Symbols
-
--- | Finds the existent typeID or inserts the type and gets the new ID
-findTypeID :: SutType -> SutMonad SutTypeID
-
--- | Finds the typeID from a SutID
-findType :: SutID -> SutMonad SutTypeID
-
--- | Finds an existent type from its ID
-findExistentType :: SutTypeID -> SutMonad SutType
-
--- | Checks if the given person already exists
-findPerson :: SutID -> SutMonad SutID
-
--- | Checks if the given function already exists
-findFunction :: SutID -> SutMonad SutID
-
--- | Checks if the given variable already exists
-findVariable :: SutID -> SutMonad SutExpression
-
-
 module Sutori.Parser.Definitions
 defPerson :: SutID -> SutMonad ()
 defFunction :: SutTypeID -> SutBlock -> SutMonad ()
@@ -906,6 +885,28 @@ duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
 -- | Logs a wrong number of parameters error and continues
 argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
 instance Sutori.Logger.SutShow Sutori.Logger.SutError
+
+
+module Sutori.Parser.Symbols
+
+-- | Finds the existent typeID or inserts the type and gets the new ID
+findTypeID :: SutType -> SutMonad SutTypeID
+
+-- | Finds the typeID from a SutID
+findType :: SutID -> SutMonad SutTypeID
+
+-- | Finds an existent type from its ID
+findExistentType :: SutTypeID -> SutMonad SutType
+
+-- | Checks if the given person already exists
+findPerson :: SutID -> SutMonad SutID
+
+-- | Checks if the given function already exists
+findFunction :: SutID -> SutMonad SutID
+
+-- | Checks if the given variable already exists, returns the ID wrapped as
+--   an expression
+findVariable :: SutID -> SutMonad SutExpression
 
 
 module Sutori.Parser.Expressions
