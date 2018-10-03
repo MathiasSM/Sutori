@@ -644,6 +644,12 @@ SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
 
 -- | The ID of the parameter
 [paramID] :: SutParam -> SutID
+isFunction :: SutSymCategory -> Bool
+isMember :: SutSymCategory -> Bool
+isModule :: SutSymCategory -> Bool
+isType :: SutSymCategory -> Bool
+isPerson :: SutSymCategory -> Bool
+isVariable :: SutSymCategory -> Bool
 
 -- | Inserts new symbols into the table (from a list of IDs)
 insert :: SymTable -> Scope -> SutSymCategory -> SutTypeID -> SutSymOther -> [SutID] -> SymTable
@@ -662,13 +668,44 @@ lookupID :: SymTable -> SutID -> [SutSymbol]
 instance GHC.Classes.Eq Sutori.SymTable.SutSymCategory
 
 
+module Sutori.Parser.TypeCheck
+
+-- | Takes a conversion function from primitive to primitive and
+--   checks/converts the given expression
+checkPrimitiveType :: (SutPrimitive -> SutPrimitive) -> SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to numeric
+checkNumeric :: SutExpression -> SutExpression
+
+-- | Checks if expression is checked for equality
+checkEq :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to a sortable type
+checkSortable :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to boolean
+checkBoolean :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to an index type
+checkIndex :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to integer (index type)
+checkInt :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to float
+checkFloat :: SutExpression -> SutExpression
+
+-- | Checks if expression is or can be converted to string for printing
+checkPrintable :: SutExpression -> SutExpression
+
+
 module Sutori.Monad
 
 -- | Monadic Lexer/Parser current state.
 data SutState
 
 -- | Current error code, if any
-SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
 
 -- | Position at current input location
 [lexerPosn] :: SutState -> SutPosn
@@ -705,6 +742,9 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 
 -- | The next scope ID to open
 [parserNextScope] :: SutState -> Scope
+
+-- | The main module (where compilation began)
+[mainModule] :: SutState -> SutModule
 
 -- | The constructed type graph
 [typesGraph] :: SutState -> TypeGraph
@@ -774,48 +814,6 @@ lexerGetInput :: SutMonad SutoriInput
 
 -- | Set remaining input
 lexerSetInput :: SutoriInput -> SutMonad ()
-
-
-module Sutori.Parser.TypeCheck
-
--- | Takes a conversion function from primitive to primitive and
---   checks/converts the given expression
-checkPrimitiveType :: (SutPrimitive -> SutPrimitive) -> SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to numeric
-checkNumeric :: SutExpression -> SutExpression
-
--- | Checks if expression is checked for equality
-checkEq :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to a sortable type
-checkSortable :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to boolean
-checkBoolean :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to an index type
-checkIndex :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to integer (index type)
-checkInt :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to float
-checkFloat :: SutExpression -> SutExpression
-
--- | Checks if expression is or can be converted to string for printing
-checkPrintable :: SutExpression -> SutExpression
-
-
-module Sutori.Parser.Definitions
-defPerson :: SutID -> SutMonad ()
-defFunction :: SutTypeID -> SutBlock -> SutMonad ()
-defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
-insertFunctionID :: SutID -> SutMonad SutID
-insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
-defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
-defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-defModule :: SutID -> SutBlock -> SutMonad ()
 
 
 module Sutori.AST.Logger
@@ -1026,16 +1024,53 @@ dereference :: SutUnaryOp
 createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
 
 
+module Sutori.Parser.Definitions
+
+-- | Includes a new person into the story
+--   
+--   TODO: Refactor code. all these functions use mostly repeated code
+defPerson :: SutID -> SutMonad ()
+
+-- | Defines a new variable of given type and optionally assigns it an
+--   initial value.
+--   
+--   TODO: Add assignment to AST (separate from definition, which does not
+--   go into AST)
+defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
+
+-- | Associates the SutID to the newly constructed type, assuming the name
+--   has not been used before
+defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
+
+-- | Defines a module for importing/exporting
+--   
+--   Right now it's basically a stub as there's only one module and the
+--   data structure only keeps the <a>SutID</a> and <a>AST</a>
+defModule :: SutID -> SutBlock -> SutMonad ()
+
+-- | Defines a function with ID pushed and no parameters
+defFunction :: SutTypeID -> SutBlock -> SutMonad ()
+
+-- | Defines a function with ID and parameters already present
+defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
+
+-- | Defines a new function with a given name (no parameters or body yet)
+insertFunctionID :: SutID -> SutMonad SutID
+
+-- | Defines a new parameter in the last function defined
+insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
+
+
 module Sutori.Lexer
 
 -- | Scans for next token, but passes it though checks first
 lexerScanClean :: SutMonad SutToken
 
 -- | Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (a, SutLogger)
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
 
 -- | Run the lexer on a given string, get the results
-runLexerScan :: Options -> String -> Either (SutError, SutLog) ([SutToken], SutLogger)
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
 
 -- | Run the lexer, but receive a continuation (Used by Happy)
 lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
