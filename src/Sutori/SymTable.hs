@@ -21,8 +21,8 @@ module Sutori.SymTable
 
 import qualified Data.Map as Map
 
-import Sutori.AST(SutID, SutBlock)
-import Sutori.Types.Primitives(SutTypeID)
+import Sutori.AST               (SutID, SutBlock)
+import Sutori.Types.Primitives  (SutTypeID)
 
 
 -- Data definition
