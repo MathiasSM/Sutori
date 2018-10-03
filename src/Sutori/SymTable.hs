@@ -12,6 +12,7 @@ module Sutori.SymTable
 , Scope
 , SutParamKind(..)
 , SutParam(..)
+, isFunction, isMember, isModule, isType, isPerson, isVariable
 , insert
 , insertSymbol
 , insertParams
@@ -41,6 +42,21 @@ data SutSymCategory = CatModule     -- ^ A module
                     | CatMember     -- ^ A member of a structured type (does not go inot the SymTable)
                     deriving Eq
 
+isFunction, isMember, isModule, isParameter, isPerson, isType, isVariable :: SutSymCategory -> Bool
+isFunction CatFunction   = True
+isFunction _             = False
+isMember CatMember       = True
+isMember _               = False
+isModule CatModule       = True
+isModule _               = False
+isParameter CatParameter = True
+isParameter _            = False
+isPerson CatPerson       = True
+isPerson _               = False
+isType CatType           = True
+isType _                 = False
+isVariable CatVariable   = True
+isVariable _             = False
 
 -- |A 'SutSymOther' represents the extra payload of a symbol and
 -- it's either a function definition's AST, the parameter kind, the type definition or nothing,
