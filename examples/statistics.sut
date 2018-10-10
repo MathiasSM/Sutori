@@ -1,0 +1,93 @@
+Once upon a time in StatisticsTown ...(
+
+  -- TODO: root, max, min functions
+
+
+  Once upon some other time in average, there was a wallet (made of bag N, your direction (to wallet) points) ...(
+    There was Avery.
+
+    Avery brought a bag: total = 0, index = 0.
+
+    ...(
+      total = total + points[index].
+      index = index + 1.
+    )... Avery told that story N times.
+
+    And that's where (0.0 + total)/N comes from.
+  )...
+
+
+  Once upon some other time in variance, there ws a wallet (made of bag N, you direction (to wallet) points, wallet average) ...(
+    There was Varis.
+
+    Varis brought a wallet: asd = 0.
+    Varis brought a bag: index = 0.
+
+    ...(
+      asd = asd + (points[index] - average)^2.
+      index = index + 1.
+    )... Varis told that story N times.
+
+    And that's where asd/N comes from.
+  )...
+
+
+  Once upon some other time in deviation, there was a wallet (made of wallet variation) ...(
+    And that's where root(variation) comes from
+  )...
+
+
+  Once upon some other time in maxmin, there was a chain (of 2 wallet) (made of bag N, direction (to wallet) points) ...(
+    There was Extremist, Reco.
+
+    Extremist brought a chain (of wallet): maxmin = [points[0], points[0]].
+    Reco brought a bag: index = 1.
+
+    ...(
+      maxmin[0] = max(maxmin[0], points[index]).
+      maxmin[1] = min(maxmin[1], points[index]).
+      index = index + 1.
+    )... Reco told that story N-1 times.
+
+    And that's where maxmin comes from.
+  )...
+
+
+  There was Infinity.
+
+  Infinity brought a phrase: answer.
+  Infinity brought a bag: size.
+  Infinity brought a chain (of 1000 wallet): points.
+
+  Infinity keeps dreaming of 42 ...(
+    Infinity: "Do you want to run statistics?"
+    answer?
+
+    Infinity dreams of ...(
+      There was Reco and Resu.
+      size?
+      Reco brought: index = 0.
+      ...( points[index]?. index = index + 1. )... Reco told that story size times.
+
+      Resu brought a wallet: a, v, d.
+      a  = average(N, points).
+      v  = variance(N, points, a).
+      sd = deviation(v).
+      mm = maxmin(N, points).
+
+      There was Reporter.
+
+      Resu: "Statistics: ".
+      Resu: "Number of data points: ".
+      Resu: size.
+      Resu: "Average:".
+      Resu: a.
+      Resu: "Variance:"
+      Resu: v.
+      Resu: "Standard Deviation:"
+      Resu: d.
+      Resu: "Max/Min"
+      Resu: mm
+    )... when (answer == "y") or (answer == "yes") ... otherwise ...( --|exit|-- )...
+  )...
+)...
