@@ -3,7 +3,8 @@ Once upon a time in StatisticsTown ...(
   -- TODO: root, max, min functions
 
 
-  Once upon some other time in average, there was a wallet (made of bag N, your direction (to wallet) points) ...(
+  Once upon some other time in average, there was a wallet
+  (made of bag N, your direction (to wallet) points) ...(
     There was Avery.
 
     Avery brought a bag: total = 0, index = 0.
@@ -17,7 +18,8 @@ Once upon a time in StatisticsTown ...(
   )...
 
 
-  Once upon some other time in variance, there ws a wallet (made of bag N, you direction (to wallet) points, wallet average) ...(
+  Once upon some other time in variance, there was a wallet
+  (made of bag N, you direction (to wallet) points, wallet average) ...(
     There was Varis.
 
     Varis brought a wallet: asd = 0.
@@ -32,12 +34,14 @@ Once upon a time in StatisticsTown ...(
   )...
 
 
-  Once upon some other time in deviation, there was a wallet (made of wallet variation) ...(
+  Once upon some other time in deviation, there was a wallet
+  (made of wallet variation) ...(
     And that's where root(variation) comes from
   )...
 
 
-  Once upon some other time in maxmin, there was a chain (of 2 wallet) (made of bag N, direction (to wallet) points) ...(
+  Once upon some other time in maxmin, there was a chain (of 2 wallet)
+  (made of bag N, direction (to wallet) points) ...(
     There was Extremist, Reco.
 
     Extremist brought a chain (of wallet): maxmin = [points[0], points[0]].
@@ -82,12 +86,13 @@ Once upon a time in StatisticsTown ...(
       Resu: size.
       Resu: "Average:".
       Resu: a.
-      Resu: "Variance:"
+      Resu: "Variance:".
       Resu: v.
-      Resu: "Standard Deviation:"
+      Resu: "Standard Deviation:".
       Resu: d.
-      Resu: "Max/Min"
+      Resu: "Max/Min".
       Resu: mm
-    )... when (answer == "y") or (answer == "yes") ... otherwise ...( --|exit|-- )...
+    )... when (answer == "y") or (answer == "yes")
+    ... otherwise ...( --|exit|-- )...
   )...
 )...
