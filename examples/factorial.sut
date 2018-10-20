@@ -30,14 +30,17 @@ Once upon a time in FactorialCity ...(
 
     There was Reporter.
     Infinity dreams of ...(
+      Reporter: "Iterative factorial of...". N?
       Reporter: iterfacto(N).
     )... when (answer == "i")...
 
     Infinity dreams of ...(
+      Reporter: "Recursive factorial of...". N?
       Reporter: recurfacto(N).
     )... when (answer == "r")...
 
     Infinity dreams of ...(
+      Reporter: "Unknown factorial algorithm".
       --| exit |--
     )... when (answer == "N") or ((answer /= "r") and (answer /= "i")) ...
   )...
