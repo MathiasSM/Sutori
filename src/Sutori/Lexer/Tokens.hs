@@ -30,6 +30,8 @@ data SutToken = SutTkEOF
               | S_toldthatstory
               | S_invented
               | S_itsa
+              | S_andnothingelse
+              | S_wewillskipthis
 
               | TYPE_INT
               | TYPE_FLOAT

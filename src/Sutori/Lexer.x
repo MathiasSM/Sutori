@@ -63,6 +63,8 @@ tokens :-
 <0>                "told that story"         { tokenize S_toldthatstory        }
 <0>                "invented"                { tokenize S_invented             }
 <0>                "it's a"                  { tokenize S_itsa                 }
+<0>                "and nothing else"        { tokenize S_andnothingelse       }
+<0>                "we will skip this"       { tokenize S_wewillskipthis       }
 
 <0>                "with"                    { tokenize WITH                   }
 <0>                "your"                    { tokenize YOUR                   }

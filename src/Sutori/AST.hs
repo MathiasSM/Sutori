@@ -38,6 +38,8 @@ data SutInstruction
   | IterationB     SutID SutExpression SutBlock          -- ^ A bounded iteration of a story to be repeated a number of times
   | FreePointer    SutID SutExpression                   -- ^ The action of freeing a direction (so it points nowhere)
   | PrintVal       SutID SutExpression                   -- ^ The action of a person saying the value of an expression (into the console)
+  | Break                                                -- ^ Stops the innermost iteration loop (skips the rest of the iteratons)
+  | Continue                                             -- ^ Skips the current iteration (stays in the loop, skips to next iteration)
 
 
 -- |A SutExpression
