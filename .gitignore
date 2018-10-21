@@ -1,7 +1,7 @@
 # Generated code
 sutori.cabal
-Parser.hs
-Lexer.hs
+Parser/Parser.hs
+Lexer/Lexer.hs
 
 # Generated Binaries
 *.o
