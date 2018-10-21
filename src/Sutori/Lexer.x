@@ -73,10 +73,11 @@ tokens :-
 <0>                "otherwise"               { tokenize OTHERWISE              }
 <0>                "times"                   { tokenize TIMES                  }
 
+<0>                "gap"                     { tokenize TYPE_VOID              }
+<0>                "light"                   { tokenize TYPE_BOOL              }
+<0>                "letter"                  { tokenize TYPE_CHAR              }
 <0>                "bag"                     { tokenize TYPE_INT               }
 <0>                "wallet"                  { tokenize TYPE_FLOAT             }
-<0>                "letter"                  { tokenize TYPE_CHAR              }
-<0>                "light"                   { tokenize TYPE_BOOL              }
 <0>                "chain"                   { tokenize TYPE_ARRAY             }
 <0>                "machine"                 { tokenize TYPE_STRUCT            }
 <0>                "thing"                   { tokenize TYPE_UNION             }

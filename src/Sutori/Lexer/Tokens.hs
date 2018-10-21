@@ -34,6 +34,7 @@ data SutToken = SutTkEOF
               | TYPE_INT
               | TYPE_FLOAT
               | TYPE_CHAR
+              | TYPE_VOID
               | TYPE_BOOL
               | TYPE_ARRAY
               | TYPE_STRUCT

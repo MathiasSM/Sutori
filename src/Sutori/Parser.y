@@ -66,6 +66,7 @@ import Sutori.Parser.TypeCheck
     TYPE_FLOAT          { TYPE_FLOAT }
     TYPE_CHAR           { TYPE_CHAR }
     TYPE_BOOL           { TYPE_BOOL }
+    TYPE_VOID           { TYPE_VOID }
     TYPE_ARRAY          { TYPE_ARRAY }
     TYPE_STRUCT         { TYPE_STRUCT }
     TYPE_UNION          { TYPE_UNION }
