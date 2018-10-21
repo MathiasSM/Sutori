@@ -9,8 +9,7 @@ module Sutori.AST.Utils
 
 import Data.Maybe
 
-import Sutori.Types     (SutType(SutPrimitiveType))
-import Sutori.Utils     (SutID)
+import Sutori.Types     (SutType(SutPrimitiveType), SutPrimitive(SutTypeError))
 import Sutori.AST.Nodes
 
 -- |Extracts the type from any expression

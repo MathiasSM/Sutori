@@ -2,7 +2,7 @@
 {-|
 Description : Alex-generated lexer for Sutori language
 -}
-module Sutori.Lexer
+module Sutori.Lexer.Lexer
 ( lexerScanClean -- We only export the clean version (has lexical error handling)
 , runLexer       -- Runs the lexer with the given action (parsing?)
 , runLexerScan   -- Runs the lexer by itself (with the usual scan loop)
@@ -14,10 +14,8 @@ import Control.Monad.State.Lazy
 import Control.Monad.Writer.Lazy
 import Control.Monad.Except
 
-import Data.Char( chr, isSpace )
 import Data.List
 import Data.Maybe
-import Numeric( readDec )
 
 import Sutori.Options      (Options(..), usage)
 import Sutori.Logger       (SutLogger(..), SutLog)

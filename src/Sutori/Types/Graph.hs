@@ -16,9 +16,10 @@ import qualified Data.Map.Strict as Map
 import Data.List(sortOn, foldl')
 import Control.Arrow(first)
 
+import Sutori.Utils              (SutID)
+
 import Sutori.Types.Primitives   (primitiveIDs)
 import Sutori.Types.Constructors (SutType(SutPrimitiveType), SutTypeID)
-import Sutori.Utils              (SutID)
 
 
 -- |The type graph must be a biderectional map (as there's a bijection between type and its ID)

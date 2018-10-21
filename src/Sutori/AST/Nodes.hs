@@ -12,8 +12,8 @@ module Sutori.AST.Nodes
 , SutOperator(..)
 ) where
 
-import Sutori.Utils              (SutID)
-import Sutori.Types.Constructors (SutType)
+import Sutori.Utils (SutID)
+import Sutori.Types (SutType)
 
 
 -- |A 'SutBlock' is a list of instructions
