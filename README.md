@@ -6,12 +6,7 @@ This project is to be a full fledged compiler for the Sutori language, implement
 
 ## Current status
 
-+ [X] **Grammar**: First rough version. The current grammar definition is in the `GRAMMAR.md` file.
-
-+ [ ] **Compiler**: Currently, the executable only launches the lexer.
-  + [X] **Lexer**: First rough version
-  + [ ] **Parser**: _Not yet implemented_
-  + [ ] **More...**: _Not yet implemented_
+Please refer to the Github project Milestones (and their related issues).
 
 ## Build
 
