@@ -10,6 +10,37 @@
 @version 0.2.0
 
 
+module Sutori.Error.Error
+
+-- | Different possible Sutori Errors
+data SutError
+
+-- | An unknown or malformed token was read
+LexicalError :: SutError
+
+-- | The source code does not follow Sutori grammar
+GrammaticalError :: SutError
+
+-- | A Type error occurred
+TypeError :: SutError
+
+-- | A symbol was used before it was defined
+UndefinedSymbolError :: SutError
+
+-- | A function was called with the wrong number of arguments
+ArgumentsNumberError :: SutError
+
+-- | A symbol was defined twice in the same scope
+DuplicateSymbolError :: SutError
+
+-- | The compiler failed for a known reason (not the user's fault)
+InternalError :: SutError
+
+-- | The lack of error
+NoError :: SutError
+instance GHC.Show.Show Sutori.Error.Error.SutError
+
+
 module Sutori.Lexer.Posn
 
 -- | Source position (Characters before, Row number, Column number)
@@ -46,9 +77,12 @@ S_therewasa :: SutToken
 S_toldthatstory :: SutToken
 S_invented :: SutToken
 S_itsa :: SutToken
+S_andnothingelse :: SutToken
+S_wewillskipthis :: SutToken
 TYPE_INT :: SutToken
 TYPE_FLOAT :: SutToken
 TYPE_CHAR :: SutToken
+TYPE_VOID :: SutToken
 TYPE_BOOL :: SutToken
 TYPE_ARRAY :: SutToken
 TYPE_STRUCT :: SutToken
@@ -115,8 +149,45 @@ instance GHC.Classes.Eq Sutori.Lexer.Tokens.SutToken
 
 
 -- | Provides a common framework (class) to <a>showSut</a> sutori
+--   components<i>elements</i>constructs.
+module Sutori.Logger.Log
+
+-- | Interface for pretty-printing Sutori constructs (token, actions,
+--   tables, ...)
+class SutShow a
+
+-- | Allows to pretty-print a Sutori (internal or external) element
+showSut :: SutShow a => a -> SutLog
+
+-- | Simple tree data structure to allow pretty printing of sutori logs
+data SutLog
+
+-- | A final message
+SutLogLeave :: String -> SutLog
+
+-- | A message with children messages
+SutLogNode :: String -> [SutLog] -> SutLog
+
+-- | Extract log strings
+fromLeave :: SutLog -> String
+instance GHC.Show.Show Sutori.Logger.Log.SutLog
+
+
+-- | Provides a common framework (class) to <a>showSut</a> sutori
 --   components<i>elements</i>constructs. Right now, error codes are
 --   defined here.
+module Sutori.Logger.Writer
+
+-- | Sutori logger, where we register logs for <tt>reasons</tt>, via a
+--   WriterT
+data SutLogger
+SutLogger :: [SutLog] -> [SutLog] -> [(SutError, SutLog)] -> SutLogger
+instance GHC.Base.Monoid Sutori.Logger.Writer.SutLogger
+instance GHC.Show.Show Sutori.Logger.Writer.SutLogger
+
+
+-- | Provides a common framework (class) to <a>showSut</a> sutori
+--   components<i>elements</i>constructs.
 module Sutori.Logger
 
 -- | Simple tree data structure to allow pretty printing of sutori logs
@@ -140,47 +211,23 @@ showSut :: SutShow a => a -> SutLog
 data SutLogger
 SutLogger :: [SutLog] -> [SutLog] -> [(SutError, SutLog)] -> SutLogger
 
--- | Different possible Sutori Errors
-data SutError
-
--- | An unknown or malformed token was read
-LexicalError :: SutError
-
--- | The source code does not follow Sutori grammar
-GrammaticalError :: SutError
-
--- | A Type error occurred
-TypeError :: SutError
-
--- | A symbol was used before it was defined
-UndefinedSymbolError :: SutError
-
--- | A function was called with the wrong number of arguments
-ArgumentsNumberError :: SutError
-
--- | A symbol was defined twice in the same scope
-DuplicateSymbolError :: SutError
-
--- | The compiler failed for a known reason (not the user's fault)
-InternalError :: SutError
-
--- | The lack of error
-NoError :: SutError
-
 -- | Extract log strings
 fromLeave :: SutLog -> String
-instance GHC.Show.Show Sutori.Logger.SutError
-instance GHC.Base.Monoid Sutori.Logger.SutLogger
-instance GHC.Show.Show Sutori.Logger.SutLogger
-instance GHC.Show.Show Sutori.Logger.SutLog
 
 
 module Sutori.Lexer.Logger
-instance Sutori.Logger.SutShow Sutori.Lexer.Tokens.SutToken
-instance Sutori.Logger.SutShow Sutori.Lexer.Posn.SutPosn
+instance Sutori.Logger.Log.SutShow Sutori.Lexer.Tokens.SutToken
+instance Sutori.Logger.Log.SutShow Sutori.Lexer.Posn.SutPosn
 
 
-module Sutori.Options
+module Sutori.Error.Logger
+instance Sutori.Logger.Log.SutShow Sutori.Error.Error.SutError
+
+
+module Sutori.Monad.Logger
+
+
+module Sutori.Options.Options
 
 -- | Options for command-line parsing
 data Options
@@ -215,7 +262,41 @@ usage :: String
 
 
 module Sutori.Options.Logger
-instance Sutori.Logger.SutShow Sutori.Options.Options
+instance Sutori.Logger.Log.SutShow Sutori.Options.Options.Options
+
+
+module Sutori.Options
+
+-- | Options for command-line parsing
+data Options
+Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Options
+
+-- | Verbose switch
+[optVerbose] :: Options -> Bool
+
+-- | Debugging switch
+[optDebugging] :: Options -> Bool
+
+-- | Output file
+[optOutput] :: Options -> Maybe FilePath
+
+-- | Mode: Show version
+[optShowVersion] :: Options -> Bool
+
+-- | Mode: Show help
+[optShowHelp] :: Options -> Bool
+
+-- | Mode: Run only lexer
+[optStopOnLexer] :: Options -> Bool
+
+-- | Mode: Run only frontend
+[optStopOnParser] :: Options -> Bool
+
+-- | Complete usage information
+usage :: String
+
+-- | Parse command-line flags
+handleFlags :: [String] -> IO (Options, [String])
 
 
 module Sutori.Types.Primitives
@@ -282,6 +363,26 @@ toTypeSortable :: SutPrimitive -> SutPrimitive
 toTypeEq :: SutPrimitive -> SutPrimitive
 instance GHC.Classes.Ord Sutori.Types.Primitives.SutPrimitive
 instance GHC.Classes.Eq Sutori.Types.Primitives.SutPrimitive
+
+
+module Sutori.Utils.List
+
+-- | Conjunction of a the results of a list of functions applied to a
+--   single value
+anyf :: [a -> Bool] -> a -> Bool
+
+-- | Conjunction of a the results of a list of functions applied to a
+--   single value
+allf :: [a -> Bool] -> a -> Bool
+
+-- | Filters out unique elements in a list
+repeated :: Ord a => [a] -> [a]
+
+-- | Filters consecutive uniques, given a grouping and a sorting function
+repeatedBy :: (Eq c, Ord b) => (a -> c) -> (a -> b) -> [a] -> [a]
+
+-- | Filters a list with a given filter function
+filterBy :: Ord a => ([a] -> Bool) -> [a] -> [[a]]
 
 
 module Sutori.Utils
@@ -369,9 +470,324 @@ orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
 
 
 module Sutori.Types.Logger
-instance Sutori.Logger.SutShow Sutori.Types.Graph.TypeGraph
-instance Sutori.Logger.SutShow Sutori.Types.Primitives.SutPrimitive
-instance Sutori.Logger.SutShow Sutori.Types.Constructors.SutType
+instance Sutori.Logger.Log.SutShow Sutori.Types.Graph.TypeGraph
+instance Sutori.Logger.Log.SutShow Sutori.Types.Primitives.SutPrimitive
+instance Sutori.Logger.Log.SutShow Sutori.Types.Constructors.SutType
+
+
+-- | TODO: Sort and document API
+module Sutori.Types
+
+-- | A type will be represented by an ID
+type SutTypeID = Int
+
+-- | Sutori type constructors
+data SutType
+
+-- | A Primitive Type
+SutPrimitiveType :: SutPrimitive -> SutType
+
+-- | A Direction (Pointer) to a value of some type
+SutDirection :: SutTypeID -> SutType
+
+-- | A Chain (Array) of fixed size of element type
+SutChain :: Int -> SutTypeID -> SutType
+
+-- | A Machine (Struct) of different components
+SutMachine :: [(SutID, SutTypeID)] -> SutType
+
+-- | A Thing (Union) that might have different names
+SutThing :: [(SutID, SutTypeID)] -> SutType
+
+-- | Extract the primitive from the type definition
+primitiveType :: SutType -> SutPrimitive
+
+-- | Generalize two types to their LCA, if any
+generalizeTypes :: SutType -> SutType -> SutType
+
+-- | Constant primitive error type
+primitiveError :: SutType
+
+-- | The type graph must be a biderectional map (as there's a bijection
+--   between type and its ID)
+data TypeGraph
+TypeGraph :: Map SutType SutTypeID -> Map SutTypeID SutType -> TypeGraph
+
+-- | The initial value for the graph. That is, the primitives added
+initialTypeGraph :: TypeGraph
+
+-- | The initial value for the "next type ID"
+initialNextTypeID :: Int
+
+-- | Inserts a type mapping into the map
+insertType :: (SutType, SutTypeID) -> TypeGraph -> TypeGraph
+
+-- | Maybe the <a>SutTypeID</a> of the given type
+lookupTypeID :: SutType -> TypeGraph -> Maybe SutTypeID
+
+-- | Maybe the type of the given <a>SutTypeID</a>
+lookupType :: SutTypeID -> TypeGraph -> Maybe SutType
+
+-- | The graph as a list sorted by ID (first appearance?)
+orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
+
+-- | Sutori primitives
+data SutPrimitive
+
+-- | A bag (Int)
+SutBag :: SutPrimitive
+
+-- | A wallet (Float)
+SutWallet :: SutPrimitive
+
+-- | A phrase (String)
+SutPhrase :: SutPrimitive
+
+-- | A light (Bool)
+SutLight :: SutPrimitive
+
+-- | A letter (Char)
+SutLetter :: SutPrimitive
+
+-- | A void element (Void)
+SutTypeVoid :: SutPrimitive
+
+-- | A Type Error (&amp;^%$#)
+SutTypeError :: SutPrimitive
+
+-- | Predefined Sutori types to initialize symtable
+primitives :: [SutPrimitive]
+
+-- | Eventual TypeIDs for the type graph
+primitiveID :: SutPrimitive -> SutTypeID
+
+-- | Zipped primitives with their IDs
+primitiveIDs :: [(SutPrimitive, SutTypeID)]
+
+-- | Given two types, this is the most general one (LCA) Right now LCA is
+--   just always one of them
+generalizePrimitives :: SutPrimitive -> SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to boolean type
+toTypeLight :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to the most specific numerical type available
+toTypeNum :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to the most specific numerical type available
+toTypeBag :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to the general float type
+toTypeWallet :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to the most general string (printable) type
+toTypePhrase :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to a sortable type or error
+toTypeSortable :: SutPrimitive -> SutPrimitive
+
+-- | Convert primitive to a equalable type or error
+toTypeEq :: SutPrimitive -> SutPrimitive
+
+
+module Sutori.AST.Nodes
+
+-- | Global type for Sutori IDs
+type SutID = String
+
+-- | A <a>SutBlock</a> is a list of instructions
+type SutBlock = [SutInstruction]
+
+-- | A Sutori Module has a name and a SutBlock
+data SutModule
+SutModule :: SutID -> SutBlock -> SutModule
+
+-- | A <tt>SutIntruction</tt> represents an instruction/action in the
+--   (imperative) story
+data SutInstruction
+
+-- | An assignment can be understood an an instruction on its own
+InstAssignment :: SutExpression -> SutInstruction
+
+-- | The action of someone asking for the value of an expression
+ReadVal :: SutID -> SutExpression -> SutInstruction
+
+-- | The action of finishing a story with an expression
+ReturnVal :: SutExpression -> SutInstruction
+
+-- | A selection between two blocks of code given a true/false condition
+Selection :: SutID -> SutExpression -> SutBlock -> SutBlock -> SutInstruction
+
+-- | An unbounded iteration while a condition persists
+IterationU :: SutID -> SutExpression -> SutBlock -> SutInstruction
+
+-- | A bounded iteration of a story to be repeated a number of times
+IterationB :: SutID -> SutExpression -> SutBlock -> SutInstruction
+
+-- | The action of freeing a direction (so it points nowhere)
+FreePointer :: SutID -> SutExpression -> SutInstruction
+
+-- | The action of a person saying the value of an expression (into the
+--   console)
+PrintVal :: SutID -> SutExpression -> SutInstruction
+
+-- | Stops the innermost iteration loop (skips the rest of the iteratons)
+Break :: SutInstruction
+
+-- | Skips the current iteration (stays in the loop, skips to next
+--   iteration)
+Continue :: SutInstruction
+
+-- | A SutExpression
+data SutExpression
+
+-- | Indexing of an array to get an element
+ArrayGet :: SutType -> SutExpression -> SutExpression -> SutExpression
+
+-- | A binary operation
+BinaryOp :: SutType -> SutOperator -> SutExpression -> SutExpression -> SutExpression
+
+-- | An unary operation
+UnaryOp :: SutType -> SutOperator -> SutExpression -> SutExpression
+
+-- | A function call
+SutCall :: SutType -> SutID -> [SutExpression] -> SutExpression
+
+-- | A direction (pointer) creation
+CreatePointer :: SutType -> SutID -> SutExpression
+
+-- | A construct (machines, chains, etc...)
+ExprConstructor :: SutType -> SutConstructor -> SutExpression
+
+-- | An ID as an expression
+ExprID :: SutType -> SutID -> SutExpression
+
+-- | A literal
+ExprLiteral :: SutType -> SutLiteral -> SutExpression
+
+-- | Dereference of a direction (pointer)
+Dereference :: SutType -> SutExpression -> SutExpression
+
+-- | Access to a member of a structured value
+MemberGet :: SutType -> SutExpression -> SutID -> SutExpression
+
+-- | A <a>SutLiteral</a> represents a literal expression
+data SutLiteral
+
+-- | Phrase (String)
+SutString :: String -> SutLiteral
+
+-- | Bag (Int)
+SutInt :: Int -> SutLiteral
+
+-- | Wallet (Float)
+SutFloat :: Float -> SutLiteral
+
+-- | Letter (Char)
+SutChar :: String -> SutLiteral
+
+-- | Light (Bool)
+SutBool :: Bool -> SutLiteral
+
+-- | Complex data structure constructors
+data SutConstructor
+
+-- | <a>Literal</a> Chains (Srrays)
+SutArray :: [SutExpression] -> SutConstructor
+
+-- | <a>Literal</a> Machines (Structs)
+SutStruct :: [(SutID, SutExpression)] -> SutConstructor
+
+-- | Sutori operators
+data SutOperator
+
+-- | Unary plus/make positive
+SutOpPos :: SutOperator
+
+-- | Unary minus/negate
+SutOpNeg :: SutOperator
+
+-- | Unary not
+SutOpNot :: SutOperator
+
+-- | Unary dereference
+SutOpDer :: SutOperator
+
+-- | Binary addition
+SutOpAdd :: SutOperator
+
+-- | Binary substraction
+SutOpSub :: SutOperator
+
+-- | Binary multiplication
+SutOpMul :: SutOperator
+
+-- | Binary division
+SutOpDiv :: SutOperator
+
+-- | Binary integer division
+SutOpIntDiv :: SutOperator
+
+-- | Binary modulo
+SutOpMod :: SutOperator
+
+-- | Binary power
+SutOpPow :: SutOperator
+
+-- | Binary and
+SutOpAnd :: SutOperator
+
+-- | Binary or
+SutOpOr :: SutOperator
+
+-- | Binary equal
+SutOpEqual :: SutOperator
+
+-- | Binary not equal
+SutOpNotEq :: SutOperator
+
+-- | Binary greater or equal than
+SutOpGEq :: SutOperator
+
+-- | Binary less or equal than
+SutOpLEq :: SutOperator
+
+-- | Binary greater than
+SutOpGreater :: SutOperator
+
+-- | Binary less than
+SutOpLess :: SutOperator
+
+-- | Binary assignment
+SutOpAssign :: SutOperator
+
+-- | Binary indexation
+SutOpIndex :: SutOperator
+
+-- | Binary member get
+SutOpMember :: SutOperator
+
+
+module Sutori.AST.Utils
+
+-- | Extracts the type from any expression
+expressionType :: SutExpression -> SutType
+
+-- | Clones the expression overriding the type for the given primitive type
+--   This is used for type coersion, mostly
+withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
+
+-- | Clones the expression but sets the type as a TypeError
+asTypeError :: SutExpression -> SutExpression
+
+
+module Sutori.AST.Logger
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutModule
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutInstruction
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutExpression
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutLiteral
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutConstructor
+instance Sutori.Logger.Log.SutShow Sutori.AST.Nodes.SutOperator
 
 
 module Sutori.AST
@@ -394,7 +810,7 @@ data SutInstruction
 InstAssignment :: SutExpression -> SutInstruction
 
 -- | The action of someone asking for the value of an expression
-ReadVal :: SutExpression -> SutInstruction
+ReadVal :: SutID -> SutExpression -> SutInstruction
 
 -- | The action of finishing a story with an expression
 ReturnVal :: SutExpression -> SutInstruction
@@ -414,6 +830,13 @@ FreePointer :: SutID -> SutExpression -> SutInstruction
 -- | The action of a person saying the value of an expression (into the
 --   console)
 PrintVal :: SutID -> SutExpression -> SutInstruction
+
+-- | Stops the innermost iteration loop (skips the rest of the iteratons)
+Break :: SutInstruction
+
+-- | Skips the current iteration (stays in the loop, skips to next
+--   iteration)
+Continue :: SutInstruction
 
 -- | A SutExpression
 data SutExpression
@@ -555,6 +978,140 @@ withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
 asTypeError :: SutExpression -> SutExpression
 
 
+module Sutori.SymTable.Data
+
+-- | A <a>SutSymbol</a> represents a symbol in the SymTable of a Sutori
+--   parsing. It is made of a Token, a Category, a Scope, a Type, and
+--   perhaps <tt>other</tt> information
+data SutSymbol
+SutSymbol :: SutID -> SutSymCategory -> Scope -> SutTypeID -> SutSymOther -> SutSymbol
+
+-- | The symbol ID
+[symID] :: SutSymbol -> SutID
+
+-- | The category of the symbol
+[symCat] :: SutSymbol -> SutSymCategory
+
+-- | The scope the symbol is defined
+[symScope] :: SutSymbol -> Scope
+
+-- | The type of the symbol, if any (might be void)
+[symType] :: SutSymbol -> SutTypeID
+
+-- | The extra payload some symbol kinds have
+[symOther] :: SutSymbol -> SutSymOther
+
+-- | A <a>SutSymCategory</a>. Can be shown by showSut
+data SutSymCategory
+
+-- | A module
+CatModule :: SutSymCategory
+
+-- | A (top-level) function
+CatFunction :: SutSymCategory
+
+-- | A person who may do things in the story
+CatPerson :: SutSymCategory
+
+-- | A variable
+CatVariable :: SutSymCategory
+
+-- | A function parameter
+CatParameter :: SutSymCategory
+
+-- | A reference to a type
+CatType :: SutSymCategory
+
+-- | A member of a structured type (does not go inot the SymTable)
+CatMember :: SutSymCategory
+
+-- | A <a>SutSymOther</a> represents the extra payload of a symbol and it's
+--   either a function definition's AST, the parameter kind, the type
+--   definition or nothing, depending on the kind of symbol
+data SutSymOther
+SymAST :: [SutParam] -> SutBlock -> SutSymOther
+[otherASTParams] :: SutSymOther -> [SutParam]
+[otherASTBlock] :: SutSymOther -> SutBlock
+SymParamKind :: SutParamKind -> SutSymOther
+[otherParamKind] :: SutSymOther -> SutParamKind
+SymTypeDef :: SutTypeID -> SutSymOther
+[otherTypeDef] :: SutSymOther -> SutTypeID
+SymNothing :: SutSymOther
+
+-- | A <a>SymTable</a> represents the SymTable of a Sutori parsing, so it
+--   matches a SutID (symbol name) to a list of symbols
+type SymTable = Map SutID [SutSymbol]
+
+-- | A <a>Scope</a> is just a number uniquely representing a scope (NOT a
+--   level, but an ID)
+type Scope = Int
+
+-- | A <a>SutParamKind</a> represents a function parameter kind, that is it
+--   can be passed either by reference or by value.
+data SutParamKind
+SutRef :: SutParamKind
+SutVal :: SutParamKind
+
+-- | A <a>SutParam</a> represents a function parameter, and it has a kind,
+--   type and ID
+data SutParam
+SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
+
+-- | Whether it is a reference or a value parameter
+[paramKind] :: SutParam -> SutParamKind
+
+-- | The type of the parameter
+[paramType] :: SutParam -> SutTypeID
+
+-- | The ID of the parameter
+[paramID] :: SutParam -> SutID
+instance GHC.Classes.Eq Sutori.SymTable.Data.SutSymCategory
+
+
+module Sutori.SymTable.Logger
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymCategory
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutParamKind
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymOther
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymbol
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutParam
+
+
+module Sutori.SymTable.Actions
+
+-- | Boolean functions to check if a symbol if of some category
+isFunction :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
+isMember :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
+isModule :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
+isType :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
+isPerson :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
+isVariable :: SutSymCategory -> Bool
+
+-- | Inserts new symbols into the table (from a list of IDs)
+insert :: SymTable -> Scope -> SutSymCategory -> SutTypeID -> SutSymOther -> [SutID] -> SymTable
+
+-- | Inserts symbol into the table the given constructed symbol
+insertSymbol :: SymTable -> SutSymbol -> SymTable
+
+-- | Inserts new symbols into the table (from a list of params)
+insertParams :: SymTable -> Scope -> SutSymCategory -> [SutParam] -> SymTable
+
+-- | Extracts a type symbol type definition (SutTypeID)
+symTypeDef :: SutSymbol -> SutTypeID
+
+-- | Search for all symbols that match a SutID
+lookupID :: SymTable -> SutID -> [SutSymbol]
+
+
 -- | This module defines all the interaction with the table, along with the
 --   symbols themselves, their different categories and payloads.
 module Sutori.SymTable
@@ -622,7 +1179,7 @@ SymNothing :: SutSymOther
 type SymTable = Map SutID [SutSymbol]
 
 -- | A <a>Scope</a> is just a number uniquely representing a scope (NOT a
---   level)
+--   level, but an ID)
 type Scope = Int
 
 -- | A <a>SutParamKind</a> represents a function parameter kind, that is it
@@ -644,11 +1201,23 @@ SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
 
 -- | The ID of the parameter
 [paramID] :: SutParam -> SutID
+
+-- | Boolean functions to check if a symbol if of some category
 isFunction :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
 isMember :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
 isModule :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
 isType :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
 isPerson :: SutSymCategory -> Bool
+
+-- | Boolean functions to check if a symbol if of some category
 isVariable :: SutSymCategory -> Bool
 
 -- | Inserts new symbols into the table (from a list of IDs)
@@ -665,7 +1234,6 @@ symTypeDef :: SutSymbol -> SutTypeID
 
 -- | Search for all symbols that match a SutID
 lookupID :: SymTable -> SutID -> [SutSymbol]
-instance GHC.Classes.Eq Sutori.SymTable.SutSymCategory
 
 
 module Sutori.Parser.TypeCheck
@@ -699,7 +1267,7 @@ checkFloat :: SutExpression -> SutExpression
 checkPrintable :: SutExpression -> SutExpression
 
 
-module Sutori.Monad
+module Sutori.Monad.State
 
 -- | Monadic Lexer/Parser current state.
 data SutState
@@ -759,8 +1327,23 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 -- | Initial state of a Sutori parse<i>scan</i>run
 initialSutoriState :: SutState
 
+-- | Get the current open scope
+parserCurrentScope :: SutState -> Scope
+
+
+module Sutori.Monad.Monad
+
 -- | The Sutori monad. Composes state, logging and exception handling
 type SutMonad a = StateT SutState (WriterT SutLogger (Except (SutError, SutLog))) a
+
+-- | Run the monad with a given action
+runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
+
+
+module Sutori.Monad.Actions
+
+-- | Run a monadic action only if verbose if turned on
+ifVerbose :: SutMonad () -> SutMonad ()
 
 -- | Run the monad with a given action
 runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
@@ -777,8 +1360,84 @@ parserCurrentScope :: SutState -> Scope
 -- | Set the current error code for the compilation
 setErrorCode :: SutError -> SutMonad ()
 
--- | Run a monadic action only if verbose if turned on
-ifVerbose :: SutMonad () -> SutMonad ()
+
+module Sutori.Monad
+
+-- | The Sutori monad. Composes state, logging and exception handling
+type SutMonad a = StateT SutState (WriterT SutLogger (Except (SutError, SutLog))) a
+
+-- | Monadic Lexer/Parser current state.
+data SutState
+
+-- | Current error code, if any
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+
+-- | Position at current input location
+[lexerPosn] :: SutState -> SutPosn
+
+-- | Current input
+[lexerInput] :: SutState -> String
+
+-- | Character before the input
+[lexerChar] :: SutState -> Char
+
+-- | Current startcode
+[lexerStateCode] :: SutState -> Int
+
+-- | Current bytes read
+[lexerBytes] :: SutState -> [Word8]
+
+-- | Current comment nesting
+[lexerDepth] :: SutState -> Int
+
+-- | Currently built string
+[lexerString] :: SutState -> String
+
+-- | True if currently on an open strin
+[lexerStringOn] :: SutState -> Bool
+
+-- | The symtable
+[parserTable] :: SutState -> SymTable
+
+-- | The scopes stack
+[parserStack] :: SutState -> [Scope]
+
+-- | The set of open scopes
+[parserScopes] :: SutState -> Set Scope
+
+-- | The next scope ID to open
+[parserNextScope] :: SutState -> Scope
+
+-- | The main module (where compilation began)
+[mainModule] :: SutState -> SutModule
+
+-- | The constructed type graph
+[typesGraph] :: SutState -> TypeGraph
+
+-- | The next type ID to be introduced
+[typesNextID] :: SutState -> SutTypeID
+
+-- | Set the output to verbose of not
+[logVerbose] :: SutState -> Bool
+[errorCode] :: SutState -> SutError
+
+-- | Run the monad with a given action
+runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
+
+-- | Get the current open scope
+parserCurrentScope :: SutState -> Scope
+
+-- | Set the current error code for the compilation
+setErrorCode :: SutError -> SutMonad ()
+
+-- | Initial state of a Sutori parse<i>scan</i>run
+initialSutoriState :: SutState
+
+-- | Inserts a new scope into the parse
+insertScope :: SutMonad ()
+
+-- | Removes last scope from the parse
+removeScope :: SutMonad ()
 
 
 module Sutori.Lexer.Internals
@@ -816,24 +1475,31 @@ lexerGetInput :: SutMonad SutoriInput
 lexerSetInput :: SutoriInput -> SutMonad ()
 
 
-module Sutori.AST.Logger
-instance Sutori.Logger.SutShow Sutori.AST.SutModule
-instance Sutori.Logger.SutShow Sutori.AST.SutInstruction
-instance Sutori.Logger.SutShow Sutori.AST.SutExpression
-instance Sutori.Logger.SutShow Sutori.AST.SutLiteral
-instance Sutori.Logger.SutShow Sutori.AST.SutConstructor
-instance Sutori.Logger.SutShow Sutori.AST.SutOperator
+module Sutori.Error.Report
+
+-- | The `<tt>error'</tt> log
+logError :: SutLogger -> [(SutError, SutLog)]
+
+-- | Logs a lexical error and continues
+lexerError :: String -> SutMonad ()
+
+-- | Logs a parsing error and throws out
+parserError :: SutToken -> SutMonad a
+
+-- | Logs a type error and continues
+typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
+
+-- | Logs an undefined symbol error and continues
+undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
+
+-- | Logs a duplicate symbol error and continues
+duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
+
+-- | Logs a wrong number of parameters error and continues
+argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
 
 
-module Sutori.SymTable.Logger
-instance Sutori.Logger.SutShow Sutori.SymTable.SutSymCategory
-instance Sutori.Logger.SutShow Sutori.SymTable.SutParamKind
-instance Sutori.Logger.SutShow Sutori.SymTable.SutSymOther
-instance Sutori.Logger.SutShow Sutori.SymTable.SutSymbol
-instance Sutori.Logger.SutShow Sutori.SymTable.SutParam
-
-
-module Sutori.Monad.Logger
+module Sutori.Error
 
 -- | Different possible Sutori Errors
 data SutError
@@ -882,7 +1548,6 @@ duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
 
 -- | Logs a wrong number of parameters error and continues
 argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
-instance Sutori.Logger.SutShow Sutori.Logger.SutError
 
 
 module Sutori.Parser.Symbols
@@ -905,6 +1570,166 @@ findFunction :: SutID -> SutMonad SutID
 -- | Checks if the given variable already exists, returns the ID wrapped as
 --   an expression
 findVariable :: SutID -> SutMonad SutExpression
+
+
+module Sutori.Parser.Definitions
+
+-- | Includes a new person into the story
+--   
+--   TODO: Refactor code. all these functions use mostly repeated code
+defPerson :: SutID -> SutMonad ()
+
+-- | Defines a new variable of given type and optionally assigns it an
+--   initial value.
+--   
+--   TODO: Add assignment to AST (separate from definition, which does not
+--   go into AST)
+defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
+
+-- | Associates the SutID to the newly constructed type, assuming the name
+--   has not been used before
+defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
+
+-- | Defines a module for importing/exporting
+--   
+--   Right now it's basically a stub as there's only one module and the
+--   data structure only keeps the <a>SutID</a> and <a>AST</a>
+defModule :: SutID -> SutBlock -> SutMonad ()
+
+-- | Defines a function with ID pushed and no parameters
+defFunction :: SutTypeID -> SutBlock -> SutMonad ()
+
+-- | Defines a function with ID and parameters already present
+defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
+
+-- | Defines a new function with a given name (no parameters or body yet)
+insertFunctionID :: SutID -> SutMonad SutID
+
+-- | Defines a new parameter in the last function defined
+insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
+
+
+module Sutori.Lexer.Lexer
+
+-- | Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+
+-- | Run the lexer on a given input string, with a given function
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+
+-- | Run the lexer on a given string, get the results
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
+
+-- | Run the lexer, but receive a continuation (Used by Happy)
+lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+
+
+module Sutori.Lexer
+
+-- | Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+
+-- | Run the lexer on a given input string, with a given function
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+
+-- | Run the lexer on a given string, get the results
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
+
+-- | Run the lexer, but receive a continuation (Used by Happy)
+lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+
+-- | Sutori token classes. Their RegEx' are defined in Alex file
+data SutToken
+SutTkEOF :: SutToken
+BLOCK_OPEN :: SutToken
+BLOCK_CLOSE :: SutToken
+PROGRAM_INI :: SutToken
+PROGRAM_FIN :: SutToken
+FUNCTION_INI :: SutToken
+FUNCTION_FIN :: SutToken
+S_andthatswhere :: SutToken
+S_therewas :: SutToken
+S_brokea :: SutToken
+S_broughta :: SutToken
+S_comesfrom :: SutToken
+S_dreamsof :: SutToken
+S_keepsdreamingof :: SutToken
+S_madea :: SutToken
+S_madeof :: SutToken
+S_therewasa :: SutToken
+S_toldthatstory :: SutToken
+S_invented :: SutToken
+S_itsa :: SutToken
+S_andnothingelse :: SutToken
+S_wewillskipthis :: SutToken
+TYPE_INT :: SutToken
+TYPE_FLOAT :: SutToken
+TYPE_CHAR :: SutToken
+TYPE_VOID :: SutToken
+TYPE_BOOL :: SutToken
+TYPE_ARRAY :: SutToken
+TYPE_STRUCT :: SutToken
+TYPE_UNION :: SutToken
+TYPE_STRING :: SutToken
+TYPE_POINTER :: SutToken
+OPEN_PAREN :: SutToken
+OPEN_BRACKETS :: SutToken
+OPEN_BRACES :: SutToken
+CLOSE_PAREN :: SutToken
+CLOSE_BRACKETS :: SutToken
+CLOSE_BRACES :: SutToken
+ELLIPSIS :: SutToken
+PERIOD :: SutToken
+COMMA :: SutToken
+COLON :: SutToken
+SEMICOLON :: SutToken
+QUESTIONMARK :: SutToken
+EXCLAMATION :: SutToken
+ARROW_RIGHT :: SutToken
+PLUS :: SutToken
+MINUS :: SutToken
+EQUAL :: SutToken
+ASSIGNMENT :: SutToken
+ASTERISK :: SutToken
+PERCENT :: SutToken
+SLASH :: SutToken
+DIV :: SutToken
+NOT_EQUAL :: SutToken
+GREATER_EQUAL :: SutToken
+LESS_EQUAL :: SutToken
+GREATER :: SutToken
+LESS :: SutToken
+POWER :: SutToken
+AND :: SutToken
+OR :: SutToken
+WITH :: SutToken
+YOUR :: SutToken
+OF :: SutToken
+EITHER :: SutToken
+TO :: SutToken
+WHEN :: SutToken
+OTHERWISE :: SutToken
+TIMES :: SutToken
+SutTkBool :: Bool -> SutToken
+[tokenBool] :: SutToken -> Bool
+SutTkChar :: String -> SutToken
+[tokenChar] :: SutToken -> String
+SutTkFloat :: Float -> SutToken
+[tokenFloat] :: SutToken -> Float
+SutTkInt :: Int -> SutToken
+[tokenInt] :: SutToken -> Int
+SutTkString :: String -> SutToken
+[tokenString] :: SutToken -> String
+SutTkError :: String -> SutToken
+[tokenError] :: SutToken -> String
+SutTkID :: String -> SutToken
+[tokenID] :: SutToken -> String
+
+-- | Initial position of the scanner
+initialPosn :: SutPosn
+
+-- | Source position (Characters before, Row number, Column number)
+data SutPosn
 
 
 module Sutori.Parser.Expressions
@@ -1024,56 +1849,16 @@ dereference :: SutUnaryOp
 createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
 
 
-module Sutori.Parser.Definitions
+module Sutori.Parser.Parser
 
--- | Includes a new person into the story
---   
---   TODO: Refactor code. all these functions use mostly repeated code
-defPerson :: SutID -> SutMonad ()
+-- | Parses an entire Sutori file (module)
+parseModule :: SutMonad ()
 
--- | Defines a new variable of given type and optionally assigns it an
---   initial value.
---   
---   TODO: Add assignment to AST (separate from definition, which does not
---   go into AST)
-defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
+-- | Parses a Sutori expression
+parseExpression :: SutMonad SutExpression
 
--- | Associates the SutID to the newly constructed type, assuming the name
---   has not been used before
-defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-
--- | Defines a module for importing/exporting
---   
---   Right now it's basically a stub as there's only one module and the
---   data structure only keeps the <a>SutID</a> and <a>AST</a>
-defModule :: SutID -> SutBlock -> SutMonad ()
-
--- | Defines a function with ID pushed and no parameters
-defFunction :: SutTypeID -> SutBlock -> SutMonad ()
-
--- | Defines a function with ID and parameters already present
-defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
-
--- | Defines a new function with a given name (no parameters or body yet)
-insertFunctionID :: SutID -> SutMonad SutID
-
--- | Defines a new parameter in the last function defined
-insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
-
-
-module Sutori.Lexer
-
--- | Scans for next token, but passes it though checks first
-lexerScanClean :: SutMonad SutToken
-
--- | Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
-
--- | Run the lexer on a given string, get the results
-runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
-
--- | Run the lexer, but receive a continuation (Used by Happy)
-lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+-- | Parses a Sutori type expression
+parseType :: SutMonad SutTypeID
 
 
 module Sutori.Parser
@@ -1088,7 +1873,14 @@ parseExpression :: SutMonad SutExpression
 parseType :: SutMonad SutTypeID
 
 
-module Sutori.Router
+module Sutori.CLI.Router
+
+-- | Routes a call to the CLI with passed options and files into the
+--   correct mode of operation
+route :: (Options, [FilePath]) -> IO ()
+
+
+module Sutori.CLI
 
 -- | Routes a call to the CLI with passed options and files into the
 --   correct mode of operation
