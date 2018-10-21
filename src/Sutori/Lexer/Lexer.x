@@ -17,9 +17,9 @@ import Control.Monad.Except
 import Data.List
 import Data.Maybe
 
-import Sutori.Options      (Options(..), usage)
-import Sutori.Logger       (SutLogger(..), SutLog)
-import Sutori.Monad.Logger (SutError(LexicalError), lexerError)
+import Sutori.Options (Options(..), usage)
+import Sutori.Logger  (SutLogger(..), SutLog)
+import Sutori.Error   (SutError(LexicalError), lexerError)
 import Sutori.Monad
   ( SutMonad
   , SutState(SutState, lexerInput, lexerStateCode, lexerBytes, lexerString, lexerStringOn, lexerDepth, logVerbose)

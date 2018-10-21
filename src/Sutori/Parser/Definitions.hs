@@ -9,7 +9,7 @@ import Data.List                (find)
 
 import Sutori.AST   (SutID, SutExpression, SutBlock, SutModule(SutModule))
 import Sutori.Monad (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
-import Sutori.Monad.Logger      (duplicateSymbolError)
+import Sutori.Error (duplicateSymbolError)
 import Sutori.Types (SutTypeID)
 
 import Sutori.SymTable

@@ -12,7 +12,7 @@ import Data.Maybe                (fromJust, isJust)
 
 import Sutori.AST       (SutID, SutExpression(ExprID))
 import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
-import Sutori.Monad.Logger       (undefinedError)
+import Sutori.Error     (undefinedError)
 import Sutori.SymTable  (SutSymbol(..), SutSymCategory(..), SutSymOther(..), lookupID, symTypeDef)
 import Sutori.Types     (SutType(SutPrimitiveType), primitiveError, TypeGraph(TypeGraph), lookupType, lookupTypeID, insertType, SutTypeID)
 

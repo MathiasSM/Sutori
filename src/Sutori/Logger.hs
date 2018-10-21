@@ -13,18 +13,8 @@ module Sutori.Logger
 ) where
 
 import Data.List (intercalate)
+import Sutori.Error.Error
 
-
--- |Different possible Sutori Errors
-data SutError = LexicalError          -- ^ An unknown or malformed token was read
-              | GrammaticalError      -- ^ The source code does not follow Sutori grammar
-              | TypeError             -- ^ A Type error occurred
-              | UndefinedSymbolError  -- ^ A symbol was used before it was defined
-              | ArgumentsNumberError  -- ^ A function was called with the wrong number of arguments
-              | DuplicateSymbolError  -- ^ A symbol was defined twice in the same scope
-              | InternalError         -- ^ The compiler failed for a known reason (not the user's fault)
-              | NoError               -- ^ The lack of error
-  deriving Show
 
 -- |Simple tree data structure to allow pretty printing of sutori logs
 data SutLog = SutLogLeave String           -- ^ A final message
