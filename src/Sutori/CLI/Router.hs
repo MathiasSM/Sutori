@@ -1,7 +1,7 @@
 {-|
 Description : Defines a 'route' function to decide for an execution mode of the compiler
 -}
-module Sutori.Router
+module Sutori.CLI.Router
 ( route
 ) where
 
@@ -13,10 +13,8 @@ import System.Exit           (exitSuccess, die)
 import Sutori.Lexer          (runLexerScan, runLexer)
 import Sutori.Logger         (SutLogger(..), SutLog, SutError, SutShow(showSut))
 import Sutori.Monad          (SutState(SutState, mainModule))
-import Sutori.Options        (Options(..), usage)
-import Sutori.Options.Logger ()
 import Sutori.Parser         (parseModule)
-
+import Sutori.Options        (Options(..), usage)
 
 -- | Routes a call to the CLI with passed options and files into the correct mode of operation
 route :: (Options, [FilePath]) -> IO ()

@@ -1,8 +1,8 @@
 module Main where
 
 import System.Environment (getArgs)
+import Sutori.CLI         (route)
 import Sutori.Options     (handleFlags)
-import Sutori.Router      (route)
 
 -- Sutori runner
 main = getArgs >>= handleFlags >>= route

@@ -11,15 +11,11 @@ module Sutori.Parser
 import Data.Maybe
 
 
-import Sutori.Utils               (SutID)
-
-import Sutori.Types.Constructors  (SutType(..))
-import Sutori.Types.Primitives    (SutTypeID, SutPrimitive(..))
-import Sutori.AST                 (SutModule, SutBlock, SutExpression(..), SutInstruction(..))
+import Sutori.Types               (SutType(..), SutTypeID, SutPrimitive(..))
+import Sutori.AST                 (SutID, SutModule, SutBlock, SutExpression(..), SutInstruction(..))
 import Sutori.SymTable            (SutParamKind(SutVal, SutRef))
 
-import Sutori.Lexer.Tokens        (SutToken(..))
-import Sutori.Lexer               (lexwrap)
+import Sutori.Lexer               (SutToken(..), lexwrap)
 
 import Sutori.Monad               (SutMonad, insertScope, removeScope)
 import Sutori.Monad.Logger        (SutError(..), parserError)
