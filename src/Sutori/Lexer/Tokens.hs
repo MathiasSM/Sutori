@@ -6,6 +6,7 @@ module Sutori.Lexer.Tokens
 , isValid
 ) where
 
+
 -- |Sutori token classes. Their RegEx' are defined in Alex file
 data SutToken = SutTkEOF
 

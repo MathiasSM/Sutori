@@ -18,8 +18,8 @@ category: Compilers/Interpreters
 description: 'Please see the README on GitHub at <https://github.com/MathiasSM/Sutori#readme>'
 
 extra-source-files:
-  - src/Sutori/Lexer.x
-  - src/Sutori/Parser.y
+  - src/Sutori/Lexer/Lexer.x
+  - src/Sutori/Parser/Parser.y
   - README.md
   - ChangeLog.md
 

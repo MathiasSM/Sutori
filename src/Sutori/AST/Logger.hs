@@ -4,8 +4,8 @@ Description : Provides 'ShowSut' instances for "Sutori.AST"
 module Sutori.AST.Logger() where
 
 import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
-import Sutori.Types.Logger ()
-import Sutori.AST
+import Sutori.Types
+import Sutori.AST.Nodes
 
 
 -- |Modules can be printed nicely

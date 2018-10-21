@@ -12,8 +12,9 @@ module Sutori.Types.Constructors
 
 import Data.List(intercalate)
 
-import Sutori.Types.Primitives (SutPrimitive(SutTypeError), SutTypeID, generalizePrimitives)
 import Sutori.Utils            (SutID)
+
+import Sutori.Types.Primitives (SutPrimitive(SutTypeError), SutTypeID, generalizePrimitives)
 
 -- |Sutori type constructors
 data SutType  = SutPrimitiveType SutPrimitive   -- ^ A Primitive Type

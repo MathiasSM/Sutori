@@ -5,12 +5,12 @@ module Sutori.Types.Logger() where
 
 import Data.List(intercalate)
 
-import Sutori.Utils(SutID)
-import Sutori.Logger(SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
+import Sutori.Utils               (SutID)
+import Sutori.Logger              (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
 
-import Sutori.Types.Graph(TypeGraph(TypeGraph), orderedGraph)
-import Sutori.Types.Primitives(SutPrimitive(..))
-import Sutori.Types.Constructors(SutType(..), SutTypeID)
+import Sutori.Types.Graph         (TypeGraph(TypeGraph), orderedGraph)
+import Sutori.Types.Primitives    (SutPrimitive(..))
+import Sutori.Types.Constructors  (SutType(..), SutTypeID)
 
 -- |The graph prints as a list of types
 instance SutShow TypeGraph where

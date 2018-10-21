@@ -3,9 +3,10 @@ Description : Provides 'ShowSut' instances for "Sutori.SymTable"
 -}
 module Sutori.SymTable.Logger() where
 
-import Sutori.AST.Logger
-import Sutori.Logger     (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
-import Sutori.SymTable
+import Sutori.Logger    (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
+import Sutori.AST       ()
+
+import Sutori.SymTable.Data
 
 -- |A symbol category can be printed nicely
 instance SutShow SutSymCategory where

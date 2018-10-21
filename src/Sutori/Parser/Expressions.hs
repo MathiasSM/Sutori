@@ -41,17 +41,16 @@ import Control.Monad.State.Lazy  (get)
 import Data.List                 (find)
 import Data.Maybe                (fromMaybe, isJust, fromJust)
 
-import Sutori.AST                (SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
-import Sutori.Lexer.Tokens       (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
-import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
-import Sutori.Monad.Logger       (typeError, argumentsNumberError, undefinedError, duplicateSymbolError)
+import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
+import Sutori.Lexer     (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
+import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
+import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateSymbolError)
+import Sutori.SymTable  (SutSymbol(..), SutSymCategory(CatFunction, CatMember), SutParam(..), SutSymOther(..), lookupID )
+import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, lookupType, SutTypeID, SutPrimitive(..), primitiveID )
+import Sutori.Utils     (repeated)
+
 import Sutori.Parser.Symbols     (findType, findExistentType, findTypeID)
 import Sutori.Parser.TypeCheck   (checkNumeric, checkBoolean, checkSortable, checkEq, checkInt, checkFloat)
-import Sutori.SymTable           (SutSymbol(..), SutSymCategory(CatFunction, CatMember), SutParam(..), SutSymOther(..), lookupID)
-import Sutori.Types.Constructors (SutType(..), generalizeTypes, primitiveError)
-import Sutori.Types.Graph        (lookupType)
-import Sutori.Types.Primitives   (SutTypeID, SutPrimitive(..), primitiveID)
-import Sutori.Utils              (SutID, repeated)
 
 -- |Represents a transformation from an expression to another
 --

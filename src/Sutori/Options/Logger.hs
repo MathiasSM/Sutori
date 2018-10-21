@@ -3,8 +3,9 @@ Description : Provides 'ShowSut' instances for "Sutori.Options"
 -}
 module Sutori.Options.Logger() where
 
-import Sutori.Options
 import Sutori.Logger  (SutShow(showSut), SutLog(SutLogLeave, SutLogNode))
+
+import Sutori.Options.Options
 
 -- |The execution options can be printed nicely
 instance SutShow Options where
