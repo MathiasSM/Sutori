@@ -28,7 +28,7 @@ instance SutShow SutInstruction where
                                             in SutLogNode ("Bounded Iteration by " ++ show who) [condition, block]
   showSut (FreePointer who e)            = SutLogNode ("Pointer freed by " ++ show who ++ " from expr:") [showSut e]
   showSut (PrintVal who e)               = SutLogNode ("Printed value by " ++ show who ++ " from expr:") [showSut e]
-  showSut (ReadVal e)                    = SutLogNode "Read value into:" [showSut e]
+  showSut (ReadVal who e)                = SutLogNode ("Read value by " ++ show who ++ " into:") [showSut e]
   showSut (ReturnVal e)                  = SutLogNode "Returned value:" [showSut e]
 
 

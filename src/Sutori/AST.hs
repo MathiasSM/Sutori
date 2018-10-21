@@ -31,7 +31,7 @@ data SutModule = SutModule SutID SutBlock
 -- |A 'SutIntruction' represents an instruction/action in the (imperative) story
 data SutInstruction
   = InstAssignment SutExpression                         -- ^ An assignment can be understood an an instruction on its own
-  | ReadVal        SutExpression                         -- ^ The action of someone asking for the value of an expression
+  | ReadVal        SutID SutExpression                   -- ^ The action of someone asking for the value of an expression
   | ReturnVal      SutExpression                         -- ^ The action of finishing a story with an expression
   | Selection      SutID SutExpression SutBlock SutBlock -- ^ A selection between two blocks of code given a true/false condition
   | IterationU     SutID SutExpression SutBlock          -- ^ An unbounded iteration while a condition persists

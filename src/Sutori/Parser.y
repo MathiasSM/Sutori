@@ -402,7 +402,7 @@ Print             :: { SutInstruction }
 Print             : PersonID ':' PrintableExpr '.'              { PrintVal $1 $3 }
 
 Read              :: { SutInstruction }
-Read              : Assignable '?'                              { ReadVal $1 }
+Read              : PersonID ':' Assignable '?'                 { ReadVal $1 $3 }
 
 -- Function-only
 Return            :: { SutInstruction }
