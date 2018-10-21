@@ -57,11 +57,14 @@ import Sutori.Parser.TypeCheck
     S_therewasa         { S_therewasa }
     S_toldthatstory     { S_toldthatstory }
     S_itsa              { S_itsa }
+    S_wewillskipthis    { S_wewillskipthis }
+    S_andnothingelse    { S_andnothingelse }
 
     TYPE_INT            { TYPE_INT }
     TYPE_FLOAT          { TYPE_FLOAT }
     TYPE_CHAR           { TYPE_CHAR }
     TYPE_BOOL           { TYPE_BOOL }
+    TYPE_VOID           { TYPE_VOID }
     TYPE_ARRAY          { TYPE_ARRAY }
     TYPE_STRUCT         { TYPE_STRUCT }
     TYPE_UNION          { TYPE_UNION }
@@ -375,6 +378,8 @@ Instruction       : Assignment '.'     { InstAssignment $1 }
                   | Selection          { $1 }
                   | IterationU         { $1 }
                   | IterationB         { $1 }
+                  | Break              { $1 }
+                  | Continue           { $1 }
 
 -- Flow-control
 IterationU        :: { SutInstruction }
@@ -387,7 +392,11 @@ Selection         :: { SutInstruction }
 Selection         : PersonID S_dreamsof BlockGlobal WHEN CondExpr '.'                   { Selection $1 $5 $3 [] }
                   | PersonID S_dreamsof BlockGlobal WHEN CondExpr OTHERWISE BlockGlobal { Selection $1 $5 $3 $7 }
 
--- TODO: Add break, continue, etc
+Break             :: { SutInstruction }
+Break             : S_andnothingelse                                                    { Break }
+
+Continue          :: { SutInstruction }
+Continue          : S_wewillskipthis                                                    { Continue }
 
 -- Memory
 FreePointer       :: { SutInstruction }
@@ -398,7 +407,7 @@ Print             :: { SutInstruction }
 Print             : PersonID ':' PrintableExpr '.'              { PrintVal $1 $3 }
 
 Read              :: { SutInstruction }
-Read              : Assignable '?'                              { ReadVal $1 }
+Read              : PersonID ':' Assignable '?'                 { ReadVal $1 $3 }
 
 -- Function-only
 Return            :: { SutInstruction }

@@ -61,6 +61,8 @@ tokens :-
 <0>                "told that story"         { tokenize S_toldthatstory        }
 <0>                "invented"                { tokenize S_invented             }
 <0>                "it's a"                  { tokenize S_itsa                 }
+<0>                "and nothing else"        { tokenize S_andnothingelse       }
+<0>                "we will skip this"       { tokenize S_wewillskipthis       }
 
 <0>                "with"                    { tokenize WITH                   }
 <0>                "your"                    { tokenize YOUR                   }
@@ -71,10 +73,11 @@ tokens :-
 <0>                "otherwise"               { tokenize OTHERWISE              }
 <0>                "times"                   { tokenize TIMES                  }
 
+<0>                "gap"                     { tokenize TYPE_VOID              }
+<0>                "light"                   { tokenize TYPE_BOOL              }
+<0>                "letter"                  { tokenize TYPE_CHAR              }
 <0>                "bag"                     { tokenize TYPE_INT               }
 <0>                "wallet"                  { tokenize TYPE_FLOAT             }
-<0>                "letter"                  { tokenize TYPE_CHAR              }
-<0>                "light"                   { tokenize TYPE_BOOL              }
 <0>                "chain"                   { tokenize TYPE_ARRAY             }
 <0>                "machine"                 { tokenize TYPE_STRUCT            }
 <0>                "thing"                   { tokenize TYPE_UNION             }

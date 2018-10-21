@@ -31,10 +31,13 @@ data SutToken = SutTkEOF
               | S_toldthatstory
               | S_invented
               | S_itsa
+              | S_andnothingelse
+              | S_wewillskipthis
 
               | TYPE_INT
               | TYPE_FLOAT
               | TYPE_CHAR
+              | TYPE_VOID
               | TYPE_BOOL
               | TYPE_ARRAY
               | TYPE_STRUCT
