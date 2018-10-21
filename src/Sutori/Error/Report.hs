@@ -23,11 +23,10 @@ import Sutori.Lexer.Tokens  (SutToken)
 import Sutori.Lexer.Logger  ()
 import Sutori.SymTable      (SutSymCategory)
 import Sutori.Types         (SutType)
-import Sutori.Logger        (SutShow(showSut), SutLog(..), SutLogger(..), SutError(..), fromLeave)
+import Sutori.Logger        (SutShow(showSut), SutLog(..), SutLogger(..), fromLeave)
+import Sutori.Monad         (SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose), SutMonad, setErrorCode)
 
-import Sutori.Monad.State   (SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose))
-import Sutori.Monad.Monad   (SutMonad)
-import Sutori.Monad.Actions (setErrorCode)
+import Sutori.Error.Error   (SutError(..))
 
 
 -- |Gets the current position and formats it as an error log

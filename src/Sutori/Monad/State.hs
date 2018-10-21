@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 
 import Sutori.AST         (SutModule)
 import Sutori.Lexer.Posn  (SutPosn, initialPosn)
-import Sutori.Logger      (SutError(NoError))
+import Sutori.Error.Error (SutError(NoError))
 import Sutori.SymTable    (SymTable, Scope)
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
 

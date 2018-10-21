@@ -17,10 +17,10 @@ import qualified Data.Set as Set
 
 import Sutori.AST         (SutModule)
 import Sutori.Lexer.Posn  (SutPosn, initialPosn)
-import Sutori.Logger      (SutError(NoError), SutLogger, SutLog)
+import Sutori.Logger      (SutLogger, SutLog)
 import Sutori.SymTable    (SymTable, Scope)
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
-import Sutori.Error.Error (SutError)
+import Sutori.Error.Error (SutError(NoError))
 
 import Sutori.Monad.Monad
 import Sutori.Monad.State

@@ -1,5 +1,6 @@
 {-|
 Description : API for handling Sutori type system.
+
 TODO: Sort and document API
 -}
 module Sutori.Types
