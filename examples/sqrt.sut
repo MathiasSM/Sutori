@@ -1,0 +1,40 @@
+Once upon a time in TimeSquare ...(
+
+  Once upon some other time in theSeed, there was a wallet (made of wallet square) ...(
+    There was Rouge. Rouge brought a wallet: roughtRoot = square / 2.
+    And that's where roughtRoot comes from.
+  )...
+
+
+  Once upon some other time in babylon, there was a wallet (made of wallet square) ...(
+    There was Estima.
+    Estima brought a wallet: root = theSeed(square).
+
+    There was Infinity.
+    Infinity keeps dreaming of 42 ...(
+      root = (root + square/root) / 2.
+
+      Infinity dreams of ...(
+        --|break|--
+      )... when (square - (root * root) < 0.0001)...
+    )...
+
+    And that's where root comes from.
+  )...
+
+
+  There was Infinity. Infinity brought a wallet: N.
+
+  Infinity keeps dreaming of 42 ...(
+    Infinity: "Give me a floating square, I shall give you a floating root:". N?
+
+    There was Reporter.
+      Reporter: "You floating root:"
+      Reporter: babylon(N).
+    )... when (N >= 0) ... otherwise ...(
+      Reporter: "I shall not proceed with that".
+      --|exit|--
+    )...
+  )...
+)...
+
