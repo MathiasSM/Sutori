@@ -5,10 +5,9 @@ Description : Provides a set of checker functions:
 -}
 module Sutori.Parser.TypeCheck where
 
-import Sutori.AST                (SutExpression, expressionType, withPrimitiveType, asTypeError)
-import Sutori.Types.Constructors (SutType(SutPrimitiveType))
-import Sutori.Types.Primitives
-  ( SutPrimitive
+import Sutori.AST   (SutExpression, expressionType, withPrimitiveType, asTypeError)
+import Sutori.Types
+  ( SutType(SutPrimitiveType), SutPrimitive
   , toTypeNum, toTypeWallet, toTypePhrase, toTypeLight, toTypeBag, toTypeSortable, toTypeEq)
 
 

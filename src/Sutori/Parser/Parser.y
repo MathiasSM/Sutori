@@ -2,7 +2,7 @@
 {-|
 Description : Happy-generated parser for Sutori language
 -}
-module Sutori.Parser
+module Sutori.Parser.Parser
 ( parseModule
 , parseExpression
 , parseType

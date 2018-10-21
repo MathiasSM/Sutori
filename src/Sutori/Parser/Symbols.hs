@@ -10,14 +10,11 @@ import Control.Monad.State       (get, put)
 import Data.List                 (find)
 import Data.Maybe                (fromJust, isJust)
 
-import Sutori.AST                (SutExpression(ExprID))
-import Sutori.Monad              (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
+import Sutori.AST       (SutID, SutExpression(ExprID))
+import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
 import Sutori.Monad.Logger       (undefinedError)
-import Sutori.SymTable           (SutSymbol(..), SutSymCategory(..), SutSymOther(..), lookupID, symTypeDef)
-import Sutori.Types.Constructors (SutType(SutPrimitiveType), primitiveError)
-import Sutori.Types.Graph        (TypeGraph(TypeGraph), lookupType, lookupTypeID, insertType)
-import Sutori.Types.Primitives   (SutTypeID)
-import Sutori.Utils              (SutID)
+import Sutori.SymTable  (SutSymbol(..), SutSymCategory(..), SutSymOther(..), lookupID, symTypeDef)
+import Sutori.Types     (SutType(SutPrimitiveType), primitiveError, TypeGraph(TypeGraph), lookupType, lookupTypeID, insertType, SutTypeID)
 
 
 -- |Finds the existent typeID or inserts the type and gets the new ID

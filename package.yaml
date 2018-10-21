@@ -19,7 +19,7 @@ description: 'Please see the README on GitHub at <https://github.com/MathiasSM/S
 
 extra-source-files:
   - src/Sutori/Lexer/Lexer.x
-  - src/Sutori/Parser.y
+  - src/Sutori/Parser/Parser.y
   - README.md
   - ChangeLog.md
 

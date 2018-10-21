@@ -7,11 +7,10 @@ module Sutori.Parser.Definitions where
 import Control.Monad.State.Lazy (get, put)
 import Data.List                (find)
 
-import Sutori.AST               (SutExpression, SutBlock, SutModule(SutModule))
-import Sutori.Monad             (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
+import Sutori.AST   (SutID, SutExpression, SutBlock, SutModule(SutModule))
+import Sutori.Monad (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
 import Sutori.Monad.Logger      (duplicateSymbolError)
-import Sutori.Types.Primitives  (SutTypeID)
-import Sutori.Utils             (SutID)
+import Sutori.Types (SutTypeID)
 
 import Sutori.SymTable
   ( SutSymbol(symCat), SutParamKind(..), SutSymCategory(..), SutSymOther(..)
