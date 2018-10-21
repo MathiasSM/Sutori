@@ -5,7 +5,8 @@ module Sutori.SymTable.Logger() where
 
 import Sutori.Logger    (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
 import Sutori.AST       ()
-import Sutori.SymTable
+
+import Sutori.SymTable.Data
 
 -- |A symbol category can be printed nicely
 instance SutShow SutSymCategory where
