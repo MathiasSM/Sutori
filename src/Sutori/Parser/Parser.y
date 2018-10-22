@@ -156,9 +156,9 @@ LocalStatements   : LocalStatements_                            { reverse $1 }
 
 LocalStatements_  :: { [SutInstruction] }
 LocalStatements_  : LocalStatements_ Instruction                { $2 : $1 }
-                  | LocalStatements_ Return                     { $2 : $1 }
-                  | LocalStatements_ VariableDef                { $1 }
-                  | LocalStatements_ PersonDef                  { $1 }
+                  | LocalStatements_ Return '.'                 { $2 : $1 }
+                  | LocalStatements_ VariableDef '.'            { $1 }
+                  | LocalStatements_ PersonDef '.'              { $1 }
                   | {- noop statement -}                        { [] }
 
 -- GlobalStatements: We allow any kind of instruction and definition
@@ -170,10 +170,10 @@ GlobalStatements  : GlobalStatements_                           { reverse $1 }
 
 GlobalStatements_ :: { [SutInstruction] }
 GlobalStatements_ : GlobalStatements_ Instruction               { $2 : $1 }
-                  | GlobalStatements_ PersonDef                 { $1 }
-                  | GlobalStatements_ VariableDef               { $1 }
-                  | GlobalStatements_ TypeDef                   { $1 }
-                  | GlobalStatements_ FunctionDef               { $1 }
+                  | GlobalStatements_ PersonDef '.'             { $1 }
+                  | GlobalStatements_ VariableDef '.'           { $1 }
+                  | GlobalStatements_ TypeDef '.'               { $1 }
+                  | GlobalStatements_ FunctionDef '.'           { $1 }
                   | {- noop statement -}                        { [] }
 
 

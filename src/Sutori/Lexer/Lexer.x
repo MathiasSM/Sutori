@@ -136,7 +136,7 @@ tokens :-
 <stringState>      .                         { addCurrentToString }
 
 <0>                \n                        { skip               }
-<0>                [a-zA-Z] [a-zA-Z\-\_0-9]* { tokenizeID         }
+<0>                [a-zA-Z] [a-zA-Z\_0-9]*   { tokenizeID         }
 <0>                .                         { tokenizeError      }
 
 {

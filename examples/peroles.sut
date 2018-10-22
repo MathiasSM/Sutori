@@ -1,0 +1,88 @@
+Once upon a time in Peroles ...(
+
+  There was Typhoon.
+
+  Typhoon invented the perol; it's a machine (with
+    bag type and      -- 0:light, 1:letter, 2:bag, 3:wallet
+    thing ( either
+      light bool or
+      letter char or
+      bag int or
+      wallet float
+    ) value
+  ).
+
+
+  Once upon some other time in swamp (made of your perol a, your perol b) ...(
+    There was Shrek. Shrek brought a perol: tempo = a. a = b. b = tempo.
+  )...
+
+  Once upon some other time in Dutchland (made of your chain (of 20 perol) elems, bag N) ...(
+    There was Dijkstra.
+    Dijkstra brought a bag: nextBool=0, nextChar=0, nextInt=0, nextFloat=N-1.
+
+    Dijkstra keeps dreaming of nextInt <= nextFloat ...(
+      ...(
+        swamp(elems[nextBool], elems[nextInt]).
+        nextBool = nextBool + 1.
+
+        ...(nextChar = nextChar + 1)... when nextChar < nextBool.
+        ...(nextInt  = nextInt + 1)...  when nextInt < nextBool.
+      )... when elems[i] == 0 ...otherwise...(...(
+
+        swamp(elems[nextChar], elems[nextInt]).
+        nextChar = nextChar + 1.
+        nextInt = nextInt + 1.
+      )... when elems[i] == 1... otherwise ...(...(
+
+        nextInt = nextInt + 1.
+      )... when elems[i] == 2...otherwise ...(...(
+
+        swamp(elems[nextInt], elems[nextFloat]).
+        nextFloat = nextFloat - 1.
+      )... when elems[i] == 3...otherwise...(
+
+        Dijkstra: "Is type this a type?"
+        --|exit 1|--
+      )...)...)...)...
+
+    And that's where elems comes from.
+  )...
+
+
+  There was Infinity.
+
+  Infinity brought a phrase: answer.
+  Infinity brought a bag: N.
+  Infinity brought a chain (of 100 perol): perols.
+
+  Infinity keeps dreaming of 42 ...(
+    Infinity: "Do you want to sort some perols?"
+    answer?
+
+    Infinity dreams of ...(
+      There was Reco and Resu.
+      Reco: "How many perols?". N?
+      Reco: "Gimme perols".
+      Reco brought a bag: index = 0.
+      ...(
+        perols[index]->type?.
+        ...( perols[index]->bool?  )... when perols[index]->type == 0 ...otherwise...(
+        ...( perols[index]->char?  )... when perols[index]->type == 1 ...otherwise...(
+        ...( perols[index]->int?   )... when perols[index]->type == 2 ...otherwise...(
+        ...( perols[index]->float? )... when perols[index]->type == 3 ...otherwise...(
+          Reco: "Is type this a type? What are you huh?"
+          --|exit 1|--
+        )...)...)...)...
+        index = index + 1.
+      )... Reco told that story N times.
+
+
+      There was Reporter.
+
+      Resu: "Sorting perols... Sorted.".
+      Resu: Dutchland(perols).
+    )... when (answer == "y") or (answer == "yes")
+    ... otherwise ...( --|exit|-- )...
+  )...
+)...
