@@ -5,6 +5,7 @@ Description : Alex-generated lexer for Sutori language
 module Sutori.Lexer.Lexer
 ( lexerScanClean -- We only export the clean version (has lexical error handling)
 , runLexer       -- Runs the lexer with the given action (parsing?)
+, runLexer'
 , runLexerScan   -- Runs the lexer by itself (with the usual scan loop)
 , lexwrap        -- Wrapper around scan used by happy
 ) where
@@ -295,9 +296,10 @@ lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 
 -- |Run the lexer on a given input string, with a given function
 runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
-runLexer Options{ optVerbose = v } input f =
-  runExcept $ runWriterT $ runStateT f initialSutoriState { lexerInput = input, logVerbose = v }
+runLexer Options{ optVerbose = v } input f = runExcept $ runSutMonad f initialSutoriState { lexerInput = input, logVerbose = v }
 
+-- |Run the lexer with no options (default options)
+runLexer' = runLexer Options{}
 
 -- |Gets all tokens recursively
 lexerLoop :: SutMonad [SutToken]

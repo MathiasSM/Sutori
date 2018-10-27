@@ -32,7 +32,7 @@ data SutPrimitive = SutBag        -- ^ A bag (Int)
                   | SutLetter     -- ^ A letter (Char)
                   | SutTypeVoid   -- ^ A void element (Void)
                   | SutTypeError  -- ^ A Type Error (&^%$#)
-                  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 -- |Predefined Sutori types to initialize symtable
 primitives :: [SutPrimitive]

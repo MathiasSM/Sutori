@@ -28,6 +28,8 @@ dependencies:
   - array
   - mtl
   - containers
+  - hspec
+  - QuickCheck
 
 build-tools:
   - alex
