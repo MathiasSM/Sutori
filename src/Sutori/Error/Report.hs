@@ -85,8 +85,10 @@ undefinedError :: SutID -> SymbolCat -> String -> SutMonad ()
 undefinedError id cat msg = do
   let code     = UndefinedSymbolError
   pos  <- errorPos
-  let errType  = SutLogLeave $ "Undefined symbol '" ++ id ++ "': " ++ msg
-      log      = SutLogNode pos [errType, showSut cat]
+  let errType  = SutLogLeave $ "Undefined " ++ catS ++ " '" ++ id ++ "'"
+      catS     = fromLeave $ showSut cat
+      msgLog   = SutLogLeave msg
+      log      = SutLogNode pos [errType, msgLog]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
