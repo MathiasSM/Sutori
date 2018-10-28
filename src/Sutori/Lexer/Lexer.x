@@ -44,10 +44,12 @@ tokens :-
 <0>                ")..."                    { tokenize BLOCK_CLOSE            }
 
 
-<0>                "Once upon a time in"               { tokenize PROGRAM_INI  }
-<0>                "and they lived happily ever after" { tokenize PROGRAM_FIN  }
-<0>                "Once upon some other time in"      { tokenize FUNCTION_INI }
-<0>                "or that is what they say"          { tokenize FUNCTION_FIN }
+<0>                "Once upon a time in"                      { tokenize PROGRAM_INI  }
+<0>                "and they lived happily ever after"        { tokenize PROGRAM_FIN  }
+<0>                "Once upon some other time in"             { tokenize FUNCTION_INI }
+<0>                "I'll tell you more" " about it"? " later" { tokenize FUNCTION_DECLARE }
+<0>                "or that is what they say"                 { tokenize FUNCTION_DEFINE }
+<0>                "and that's the story"                     { tokenize FUNCTION_DEFINE }
 
 <0>                "And that's where"        { tokenize S_andthatswhere        }
 <0>                "There was"               { tokenize S_therewas             }
@@ -124,10 +126,12 @@ tokens :-
 <0>                "--".*                    ;
 
 <0>                "on"|"off"                { tokenizeBool  }
-<0>                \'[a-z]\'                 { tokenizeChar  }
 <0>                [0-9]+(\.[0-9]+)          { tokenizeFloat }
 <0>                [0-9]+                    { tokenizeInt   }
 
+<0>                \'.\'                     { tokenizeChar }
+<0>                \' \\ [ntfrbv\\\'\"] \'   { {-'"'-} tokenizeChar }
+<0>                \' \\ . \'                { tokenizeChar }
 <0>                \"                        { {-'"'-} enterString `andBegin` stringState }
 <stringState>      \"                        { {-'"'-} leaveString `andBegin` 0           }
 <stringState>      \\ [ntfrbv\\\'\"]         { {-'"'-} addCurrentToString                 }
@@ -180,11 +184,10 @@ tokenizeChar    (_, _, _, str)   len = return (SutTkChar  (take len str))
 tokenizeFloat   (_, _, _, str)   len = return (SutTkFloat (read $ take len str))
 tokenizeInt     (_, _, _, str)   len = return (SutTkInt   (read $ take len str))
 tokenizeID      (_, _, _, str)   len = return (SutTkID    (take len str))
-tokenizeBool    (_, _, _, "on")  len = return (SutTkBool  True)
-tokenizeBool    (_, _, _, "off") len = return (SutTkBool  False)
-tokenizeError   (_, _, _, input) len = do
+tokenizeBool    (_, _, _, str)   len = let w = take len str in return (SutTkBool (w == "on"))
+tokenizeError   (_, _, _, str) len = do
   -- setLexerError True
-  return $ SutTkError $ take len input
+  return $ SutTkError $ take len str
 
 
 -- Comment nesting
@@ -213,7 +216,7 @@ unembedComment input len = do
   skip input len
 
 
--- Strings
+-- Text (Strings)
 -- ------------------------------------------------------------------------------------------------
 -- |Enters "string" state
 enterString :: TokenAction

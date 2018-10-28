@@ -21,6 +21,7 @@ module Sutori.Types.Primitives
 import Data.Graph
 import Data.Maybe(fromJust)
 
+
 -- |A type will be represented by an ID
 type SutTypeID = Int
 
@@ -47,7 +48,7 @@ primitives =
 
 -- |Zipped primitives with their IDs
 primitiveIDs :: [(SutPrimitive, SutTypeID)]
-primitiveIDs = zip primitives [1..]
+primitiveIDs = zip primitives [0..]
 
 -- |Eventual TypeIDs for the type graph
 primitiveID :: SutPrimitive -> SutTypeID
@@ -134,5 +135,4 @@ toTypeSortable _           = SutTypeError
 -- |Convert primitive to a equalable type or error
 toTypeEq :: SutPrimitive -> SutPrimitive
 toTypeEq SutTypeVoid  = SutTypeError
-toTypeEq SutTypeError = SutTypeError
 toTypeEq a            = a

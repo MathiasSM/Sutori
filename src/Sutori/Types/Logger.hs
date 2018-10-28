@@ -15,25 +15,25 @@ import Sutori.Types.Constructors  (SutType(..), SutTypeID)
 -- |The graph prints as a list of types
 instance SutShow TypeGraph where
   showSut g = SutLogNode "Type Graph" $ map showType $ orderedGraph g
-    where showType (id, t) = SutLogLeave $ "Type#" ++ show id ++ " : " ++ (fromLeave.showSut) t
+    where showType (id, t) = SutLogLeave $ "Type #" ++ show id ++ " : " ++ (fromLeave.showSut) t
 
 -- |Each primitive prints as its natural name
 instance SutShow SutPrimitive where
-  showSut SutBag           = SutLogLeave "Bag"
-  showSut SutWallet        = SutLogLeave "Wallet"
-  showSut SutPhrase        = SutLogLeave "Phrase"
-  showSut SutLight         = SutLogLeave "Light"
-  showSut SutLetter        = SutLogLeave "Letter"
-  showSut SutTypeVoid      = SutLogLeave "No Type"
+  showSut SutBag           = SutLogLeave "Bag (Int)"
+  showSut SutWallet        = SutLogLeave "Wallet (Float)"
+  showSut SutPhrase        = SutLogLeave "Phrase (String)"
+  showSut SutLight         = SutLogLeave "Light (Bool)"
+  showSut SutLetter        = SutLogLeave "Letter (Char)"
+  showSut SutTypeVoid      = SutLogLeave "No Type (Void)"
   showSut SutTypeError     = SutLogLeave "Type error"
 
 -- |Each type construct prints nicely
 instance SutShow SutType where
-  showSut (SutPrimitiveType t) = showSut t
-  showSut (SutDirection t) = SutLogLeave $ "Direction to type " ++ show t
-  showSut (SutChain i t)   = SutLogLeave $ "Chain of size " ++ show i ++ " of type " ++ show t
-  showSut (SutMachine ms)  = SutLogLeave $ "Machine with " ++ showMembers " and a " ms
-  showSut (SutThing ms)    = SutLogLeave $ "Thing that is either " ++ showMembers " or a " ms
+  showSut (SutPrimitiveType t)  = showSut t
+  showSut (SutDirection t)      = SutLogLeave $ "Direction to type " ++ show t
+  showSut (SutChain i t)        = SutLogLeave $ "Chain of size " ++ show i ++ " of type " ++ show t
+  showSut (SutMachine ms)       = SutLogLeave $ "Machine with " ++ showMembers " and a " ms
+  showSut (SutThing ms)         = SutLogLeave $ "Thing that is either " ++ showMembers " or a " ms
 
 -- |Print a list of members
 showMembers :: String -> [(SutID, SutTypeID)] -> String

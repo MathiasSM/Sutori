@@ -2,7 +2,7 @@
   Description : General-use monadic actions for 'SutMonad'
 -}
 module Sutori.Monad.Actions
-( ifVerbose
+( whenVerbose
 , runSutMonad
 , insertScope
 , removeScope
@@ -26,8 +26,8 @@ import Sutori.Monad.Monad
 import Sutori.Monad.State
 
 -- |Run a monadic action only if verbose if turned on
-ifVerbose :: SutMonad () -> SutMonad ()
-ifVerbose f = get >>= \SutState{logVerbose = v} -> when v f
+whenVerbose :: SutMonad () -> SutMonad ()
+whenVerbose f = get >>= \SutState{logVerbose = v} -> when v f
 
 -- |Inserts a new scope into the parse
 insertScope :: SutMonad ()

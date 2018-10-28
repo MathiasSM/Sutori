@@ -45,11 +45,14 @@ import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(.
 import Sutori.Lexer     (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
 import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
 import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateSymbolError)
-import Sutori.SymTable  (SutSymbol(..), SutSymCategory(CatFunction, CatMember), SutParam(..), SutSymOther(..), lookupID )
 import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, lookupType, SutTypeID, SutPrimitive(..), primitiveID )
 import Sutori.Utils     (repeated)
+import Sutori.SymTable
+  ( SutSymbol(..), SymbolCat(..), SutParam(..)
+  , TypedSymbol(..), ParametricSymbol(..)
+  , lookupSymbols)
 
-import Sutori.Parser.Symbols     (findType, findExistentType, findTypeID)
+import Sutori.Parser.Symbols     (findType, findExistentType, findTypeID, findFunction)
 import Sutori.Parser.TypeCheck   (checkNumeric, checkBoolean, checkSortable, checkEq, checkInt, checkFloat)
 
 -- |Represents a transformation from an expression to another
@@ -156,9 +159,10 @@ binaryOp :: ExprTransform -- ^ Transform for first operand
          -> ExprTransform -- ^ Transform for second operand
          -> ExprTransform -- ^ Transform result
          -> SutOperator   -- ^ Operator
-         -> SutBinaryOp      -- ^ Both operands and result
+         -> SutBinaryOp   -- ^ Both operands and result
 binaryOp f1 f2 finalCheck op e1' e2' = let (e1, e2) = (f1 e1', f2 e2')
-                                           result = BinaryOp (generalizeExprType e1 e2) op e1 e2
+                                           gt = generalizeExprType e1 e2
+                                           result = BinaryOp gt op e1 e2
                                         in return $ finalCheck result
 
 -- |Binary operation specific constructor check
@@ -304,27 +308,31 @@ dereference e = do
 --
 -- This checks for the correct number of arguments and their types
 --
--- Note: Left side is known to be existent function (?) -- TODO: It is not
+-- Note: Left side is known to be existent function (?)
 functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
 functionCall id actualParams = do
   SutState{parserTable = table} <- get
-  let SutSymbol{symType = tid, symOther = other} = head syms
-        where syms  = filter isCat (lookupID table id) -- We know there's at least one
-              isCat = (CatFunction ==) . symCat        -- There might be variables hiding the name
-      formalParams = otherASTParams other
-  formalPTypes <- mapM (findExistentType . paramType) formalParams
-  returnType   <- findExistentType tid
-  let (fpl, apl) = (length formalParams, length actualParams)
-  when (fpl /= apl) $ argumentsNumberError id fpl apl
-  checkParamTypes 1 formalPTypes actualParams
-  return $ SutCall returnType id actualParams
+  func <- findFunction id
+  case func of
+    Nothing    -> return $ SutCall primitiveError id actualParams
+    Just func' -> do
+      let formalParams = symParams func'
+          rType = symType func'
+      formalPTypes <- mapM (findExistentType . paramType) formalParams
+      returnType   <- findExistentType rType
+      let (fpl, apl) = (length formalParams, length actualParams)
+      when (fpl /= apl) $ argumentsNumberError id fpl apl
+      checkParamTypes formalPTypes actualParams
+      return $ SutCall returnType id actualParams
 
 
 -- |Compares the given formal and actual parameters types
-checkParamTypes :: Int -> [SutType] -> [SutExpression] -> SutMonad ()
-checkParamTypes i [] _ = return ()
-checkParamTypes i _ [] = return ()
-checkParamTypes i (ft:fts) (p:ps) = do
-  let t = expressionType p
-  unless (ft == t) $ typeError p ft t ("Argument #" ++ show i)
-  checkParamTypes (i+1) fts ps
+checkParamTypes :: [SutType] -> [SutExpression] -> SutMonad ()
+checkParamTypes = checkParamTypes' 1
+  where checkParamTypes' :: Int -> [SutType] -> [SutExpression] -> SutMonad ()
+        checkParamTypes' i [] _ = return ()
+        checkParamTypes' i _ [] = return ()
+        checkParamTypes' i (ft:fts) (p:ps) = do
+          let t = expressionType p
+          unless (ft == t) $ typeError p ft t ("Argument #" ++ show i)
+          checkParamTypes' (i+1) fts ps

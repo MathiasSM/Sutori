@@ -8,7 +8,7 @@ Once upon a time in FactorialCity ...(
     ...(
       factorial = factorial * it.
       it = it + 1.
-    )... Avery told that story N times.
+    )... Facto told that story N times.
 
     And that's where factorial comes from.
   )... or that is what they say.
@@ -25,24 +25,23 @@ Once upon a time in FactorialCity ...(
   Infinity brought a bag: N.
 
   Infinity keeps dreaming of 42 ...(
-    Infinity: "Do you want to run which factorial? Iterative or recursive? [i/r/N]"
-    answer?
+    Infinity: "Do you want to run which factorial? Iterative or recursive? [i/r/N]".
+    Infinity: answer?
 
     There was Reporter.
     Infinity dreams of ...(
-      Reporter: "Iterative factorial of...". N?
-      Reporter: iterfacto(N).
-    )... when (answer == "i")...
+      Reporter: "Iterative factorial of...". Reporter: N?
+      Reporter: iterfacto(with N).
+    )... when answer < 2.
 
     Infinity dreams of ...(
-      Reporter: "Recursive factorial of...". N?
-      Reporter: recurfacto(N).
-    )... when (answer == "r")...
+      Reporter: "Recursive factorial of...". Reporter: N?
+      Reporter: recurfacto(with N).
+    )... when (answer == "r").
 
     Infinity dreams of ...(
       Reporter: "Unknown factorial algorithm".
       --| exit |--
-    )... when (answer == "N") or ((answer /= "r") and (answer /= "i")) ...
+    )... when (answer == "N") or ((answer /= "r") and (answer /= "i")) .
   )...
-)...
-
+)... and they lived happily ever after.

@@ -3,7 +3,7 @@ Description : Defines the data types for nodes of the AST
 -}
 module Sutori.AST.Nodes
 ( SutID
-, SutBlock
+, SutAST
 , SutModule(..)
 , SutInstruction(..)
 , SutExpression(..)
@@ -17,21 +17,21 @@ import Sutori.Types (SutType)
 
 
 -- |A 'SutBlock' is a list of instructions
-type SutBlock = [SutInstruction]
+type SutAST = [SutInstruction]
 
--- |A Sutori Module has a name and a SutBlock
-data SutModule = SutModule SutID SutBlock
+-- |A Sutori Module has a name and a SutAST
+data SutModule = SutModule SutID SutAST
   deriving (Show, Eq)
 
 
 -- |A 'SutIntruction' represents an instruction/action in the (imperative) story
 data SutInstruction
-  = InstAssignment SutExpression                         -- ^ An assignment can be understood an an instruction on its own
+  = InstExpression SutExpression                         -- ^ Some expressions can be understood an an instruction on its own
   | ReadVal        SutID SutExpression                   -- ^ The action of someone asking for the value of an expression
   | ReturnVal      SutExpression                         -- ^ The action of finishing a story with an expression
-  | Selection      SutID SutExpression SutBlock SutBlock -- ^ A selection between two blocks of code given a true/false condition
-  | IterationU     SutID SutExpression SutBlock          -- ^ An unbounded iteration while a condition persists
-  | IterationB     SutID SutExpression SutBlock          -- ^ A bounded iteration of a story to be repeated a number of times
+  | Selection      SutID SutExpression SutAST SutAST     -- ^ A selection between two blocks of code given a true/false condition
+  | IterationU     SutID SutExpression SutAST            -- ^ An unbounded iteration while a condition persists
+  | IterationB     SutID SutExpression SutAST            -- ^ A bounded iteration of a story to be repeated a number of times
   | FreePointer    SutID SutExpression                   -- ^ The action of freeing a direction (so it points nowhere)
   | PrintVal       SutID SutExpression                   -- ^ The action of a person saying the value of an expression (into the console)
   | Break                                                -- ^ Stops the innermost iteration loop (skips the rest of the iteratons)

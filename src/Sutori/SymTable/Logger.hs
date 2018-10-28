@@ -6,42 +6,56 @@ module Sutori.SymTable.Logger() where
 import Sutori.Logger    (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
 import Sutori.AST       ()
 
-import Sutori.SymTable.Data
+import Sutori.SymTable.Symbol
+import Sutori.SymTable.Table
 
--- |A symbol category can be printed nicely
-instance SutShow SutSymCategory where
-  showSut CatModule    = SutLogLeave "Category: Module"
-  showSut CatFunction  = SutLogLeave "Category: Function"
-  showSut CatPerson    = SutLogLeave "Category: Person"
-  showSut CatVariable  = SutLogLeave "Category: Variable"
-  showSut CatParameter = SutLogLeave "Category: Parameter"
-  showSut CatType      = SutLogLeave "Category: Type"
-  showSut CatMember    = SutLogLeave "Category: Member"
 
--- |A parameter kind can be printed nicely
-instance SutShow SutParamKind where
-  showSut SutRef = SutLogLeave "Passed by: Reference"
-  showSut SutVal = SutLogLeave "Passed by: Value"
+-- | Constructs a log for the symbol data
+logSymbol :: SutSymbol a => [a -> SutLog] -> a -> SutLog
+logSymbol lfs s = SutLogNode ("Symbol: " ++ symID s ++ " - Scope: " ++ (show . symScope) s) (map (\f -> f s) lfs)
 
--- |The extra payload of a symbol can be printed nicely
-instance SutShow SutSymOther where
-  showSut (SymAST ps b)    = let params = SutLogNode "Parameters: " (map showSut ps)
-                                 block  = SutLogNode "AST: " (map showSut b)
-                              in SutLogNode "Function definition:" [params, block]
-  showSut (SymParamKind k) = showSut k
-  showSut (SymTypeDef t)   = SutLogLeave  $ "Type definition: " ++ show t
-  showSut  SymNothing      = SutLogLeave "-"
+-- | Constructs a log for the symbol Type
+logType :: TypedSymbol a => a -> SutLog
+logType s = SutLogLeave $ "Type:" ++ show (symType s)
 
--- |A sutori symbol in the table can be printed nicely
-instance SutShow SutSymbol where
-  showSut s = let etype = SutLogLeave $ "Type: " ++ show (symType s)
-                  cat   = showSut $ symCat s
-                  scope = SutLogLeave $ "Scope: " ++ show (symScope s)
-                  other = showSut (symOther s)
-               in SutLogNode ("Symbol: " ++ symID s) [cat, etype, scope, other]
+-- | Constructs a log node for the symbol Params
+logParams :: ParametricSymbol a => a -> SutLog
+logParams s = SutLogNode "Parameters:" (map showSut (symParams s))
+
+-- | Constructs a log node for the symbol AST
+logAST :: ASTSymbol a => a -> SutLog
+logAST s = SutLogNode "AST:" (map showSut (symAST s))
+
+
+-- | Module shows its AST
+instance SutShow SymModule where
+  showSut = logSymbol [logAST]
+
+-- | Function shows its type, params and AST
+instance SutShow SymFunction where
+  showSut = logSymbol [logType, logParams, logAST]
+
+-- | Person shows only the basic
+instance SutShow SymPerson where
+  showSut = logSymbol []
+
+-- | Variable shows its type
+instance SutShow SymVariable where
+  showSut = logSymbol [logType]
+
+-- | Type shows its type (definition)
+instance SutShow SymType where
+  showSut = logSymbol [logType]
+
 
 -- |A parameter can be printed nicely
 instance SutShow SutParam where
-  showSut p = let kind  = showSut (paramKind p)
-                  etype = SutLogLeave $ "Type: " ++ show (paramType p)
-               in SutLogNode ("Parameter: " ++ paramID p) [etype, kind]
+  showSut SutParam{isRef = r, paramType = t, paramID = id} =
+    SutLogLeave ("Param: " ++ id ++ "; TypeID: " ++ show t ++ "; isRef: " ++ show r)
+
+instance SutShow SymbolCat where
+  showSut CatModule   = SutLogLeave "Module"
+  showSut CatPerson   = SutLogLeave "Person"
+  showSut CatType     = SutLogLeave "Type"
+  showSut CatVariable = SutLogLeave "Variable"
+  showSut CatFunction = SutLogLeave "Function"

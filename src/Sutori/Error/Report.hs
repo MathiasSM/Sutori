@@ -21,7 +21,7 @@ import Data.Char                 (isSpace)
 import Sutori.AST           (SutID, SutExpression)
 import Sutori.Lexer.Tokens  (SutToken)
 import Sutori.Lexer.Logger  ()
-import Sutori.SymTable      (SutSymCategory)
+import Sutori.SymTable      (SymbolCat)
 import Sutori.Types         (SutType)
 import Sutori.Logger        (SutShow(showSut), SutLog(..), SutLogger(..), fromLeave)
 import Sutori.Monad         (SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose), SutMonad, setErrorCode)
@@ -30,10 +30,10 @@ import Sutori.Error.Error   (SutError(..))
 
 
 -- |Gets the current position and formats it as an error log
-errorPos :: SutMonad SutLog
+errorPos :: SutMonad String
 errorPos = do
   SutState{ lexerPosn = posn, lexerChar = char, lexerInput = input } <- get
-  return $ SutLogLeave $ "On position: " ++ fromLeave (showSut posn)
+  return $ fromLeave (showSut posn)
 
 -- |Gets the current character from the state and formats it as an error log
 errorChar :: SutMonad SutLog
@@ -49,8 +49,8 @@ lexerError msg = do
   pos  <- errorPos
   char <- errorChar
   let code     = LexicalError
-      logTitle = "Lexical Error: " ++  msg
-      log      = SutLogNode logTitle [pos, char]
+      errType  = SutLogLeave $ "Lexical Error: " ++  msg
+      log      = SutLogNode pos [errType, char]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode LexicalError
@@ -60,8 +60,8 @@ parserError :: SutToken -> SutMonad a
 parserError tk = do
   pos <- errorPos
   let code     = GrammaticalError
-      logTitle = "Grammatical Error"
-      log      = SutLogNode logTitle [showSut tk, pos]
+      errType  = SutLogLeave "Parse Error"
+      log      = SutLogNode pos [errType, showSut tk]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
@@ -72,21 +72,21 @@ typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
 typeError e expected actual msg = do
   let code     = TypeError
   pos  <- errorPos
-  let logTitle    = "Type Error: " ++ msg
+  let errType     = SutLogLeave $ "Type Error: " ++ msg
       logExpected = SutLogLeave $ "Expected type: " ++ fromLeave (showSut expected)
       logActual   = SutLogLeave $ "Actual type:   " ++ fromLeave (showSut actual)
-      log      = SutLogNode logTitle [pos, showSut e, logExpected, logActual]
+      log      = SutLogNode pos [errType, showSut e, logExpected, logActual]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
 
 -- |Logs an undefined symbol error and continues
-undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
+undefinedError :: SutID -> SymbolCat -> String -> SutMonad ()
 undefinedError id cat msg = do
   let code     = UndefinedSymbolError
   pos  <- errorPos
-  let logTitle = "Undefined symbol '" ++ id ++ "': " ++ msg
-      log      = SutLogNode logTitle [pos, showSut cat]
+  let errType  = SutLogLeave $ "Undefined symbol '" ++ id ++ "': " ++ msg
+      log      = SutLogNode pos [errType, showSut cat]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
@@ -96,21 +96,21 @@ argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
 argumentsNumberError id expected actual = do
   let code     = ArgumentsNumberError
   pos  <- errorPos
-  let logTitle    = "Wrong number of arguments in call to '" ++ id ++"'"
+  let errType     = SutLogLeave $ "Wrong number of arguments in call to '" ++ id ++"'"
       logExpected = SutLogLeave $ "Number of formal parameters: " ++ show expected
       logActual   = SutLogLeave $ "Number of actual arguments:  " ++ show actual
-      log      = SutLogNode logTitle [pos, logExpected, logActual]
+      log      = SutLogNode pos [errType, logExpected, logActual]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
 
 -- |Logs a duplicate symbol error and continues
-duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
+duplicateSymbolError :: SutID -> SymbolCat -> String -> SutMonad ()
 duplicateSymbolError id cat msg = do
   let code     = DuplicateSymbolError
   pos  <- errorPos
-  let logTitle    = "Duplicate definition for  '" ++ id ++"': " ++ msg
-      log      = SutLogNode logTitle [pos, showSut cat]
+  let errType  = SutLogLeave $ "Duplicate definition for  '" ++ id ++"': " ++ msg
+      log      = SutLogNode pos [errType, showSut cat]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code
