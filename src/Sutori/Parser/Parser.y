@@ -149,10 +149,6 @@ InsertScope       : BLOCK_OPEN                                  {% insertScope }
 RemoveScope       :: { () }
 RemoveScope       : BLOCK_CLOSE                                 {% removeScope }
 
--- Local statements: We don't allow function or type definitions here
-BlockLocal        :: { [SutInstruction] }
-BlockLocal        : InsertScope LocalStatements_ RemoveScope    { reverse $2 }
-
 LocalStatements_  :: { [SutInstruction] }
 LocalStatements_  : LocalStatements_ Instruction                { $2 : $1 }
                   | LocalStatements_ Return '.'                 { $2 : $1 }
@@ -290,11 +286,12 @@ PersonNames_      : ID                            { [$1] }
 
 -- Function Definition
 FunctionDef       :: { () }
-FunctionDef       : NewFunction '.' FUNCTION_DECLARE           { }
-                  | NewFunction BlockLocal FUNCTION_DEFINE     {% defineFunction $1 $2 }
+FunctionDef       : FunctionDef_o '.' FUNCTION_DECLARE  { }
+                  | FunctionDef_o LocalStatements_ RemoveScope FUNCTION_DEFINE  {% defineFunction $1 (reverse $2) }
 
-NewFunction       :: { SutID }
-NewFunction       : FUNCTION_INI ID ',' S_therewasa TypeExpr FunctionParams {% insertFunction $2 $5 $6 }
+FunctionDef_o     :: { SutID }
+FunctionDef_o     : FUNCTION_INI ID ',' S_therewasa TypeExpr FunctionParams InsertScope
+                  {% insertFunction $2 $5 $6 }
 
 FunctionParams    :: { [SutParam] }
 FunctionParams    : '(' S_madeof ParamsDef_ ')' { reverse $3 }

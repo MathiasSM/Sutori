@@ -75,7 +75,9 @@ class SutSymbol a => TypedSymbol a where
 
 -- | Represents a symbol that holds an AST
 class SutSymbol a => ASTSymbol a where
-  symAST :: a -> SutAST        -- ^ The AST held by the symbol
+  symAST    :: a -> SutAST        -- ^ The AST held by the symbol
+  symPreAST :: a -> SutAST        -- ^ An optional (empty by default) AST (hidden, preppended)
+  symPreAST _ = []
 
 
 -- |A 'SutParam' represents a function parameter, and
@@ -105,20 +107,21 @@ instance ASTSymbol SymModule where
 
 
 -- | A (top-level) function
-data SymFunction = SymFunction SutID SutTypeID [SutParam] (Maybe SutAST)
+data SymFunction = SymFunction SutID SutTypeID [SutParam] SutAST (Maybe SutAST)
 
 instance SutSymbol SymFunction where
-  symID (SymFunction id _ _ _) = id
+  symID (SymFunction id _ _ _ _) = id
   symCat _ = CatFunction
 
 instance TypedSymbol SymFunction where
-  symType (SymFunction _ tid _ _) = tid
+  symType (SymFunction _ tid _ _ _) = tid
 
 instance ParametricSymbol SymFunction where
-  symParams (SymFunction _ _ ps _) = ps
+  symParams (SymFunction _ _ ps _ _) = ps
 
 instance ASTSymbol SymFunction where
-  symAST (SymFunction _ _ _ ast) = fromJust ast
+  symAST (SymFunction _ _ _ _ ast) = fromJust ast
+  symPreAST (SymFunction _ _ _ ast _) = ast
 
 
 -- | A person who may do things in the story
