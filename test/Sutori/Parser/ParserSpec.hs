@@ -55,14 +55,14 @@ spec =
 
         it "parses an array of Int" $
           let input = "[1; 2]"
-              expected = ExprConstructor (SutChain 2 5)
+              expected = ExprConstructor (SutChain 2 4)
                           (SutArray [ ExprLiteral (SutPrimitiveType SutBag) (SutInt 1),
                                       ExprLiteral (SutPrimitiveType SutBag) (SutInt 2)])
            in parseExpression' input `shouldBe` expected
 
         it "parses an array of String" $
           let input = "[\"Hi\"; \"St.\"]"
-              expected = ExprConstructor (SutChain 2 7)
+              expected = ExprConstructor (SutChain 2 6)
                           (SutArray [ ExprLiteral (SutPrimitiveType SutPhrase) (SutString "Hi"),
                                       ExprLiteral (SutPrimitiveType SutPhrase) (SutString "St.")])
            in parseExpression' input `shouldBe` expected
@@ -73,13 +73,13 @@ spec =
 
         it "parses a singleton Struct" $
           let input = "{ a: 4 }"
-              expected = ExprConstructor (SutMachine [("a",5)])
+              expected = ExprConstructor (SutMachine [("a",4)])
                           (SutStruct [("a", ExprLiteral (SutPrimitiveType SutBag) (SutInt 4))])
            in parseExpression' input `shouldBe` expected
 
         it "parses a Struct with some members" $
           let input = "{ a: 4.5; b: \"str\" }"
-              expected = ExprConstructor (SutMachine [("a",6), ("b", 7)])
+              expected = ExprConstructor (SutMachine [("a",5), ("b", 6)])
                           (SutStruct [("a", ExprLiteral (SutPrimitiveType SutWallet) (SutFloat 4.5)),
                                       ("b", ExprLiteral (SutPrimitiveType SutPhrase) (SutString "str"))])
            in parseExpression' input `shouldBe` expected

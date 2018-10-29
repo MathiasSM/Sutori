@@ -180,7 +180,8 @@ tokenize c _ _ = return c
 
 -- |Different token constructors
 tokenizeChar, tokenizeFloat, tokenizeInt, tokenizeID, tokenizeBool, tokenizeError :: TokenAction
-tokenizeChar    (_, _, _, str)   len = return (SutTkChar  (take len str))
+tokenizeChar    (_, _, _, str)   len = return (SutTkChar (charizard str))
+  where charizard = reverse . drop 1 . reverse . drop 1 . take len
 tokenizeFloat   (_, _, _, str)   len = return (SutTkFloat (read $ take len str))
 tokenizeInt     (_, _, _, str)   len = return (SutTkInt   (read $ take len str))
 tokenizeID      (_, _, _, str)   len = return (SutTkID    (take len str))
