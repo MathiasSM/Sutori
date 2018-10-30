@@ -10,6 +10,7 @@ module Sutori.Monad
 , initialSutoriState
 , insertScope
 , removeScope
+, whenVerbose
 ) where
 
 import Sutori.Monad.State

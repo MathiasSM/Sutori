@@ -1,6 +1,5 @@
 {-|
-Description : Provides a set of checker functions:
-              They check an expression, issue type errors if necessary, and
+Description : Provides functions that check an expression, issue type errors if necessary, and
               return the (maybe modified as a type error) expressions
 -}
 module Sutori.Parser.TypeCheck where

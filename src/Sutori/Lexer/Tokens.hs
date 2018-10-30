@@ -16,7 +16,8 @@ data SutToken = SutTkEOF
               | PROGRAM_INI
               | PROGRAM_FIN
               | FUNCTION_INI
-              | FUNCTION_FIN
+              | FUNCTION_DECLARE
+              | FUNCTION_DEFINE
 
               | S_andthatswhere
               | S_therewas

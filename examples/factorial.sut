@@ -1,0 +1,47 @@
+Once upon a time in FactorialCity ...(
+
+  Once upon some other time in iterfacto, there was a bag (made of bag N) ...(
+    There was Facto.
+
+    Facto brought a bag: factorial = 1, it = 1.
+
+    ...(
+      factorial = factorial * it.
+      it = it + 1.
+    )... Facto told that story N times.
+
+    And that's where factorial comes from.
+  )... or that is what they say.
+
+
+  Once upon some other time in recurfacto, there was a bag (made of bag N) ...(
+    And that's where N*recurfacto(with N-1) comes from.
+  )... or that is what they say.
+
+
+  There was Infinity.
+
+  Infinity brought a phrase: answer.
+  Infinity brought a bag: N.
+
+  Infinity keeps dreaming of 42 ...(
+    Infinity: "Do you want to run which factorial? Iterative or recursive? [i/r/N]".
+    Infinity: answer?
+
+    There was Reporter.
+    Infinity dreams of ...(
+      Reporter: "Iterative factorial of...". Reporter: N?
+      Reporter: iterfacto(with N).
+    )... when answer < 2.
+
+    Infinity dreams of ...(
+      Reporter: "Recursive factorial of...". Reporter: N?
+      Reporter: recurfacto(with N).
+    )... when (answer == "r").
+
+    Infinity dreams of ...(
+      Reporter: "Unknown factorial algorithm".
+      --| exit |--
+    )... when (answer == "N") or ((answer /= "r") and (answer /= "i")) .
+  )...
+)... and they lived happily ever after.

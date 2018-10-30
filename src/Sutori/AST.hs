@@ -5,7 +5,7 @@ Description: Defines an API for accessing the different data types
 -}
 module Sutori.AST
 ( SutID
-, SutBlock
+, SutAST
 , SutModule(..)
 , SutInstruction(..)
 , SutExpression(..)

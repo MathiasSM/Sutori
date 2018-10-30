@@ -5,21 +5,28 @@ This module defines all the interaction with the table, along with the symbols t
 their different categories and payloads.
 -}
 module Sutori.SymTable
-( SutSymbol(SutSymbol, symID, symCat, symScope, symType, symOther)
-, SutSymCategory(..)
-, SutSymOther(..)
-, SymTable
+( SutSymbol(..)
+, SutSymbol'(..)
+, ASTSymbol(..)
+, ParametricSymbol(..)
 , Scope
-, SutParamKind(..)
 , SutParam(..)
-, isFunction, isMember, isModule, isType, isPerson, isVariable
-, insert
+, SymFunction(..)
+, SymModule(..)
+, SymPerson(..)
+, SymTable
+, SymType(..)
+, SymVariable(..)
+, SymbolCat(..)
+, TypedSymbol(..)
 , insertSymbol
-, insertParams
-, symTypeDef
-, lookupID
+, lookupSymbols , lookupSymbolsVariable, lookupSymbolsPerson, lookupSymbolsModule, lookupSymbolsType, lookupSymbolsFunction
+, updateSymbol
+, paramByValue, paramByRef
+
+, lookupAllFunctions
 ) where
 
-import Sutori.SymTable.Data
-import Sutori.SymTable.Actions
+import Sutori.SymTable.Symbol
+import Sutori.SymTable.Table
 import Sutori.SymTable.Logger

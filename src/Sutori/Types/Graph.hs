@@ -12,7 +12,7 @@ module Sutori.Types.Graph
 , orderedGraph
 ) where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map as Map
 import Data.List(sortOn, foldl')
 import Control.Arrow(first)
 
@@ -55,4 +55,4 @@ lookupType id g = Map.lookup id $ idToTypeMap g
 
 -- |The graph as a list sorted by ID (first appearance?)
 orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
-orderedGraph g = sortOn snd $ Map.toList $ idToTypeMap g
+orderedGraph g = sortOn fst $ Map.toList $ idToTypeMap g

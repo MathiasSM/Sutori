@@ -22,7 +22,7 @@ data SutType  = SutPrimitiveType SutPrimitive   -- ^ A Primitive Type
               | SutChain Int SutTypeID          -- ^ A Chain (Array) of fixed size of element type
               | SutMachine [(SutID, SutTypeID)] -- ^ A Machine (Struct) of different components
               | SutThing [(SutID, SutTypeID)]   -- ^ A Thing (Union) that might have different names
-              deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 -- |Extract the primitive from the type definition
 primitiveType :: SutType -> SutPrimitive

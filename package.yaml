@@ -28,6 +28,8 @@ dependencies:
   - array
   - mtl
   - containers
+  - hspec
+  - QuickCheck
 
 build-tools:
   - alex
@@ -44,6 +46,11 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+      - -fwarn-tabs
+      - -fwarn-unused-imports
+      - -fwarn-missing-signatures
+      - -fwarn-name-shadowing
+      - -fwarn-incomplete-patterns
     dependencies:
       - sutori
 

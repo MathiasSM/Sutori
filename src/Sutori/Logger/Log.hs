@@ -28,13 +28,14 @@ instance Show SutLog where
     -- |Prints a nested log
     showNested :: Int -> SutLog -> String
     showNested lvl (SutLogLeave s)   = showIndent lvl ++ s
+    showNested lvl (SutLogNode s []) = showIndent lvl ++ s ++ "\n" ++ showChildren (lvl+1) [SutLogLeave ""]
     showNested lvl (SutLogNode s nx) = showIndent lvl ++ s ++ "\n" ++ showChildren (lvl+1) nx
     -- |Prints a (nested) list of children logs
     showChildren :: Int -> [SutLog] -> String
     showChildren lvl nx = intercalate "\n" $ map (showNested lvl) nx
     -- |Prints the required indent for the level
     showIndent :: Int -> String
-    showIndent n = (concat . replicate n) "  "
+    showIndent n = (concat . replicate n) "|   "
 
 -- |Extract log strings
 fromLeave :: SutLog -> String
