@@ -8,6 +8,7 @@ module Sutori.Error.Report
 , typeError
 , undefinedError
 , duplicateSymbolError
+, duplicateMemberError
 , argumentsNumberError
 ) where
 
@@ -21,7 +22,7 @@ import Data.Char                 (isSpace)
 import Sutori.AST           (SutID, SutExpression)
 import Sutori.Lexer.Tokens  (SutToken)
 import Sutori.Lexer.Logger  ()
-import Sutori.SymTable      (SymbolCat)
+import Sutori.SymTable      (SymbolCat, SutSymbol(..))
 import Sutori.Types         (SutType)
 import Sutori.Logger        (SutShow(showSut), SutLog(..), SutLogger(..), fromLeave)
 import Sutori.Monad         (SutState(SutState, lexerPosn, lexerChar, lexerInput, logVerbose), SutMonad, setErrorCode)
@@ -107,12 +108,24 @@ argumentsNumberError id expected actual = do
   setErrorCode code
 
 -- |Logs a duplicate symbol error and continues
-duplicateSymbolError :: SutID -> SymbolCat -> String -> SutMonad ()
-duplicateSymbolError id cat msg = do
+duplicateSymbolError :: SutSymbol a => a -> SutMonad ()
+duplicateSymbolError s = do
   let code     = DuplicateSymbolError
   pos  <- errorPos
-  let errType  = SutLogLeave $ "Duplicate definition for  '" ++ id ++"': " ++ msg
-      log      = SutLogNode pos [errType, showSut cat]
+  let errType  = SutLogLeave $ "Duplicate definition for " ++ catMsg ++ " '" ++ symID s ++ "' on the same scope."
+      log      = SutLogNode pos [errType]
+      catMsg   = fromLeave $ showSut $ symCat s
+      errMsg   = (code, log)
+  tell mempty{logError = [errMsg]}
+  setErrorCode code
+
+-- |Logs a duplicate member error and continues
+duplicateMemberError :: SutID -> SutMonad ()
+duplicateMemberError id = do
+  let code     = DuplicateSymbolError
+  pos  <- errorPos
+  let errType  = SutLogLeave $ "Duplicate definition for member '" ++ id ++ "' on the same type def."
+      log      = SutLogNode pos [errType]
       errMsg   = (code, log)
   tell mempty{logError = [errMsg]}
   setErrorCode code

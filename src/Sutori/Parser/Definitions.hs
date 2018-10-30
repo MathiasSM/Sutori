@@ -24,53 +24,43 @@ import Sutori.Parser.Symbols     (findVariable, findFunction, lookupInScope)
 
 
 -- |Decides on whether the given 'SutID' was used for a different symbol in the same scope
-symbolIsCurrent :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad Bool
-symbolIsCurrent lookup id = do
+whenSymbolIsNew :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad () -> SutMonad ()
+whenSymbolIsNew lookup id a = do
   s    <- get
   vars <- lookupInScope lookup id
   let currentScope = parserCurrentScope s
       isDefined    = not (null vars)
       isCurrent    = isDefined && (symScope (head vars) == currentScope)
-  return isCurrent
+  if isCurrent then duplicateSymbolError (head vars) else a
+
 
 -- |Defines a new variable of given type and optionally assigns it an initial value.
 defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
 defVariable pid tid (id, mexp) = do
-  isCurrent <- symbolIsCurrent lookupSymbolsVariable id
-  if isCurrent
-     then duplicateSymbolError id CatVariable ""
-     else do
-       s@SutState{ parserTable = table } <- get
-       let variable = SymVariable' $ SymVariable id currentScope tid
-           currentScope = parserCurrentScope s
-       put s{parserTable = insertSymbol variable table}
+  whenSymbolIsNew lookupSymbolsVariable id $ do
+    s@SutState{ parserTable = table } <- get
+    let variable = SymVariable' $ SymVariable id currentScope tid
+        currentScope = parserCurrentScope s
+    put s{parserTable = insertSymbol variable table}
   case mexp of
     Just exp -> return $ Just (InstExpression exp)
     Nothing  -> return Nothing
 
 -- |Associates the SutID to the newly constructed type, assuming the name has not been used before
 defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-defType pid id tid = do
-  isCurrent <- symbolIsCurrent lookupSymbolsType id
-  if isCurrent
-     then duplicateSymbolError id CatType ""
-     else do
-       s@SutState{ parserTable = table } <- get
-       let variable = SymType' $ SymType id currentScope tid
-           currentScope = parserCurrentScope s
-       put s{parserTable = insertSymbol variable table}
+defType pid id tid = whenSymbolIsNew lookupSymbolsType id $ do
+  s@SutState{ parserTable = table } <- get
+  let variable = SymType' $ SymType id currentScope tid
+      currentScope = parserCurrentScope s
+  put s{parserTable = insertSymbol variable table}
 
 -- |Includes a new person into the story
 defPerson :: SutID -> SutMonad ()
-defPerson pid = do
-  isCurrent <- symbolIsCurrent lookupSymbolsPerson pid
-  if isCurrent
-     then duplicateSymbolError pid CatPerson ""
-     else do
-       s@SutState{ parserTable = table } <- get
-       let variable = SymPerson' $ SymPerson pid currentScope
-           currentScope = parserCurrentScope s
-       put s{parserTable = insertSymbol variable table}
+defPerson pid = whenSymbolIsNew lookupSymbolsPerson pid $ do
+  s@SutState{ parserTable = table } <- get
+  let variable = SymPerson' $ SymPerson pid currentScope
+      currentScope = parserCurrentScope s
+  put s{parserTable = insertSymbol variable table}
 
 -- |Defines a new parameter into a function's scope.
 defParams :: [SutParam] -> SutMonad [SutInstruction]
@@ -94,11 +84,10 @@ defModule id b = get >>= \s -> put s{ mainModule = SutModule id b }
 defineFunction :: SutID -> SutAST -> SutMonad ()
 defineFunction id ast = do
   SutState{ parserTable = table } <- get
-  let (SymFunction _ tid ps pre ast':_) = lookupSymbolsFunction id table
+  let (s@(SymFunction _ tid ps pre ast'):_) = lookupSymbolsFunction id table
   case ast' of
-    Just _  ->
-      duplicateSymbolError id CatFunction ("Function '"++ id ++"' has already been defined before.")
-    Nothing   -> do
+    Just _  -> duplicateSymbolError s
+    Nothing -> do
       let func = SymFunction' $ SymFunction id tid ps pre (Just ast)
       get >>= \s' -> put s'{ parserTable = updateSymbol func table }
 
@@ -112,11 +101,7 @@ insertFunction :: SutID -> SutTypeID -> [SutParam] -> SutMonad SutID
 insertFunction id tid ps = do
   state@SutState{ parserTable = table } <- get
   case lookupSymbolsFunction id table of
-    (f@SymFunction{}:_)  -> do
-      when (symType f /= tid) $
-        duplicateSymbolError id CatFunction ("There is another function named '"++ id++"' with different typeID `"++show tid++"`")
-      when (symParams f /= ps) $
-        duplicateSymbolError id CatFunction ("There is another function named '"++ id++"' with different parameters")
+    (f@SymFunction{}:_)  -> when (symType f /= tid || symParams f /= ps) $ duplicateSymbolError f
     _ -> do
       pre <- defParams ps
       let func = SymFunction' $ SymFunction id tid ps pre Nothing

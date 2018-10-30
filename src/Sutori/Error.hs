@@ -9,6 +9,7 @@ module Sutori.Error
 , typeError
 , undefinedError
 , duplicateSymbolError
+, duplicateMemberError
 , argumentsNumberError
 ) where
 

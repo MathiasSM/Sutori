@@ -44,7 +44,7 @@ import Data.Maybe                (fromMaybe, isJust, fromJust)
 import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
 import Sutori.Lexer     (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
 import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
-import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateSymbolError)
+import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateMemberError)
 import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, lookupType, SutTypeID, SutPrimitive(..), primitiveID )
 import Sutori.Utils     (repeated)
 import Sutori.SymTable
@@ -114,13 +114,13 @@ checkArrayType expr t (t':ts) = do
 
 -- |Constructs a struct from the list of ID -> Expression mappings
 --
+-- Right now, we implement these by storing the member IDs into the type graph
+--
 -- Note: We do not allow duplicated member IDs
 constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
 constructStruct es = do
   let rms = repeated (map fst es)
-  unless (null rms) $ do
-    let logError id = duplicateSymbolError id CatMember
-    mapM_ (logError "Members of the same structure must not share names") rms
+  unless (null rms) $ mapM_ duplicateMemberError rms
   let mts = map (second expressionType) es
   mdef <- mapM memberType mts
   let at   = SutMachine mdef
