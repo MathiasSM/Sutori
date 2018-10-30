@@ -63,7 +63,8 @@ BLOCK_CLOSE :: SutToken
 PROGRAM_INI :: SutToken
 PROGRAM_FIN :: SutToken
 FUNCTION_INI :: SutToken
-FUNCTION_FIN :: SutToken
+FUNCTION_DECLARE :: SutToken
+FUNCTION_DEFINE :: SutToken
 S_andthatswhere :: SutToken
 S_therewas :: SutToken
 S_brokea :: SutToken
@@ -361,6 +362,7 @@ toTypeSortable :: SutPrimitive -> SutPrimitive
 
 -- | Convert primitive to a equalable type or error
 toTypeEq :: SutPrimitive -> SutPrimitive
+instance GHC.Show.Show Sutori.Types.Primitives.SutPrimitive
 instance GHC.Classes.Ord Sutori.Types.Primitives.SutPrimitive
 instance GHC.Classes.Eq Sutori.Types.Primitives.SutPrimitive
 
@@ -439,6 +441,7 @@ generalizeTypes :: SutType -> SutType -> SutType
 
 -- | Constant primitive error type
 primitiveError :: SutType
+instance GHC.Show.Show Sutori.Types.Constructors.SutType
 instance GHC.Classes.Ord Sutori.Types.Constructors.SutType
 instance GHC.Classes.Eq Sutori.Types.Constructors.SutType
 
@@ -595,19 +598,19 @@ module Sutori.AST.Nodes
 -- | Global type for Sutori IDs
 type SutID = String
 
--- | A <a>SutBlock</a> is a list of instructions
-type SutBlock = [SutInstruction]
+-- | A <tt>SutBlock</tt> is a list of instructions
+type SutAST = [SutInstruction]
 
--- | A Sutori Module has a name and a SutBlock
+-- | A Sutori Module has a name and a SutAST
 data SutModule
-SutModule :: SutID -> SutBlock -> SutModule
+SutModule :: SutID -> SutAST -> SutModule
 
 -- | A <tt>SutIntruction</tt> represents an instruction/action in the
 --   (imperative) story
 data SutInstruction
 
--- | An assignment can be understood an an instruction on its own
-InstAssignment :: SutExpression -> SutInstruction
+-- | Some expressions can be understood an an instruction on its own
+InstExpression :: SutExpression -> SutInstruction
 
 -- | The action of someone asking for the value of an expression
 ReadVal :: SutID -> SutExpression -> SutInstruction
@@ -616,13 +619,13 @@ ReadVal :: SutID -> SutExpression -> SutInstruction
 ReturnVal :: SutExpression -> SutInstruction
 
 -- | A selection between two blocks of code given a true/false condition
-Selection :: SutID -> SutExpression -> SutBlock -> SutBlock -> SutInstruction
+Selection :: SutID -> SutExpression -> SutAST -> SutAST -> SutInstruction
 
 -- | An unbounded iteration while a condition persists
-IterationU :: SutID -> SutExpression -> SutBlock -> SutInstruction
+IterationU :: SutID -> SutExpression -> SutAST -> SutInstruction
 
 -- | A bounded iteration of a story to be repeated a number of times
-IterationB :: SutID -> SutExpression -> SutBlock -> SutInstruction
+IterationB :: SutID -> SutExpression -> SutAST -> SutInstruction
 
 -- | The action of freeing a direction (so it points nowhere)
 FreePointer :: SutID -> SutExpression -> SutInstruction
@@ -766,6 +769,18 @@ SutOpIndex :: SutOperator
 
 -- | Binary member get
 SutOpMember :: SutOperator
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutModule
+instance GHC.Show.Show Sutori.AST.Nodes.SutModule
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutInstruction
+instance GHC.Show.Show Sutori.AST.Nodes.SutInstruction
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutConstructor
+instance GHC.Show.Show Sutori.AST.Nodes.SutConstructor
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutExpression
+instance GHC.Show.Show Sutori.AST.Nodes.SutExpression
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutOperator
+instance GHC.Show.Show Sutori.AST.Nodes.SutOperator
+instance GHC.Classes.Eq Sutori.AST.Nodes.SutLiteral
+instance GHC.Show.Show Sutori.AST.Nodes.SutLiteral
 
 
 module Sutori.AST.Utils
@@ -795,19 +810,19 @@ module Sutori.AST
 -- | Global type for Sutori IDs
 type SutID = String
 
--- | A <a>SutBlock</a> is a list of instructions
-type SutBlock = [SutInstruction]
+-- | A <tt>SutBlock</tt> is a list of instructions
+type SutAST = [SutInstruction]
 
--- | A Sutori Module has a name and a SutBlock
+-- | A Sutori Module has a name and a SutAST
 data SutModule
-SutModule :: SutID -> SutBlock -> SutModule
+SutModule :: SutID -> SutAST -> SutModule
 
 -- | A <tt>SutIntruction</tt> represents an instruction/action in the
 --   (imperative) story
 data SutInstruction
 
--- | An assignment can be understood an an instruction on its own
-InstAssignment :: SutExpression -> SutInstruction
+-- | Some expressions can be understood an an instruction on its own
+InstExpression :: SutExpression -> SutInstruction
 
 -- | The action of someone asking for the value of an expression
 ReadVal :: SutID -> SutExpression -> SutInstruction
@@ -816,13 +831,13 @@ ReadVal :: SutID -> SutExpression -> SutInstruction
 ReturnVal :: SutExpression -> SutInstruction
 
 -- | A selection between two blocks of code given a true/false condition
-Selection :: SutID -> SutExpression -> SutBlock -> SutBlock -> SutInstruction
+Selection :: SutID -> SutExpression -> SutAST -> SutAST -> SutInstruction
 
 -- | An unbounded iteration while a condition persists
-IterationU :: SutID -> SutExpression -> SutBlock -> SutInstruction
+IterationU :: SutID -> SutExpression -> SutAST -> SutInstruction
 
 -- | A bounded iteration of a story to be repeated a number of times
-IterationB :: SutID -> SutExpression -> SutBlock -> SutInstruction
+IterationB :: SutID -> SutExpression -> SutAST -> SutInstruction
 
 -- | The action of freeing a direction (so it points nowhere)
 FreePointer :: SutID -> SutExpression -> SutInstruction
@@ -978,223 +993,193 @@ withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
 asTypeError :: SutExpression -> SutExpression
 
 
-module Sutori.SymTable.Data
+module Sutori.SymTable.Symbol
 
--- | A <a>SutSymbol</a> represents a symbol in the SymTable of a Sutori
---   parsing. It is made of a Token, a Category, a Scope, a Type, and
---   perhaps <tt>other</tt> information
-data SutSymbol
-SutSymbol :: SutID -> SutSymCategory -> Scope -> SutTypeID -> SutSymOther -> SutSymbol
+-- | Represents a basic symbol
+class SutSymbol a
+symID :: SutSymbol a => a -> SutID
+symCat :: SutSymbol a => a -> SymbolCat
+symScope :: SutSymbol a => a -> Scope
 
--- | The symbol ID
-[symID] :: SutSymbol -> SutID
+-- | Represents a symbol which also has some parameters
+class SutSymbol a => ParametricSymbol a
+symParams :: ParametricSymbol a => a -> [SutParam]
 
--- | The category of the symbol
-[symCat] :: SutSymbol -> SutSymCategory
+-- | Represents a symbol with a type
+class SutSymbol a => TypedSymbol a
+symType :: TypedSymbol a => a -> SutTypeID
 
--- | The scope the symbol is defined
-[symScope] :: SutSymbol -> Scope
-
--- | The type of the symbol, if any (might be void)
-[symType] :: SutSymbol -> SutTypeID
-
--- | The extra payload some symbol kinds have
-[symOther] :: SutSymbol -> SutSymOther
-
--- | A <a>SutSymCategory</a>. Can be shown by showSut
-data SutSymCategory
-
--- | A module
-CatModule :: SutSymCategory
-
--- | A (top-level) function
-CatFunction :: SutSymCategory
-
--- | A person who may do things in the story
-CatPerson :: SutSymCategory
-
--- | A variable
-CatVariable :: SutSymCategory
-
--- | A function parameter
-CatParameter :: SutSymCategory
-
--- | A reference to a type
-CatType :: SutSymCategory
-
--- | A member of a structured type (does not go inot the SymTable)
-CatMember :: SutSymCategory
-
--- | A <a>SutSymOther</a> represents the extra payload of a symbol and it's
---   either a function definition's AST, the parameter kind, the type
---   definition or nothing, depending on the kind of symbol
-data SutSymOther
-SymAST :: [SutParam] -> SutBlock -> SutSymOther
-[otherASTParams] :: SutSymOther -> [SutParam]
-[otherASTBlock] :: SutSymOther -> SutBlock
-SymParamKind :: SutParamKind -> SutSymOther
-[otherParamKind] :: SutSymOther -> SutParamKind
-SymTypeDef :: SutTypeID -> SutSymOther
-[otherTypeDef] :: SutSymOther -> SutTypeID
-SymNothing :: SutSymOther
-
--- | A <a>SymTable</a> represents the SymTable of a Sutori parsing, so it
---   matches a SutID (symbol name) to a list of symbols
-type SymTable = Map SutID [SutSymbol]
+-- | Represents a symbol that holds an AST
+class SutSymbol a => ASTSymbol a
+symAST :: ASTSymbol a => a -> SutAST
+symPreAST :: ASTSymbol a => a -> SutAST
 
 -- | A <a>Scope</a> is just a number uniquely representing a scope (NOT a
 --   level, but an ID)
 type Scope = Int
 
--- | A <a>SutParamKind</a> represents a function parameter kind, that is it
---   can be passed either by reference or by value.
-data SutParamKind
-SutRef :: SutParamKind
-SutVal :: SutParamKind
-
 -- | A <a>SutParam</a> represents a function parameter, and it has a kind,
 --   type and ID
 data SutParam
-SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
+SutParam :: Bool -> SutTypeID -> SutID -> SutParam
 
 -- | Whether it is a reference or a value parameter
-[paramKind] :: SutParam -> SutParamKind
+[isRef] :: SutParam -> Bool
 
 -- | The type of the parameter
 [paramType] :: SutParam -> SutTypeID
 
 -- | The ID of the parameter
 [paramID] :: SutParam -> SutID
-instance GHC.Classes.Eq Sutori.SymTable.Data.SutSymCategory
+
+-- | A (top-level) module
+data SymModule
+SymModule :: SutID -> SutAST -> SymModule
+
+-- | A (top-level) function
+data SymFunction
+SymFunction :: SutID -> SutTypeID -> [SutParam] -> SutAST -> (Maybe SutAST) -> SymFunction
+
+-- | A person who may do things in the story
+data SymPerson
+SymPerson :: SutID -> Scope -> SymPerson
+
+-- | A variable
+data SymVariable
+SymVariable :: SutID -> Scope -> SutTypeID -> SymVariable
+
+-- | A reference to a (now named) type
+data SymType
+SymType :: SutID -> Scope -> SutTypeID -> SymType
+
+-- | Boxed SutSymbols for the table to handle
+data SutSymbol'
+SymModule' :: SymModule -> SutSymbol'
+SymFunction' :: SymFunction -> SutSymbol'
+SymPerson' :: SymPerson -> SutSymbol'
+SymVariable' :: SymVariable -> SutSymbol'
+SymType' :: SymType -> SutSymbol'
+data SymbolCat
+CatModule :: SymbolCat
+CatPerson :: SymbolCat
+CatType :: SymbolCat
+CatVariable :: SymbolCat
+CatFunction :: SymbolCat
+CatMember :: SymbolCat
+isModule :: SymbolCat -> Bool
+isFunction :: SymbolCat -> Bool
+isPerson :: SymbolCat -> Bool
+isType :: SymbolCat -> Bool
+isVariable :: SymbolCat -> Bool
+
+-- | Helper to abstract the True/False isRef field
+paramByValue :: SutTypeID -> SutID -> SutParam
+
+-- | Helper to abstract the True/False isRef field
+paramByRef :: SutTypeID -> SutID -> SutParam
+unBoxFunction :: SutSymbol' -> SymFunction
+unBoxPerson :: SutSymbol' -> SymPerson
+unBoxVariable :: SutSymbol' -> SymVariable
+unBoxModule :: SutSymbol' -> SymModule
+unBoxType :: SutSymbol' -> SymType
+instance GHC.Classes.Eq Sutori.SymTable.Symbol.SutParam
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SutSymbol'
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymType
+instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymType
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymVariable
+instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymVariable
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymPerson
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymFunction
+instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymFunction
+instance Sutori.SymTable.Symbol.ParametricSymbol Sutori.SymTable.Symbol.SymFunction
+instance Sutori.SymTable.Symbol.ASTSymbol Sutori.SymTable.Symbol.SymFunction
+instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymModule
+instance Sutori.SymTable.Symbol.ASTSymbol Sutori.SymTable.Symbol.SymModule
+
+
+module Sutori.SymTable.Table
+
+-- | A <a>SymTable</a> represents the SymTable of a Sutori parsing, so it
+--   matches a SutID (symbol name) to a list of symbols
+type SymTable = Map SutID [SutSymbol']
+
+-- | Inserts a symbol into its ID stack in the map
+insertSymbol :: SutSymbol' -> SymTable -> SymTable
+
+-- | Updates (read: replaces) the head of the symbol stack (for this
+--   symbol's ID
+updateSymbol :: SutSymbol' -> SymTable -> SymTable
+
+-- | Lookup the list of symbols using the given ID
+lookupSymbols :: SutID -> SymTable -> Maybe [SutSymbol']
+
+-- | Lookup the list of variables with an ID
+lookupSymbolsVariable :: SutID -> SymTable -> [SymVariable]
+
+-- | Lookup the list of functions with an ID
+lookupSymbolsFunction :: SutID -> SymTable -> [SymFunction]
+
+-- | Lookup the list of modules with an ID
+lookupSymbolsModule :: SutID -> SymTable -> [SymModule]
+
+-- | Lookup the list of types with an ID
+lookupSymbolsType :: SutID -> SymTable -> [SymType]
+
+-- | Lookup the list of persons with an ID
+lookupSymbolsPerson :: SutID -> SymTable -> [SymPerson]
+
+-- | Lookup all defined functions in a given scope
+lookupAllFunctions :: Scope -> SymTable -> [SymFunction]
 
 
 module Sutori.SymTable.Logger
-instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymCategory
-instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutParamKind
-instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymOther
-instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutSymbol
-instance Sutori.Logger.Log.SutShow Sutori.SymTable.Data.SutParam
-
-
-module Sutori.SymTable.Actions
-
--- | Boolean functions to check if a symbol if of some category
-isFunction :: SutSymCategory -> Bool
-
--- | Boolean functions to check if a symbol if of some category
-isMember :: SutSymCategory -> Bool
-
--- | Boolean functions to check if a symbol if of some category
-isModule :: SutSymCategory -> Bool
-
--- | Boolean functions to check if a symbol if of some category
-isType :: SutSymCategory -> Bool
-
--- | Boolean functions to check if a symbol if of some category
-isPerson :: SutSymCategory -> Bool
-
--- | Boolean functions to check if a symbol if of some category
-isVariable :: SutSymCategory -> Bool
-
--- | Inserts new symbols into the table (from a list of IDs)
-insert :: SymTable -> Scope -> SutSymCategory -> SutTypeID -> SutSymOther -> [SutID] -> SymTable
-
--- | Inserts symbol into the table the given constructed symbol
-insertSymbol :: SymTable -> SutSymbol -> SymTable
-
--- | Inserts new symbols into the table (from a list of params)
-insertParams :: SymTable -> Scope -> SutSymCategory -> [SutParam] -> SymTable
-
--- | Extracts a type symbol type definition (SutTypeID)
-symTypeDef :: SutSymbol -> SutTypeID
-
--- | Search for all symbols that match a SutID
-lookupID :: SymTable -> SutID -> [SutSymbol]
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymModule
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymFunction
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymPerson
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymVariable
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymType
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SutParam
+instance Sutori.Logger.Log.SutShow Sutori.SymTable.Symbol.SymbolCat
 
 
 -- | This module defines all the interaction with the table, along with the
 --   symbols themselves, their different categories and payloads.
 module Sutori.SymTable
 
--- | A <a>SutSymbol</a> represents a symbol in the SymTable of a Sutori
---   parsing. It is made of a Token, a Category, a Scope, a Type, and
---   perhaps <tt>other</tt> information
-data SutSymbol
-SutSymbol :: SutID -> SutSymCategory -> Scope -> SutTypeID -> SutSymOther -> SutSymbol
+-- | Represents a basic symbol
+class SutSymbol a
+symID :: SutSymbol a => a -> SutID
+symCat :: SutSymbol a => a -> SymbolCat
+symScope :: SutSymbol a => a -> Scope
 
--- | The symbol ID
-[symID] :: SutSymbol -> SutID
+-- | Boxed SutSymbols for the table to handle
+data SutSymbol'
+SymModule' :: SymModule -> SutSymbol'
+SymFunction' :: SymFunction -> SutSymbol'
+SymPerson' :: SymPerson -> SutSymbol'
+SymVariable' :: SymVariable -> SutSymbol'
+SymType' :: SymType -> SutSymbol'
 
--- | The category of the symbol
-[symCat] :: SutSymbol -> SutSymCategory
+-- | Represents a symbol that holds an AST
+class SutSymbol a => ASTSymbol a
+symAST :: ASTSymbol a => a -> SutAST
+symPreAST :: ASTSymbol a => a -> SutAST
 
--- | The scope the symbol is defined
-[symScope] :: SutSymbol -> Scope
-
--- | The type of the symbol, if any (might be void)
-[symType] :: SutSymbol -> SutTypeID
-
--- | The extra payload some symbol kinds have
-[symOther] :: SutSymbol -> SutSymOther
-
--- | A <a>SutSymCategory</a>. Can be shown by showSut
-data SutSymCategory
-
--- | A module
-CatModule :: SutSymCategory
-
--- | A (top-level) function
-CatFunction :: SutSymCategory
-
--- | A person who may do things in the story
-CatPerson :: SutSymCategory
-
--- | A variable
-CatVariable :: SutSymCategory
-
--- | A function parameter
-CatParameter :: SutSymCategory
-
--- | A reference to a type
-CatType :: SutSymCategory
-
--- | A member of a structured type (does not go inot the SymTable)
-CatMember :: SutSymCategory
-
--- | A <a>SutSymOther</a> represents the extra payload of a symbol and it's
---   either a function definition's AST, the parameter kind, the type
---   definition or nothing, depending on the kind of symbol
-data SutSymOther
-SymAST :: [SutParam] -> SutBlock -> SutSymOther
-[otherASTParams] :: SutSymOther -> [SutParam]
-[otherASTBlock] :: SutSymOther -> SutBlock
-SymParamKind :: SutParamKind -> SutSymOther
-[otherParamKind] :: SutSymOther -> SutParamKind
-SymTypeDef :: SutTypeID -> SutSymOther
-[otherTypeDef] :: SutSymOther -> SutTypeID
-SymNothing :: SutSymOther
-
--- | A <a>SymTable</a> represents the SymTable of a Sutori parsing, so it
---   matches a SutID (symbol name) to a list of symbols
-type SymTable = Map SutID [SutSymbol]
+-- | Represents a symbol which also has some parameters
+class SutSymbol a => ParametricSymbol a
+symParams :: ParametricSymbol a => a -> [SutParam]
 
 -- | A <a>Scope</a> is just a number uniquely representing a scope (NOT a
 --   level, but an ID)
 type Scope = Int
 
--- | A <a>SutParamKind</a> represents a function parameter kind, that is it
---   can be passed either by reference or by value.
-data SutParamKind
-SutRef :: SutParamKind
-SutVal :: SutParamKind
-
 -- | A <a>SutParam</a> represents a function parameter, and it has a kind,
 --   type and ID
 data SutParam
-SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
+SutParam :: Bool -> SutTypeID -> SutID -> SutParam
 
 -- | Whether it is a reference or a value parameter
-[paramKind] :: SutParam -> SutParamKind
+[isRef] :: SutParam -> Bool
 
 -- | The type of the parameter
 [paramType] :: SutParam -> SutTypeID
@@ -1202,38 +1187,74 @@ SutParam :: SutParamKind -> SutTypeID -> SutID -> SutParam
 -- | The ID of the parameter
 [paramID] :: SutParam -> SutID
 
--- | Boolean functions to check if a symbol if of some category
-isFunction :: SutSymCategory -> Bool
+-- | A (top-level) function
+data SymFunction
+SymFunction :: SutID -> SutTypeID -> [SutParam] -> SutAST -> (Maybe SutAST) -> SymFunction
 
--- | Boolean functions to check if a symbol if of some category
-isMember :: SutSymCategory -> Bool
+-- | A (top-level) module
+data SymModule
+SymModule :: SutID -> SutAST -> SymModule
 
--- | Boolean functions to check if a symbol if of some category
-isModule :: SutSymCategory -> Bool
+-- | A person who may do things in the story
+data SymPerson
+SymPerson :: SutID -> Scope -> SymPerson
 
--- | Boolean functions to check if a symbol if of some category
-isType :: SutSymCategory -> Bool
+-- | A <a>SymTable</a> represents the SymTable of a Sutori parsing, so it
+--   matches a SutID (symbol name) to a list of symbols
+type SymTable = Map SutID [SutSymbol']
 
--- | Boolean functions to check if a symbol if of some category
-isPerson :: SutSymCategory -> Bool
+-- | A reference to a (now named) type
+data SymType
+SymType :: SutID -> Scope -> SutTypeID -> SymType
 
--- | Boolean functions to check if a symbol if of some category
-isVariable :: SutSymCategory -> Bool
+-- | A variable
+data SymVariable
+SymVariable :: SutID -> Scope -> SutTypeID -> SymVariable
+data SymbolCat
+CatModule :: SymbolCat
+CatPerson :: SymbolCat
+CatType :: SymbolCat
+CatVariable :: SymbolCat
+CatFunction :: SymbolCat
+CatMember :: SymbolCat
 
--- | Inserts new symbols into the table (from a list of IDs)
-insert :: SymTable -> Scope -> SutSymCategory -> SutTypeID -> SutSymOther -> [SutID] -> SymTable
+-- | Represents a symbol with a type
+class SutSymbol a => TypedSymbol a
+symType :: TypedSymbol a => a -> SutTypeID
 
--- | Inserts symbol into the table the given constructed symbol
-insertSymbol :: SymTable -> SutSymbol -> SymTable
+-- | Inserts a symbol into its ID stack in the map
+insertSymbol :: SutSymbol' -> SymTable -> SymTable
 
--- | Inserts new symbols into the table (from a list of params)
-insertParams :: SymTable -> Scope -> SutSymCategory -> [SutParam] -> SymTable
+-- | Lookup the list of symbols using the given ID
+lookupSymbols :: SutID -> SymTable -> Maybe [SutSymbol']
 
--- | Extracts a type symbol type definition (SutTypeID)
-symTypeDef :: SutSymbol -> SutTypeID
+-- | Lookup the list of variables with an ID
+lookupSymbolsVariable :: SutID -> SymTable -> [SymVariable]
 
--- | Search for all symbols that match a SutID
-lookupID :: SymTable -> SutID -> [SutSymbol]
+-- | Lookup the list of persons with an ID
+lookupSymbolsPerson :: SutID -> SymTable -> [SymPerson]
+
+-- | Lookup the list of modules with an ID
+lookupSymbolsModule :: SutID -> SymTable -> [SymModule]
+
+-- | Lookup the list of types with an ID
+lookupSymbolsType :: SutID -> SymTable -> [SymType]
+
+-- | Lookup the list of functions with an ID
+lookupSymbolsFunction :: SutID -> SymTable -> [SymFunction]
+
+-- | Updates (read: replaces) the head of the symbol stack (for this
+--   symbol's ID
+updateSymbol :: SutSymbol' -> SymTable -> SymTable
+
+-- | Helper to abstract the True/False isRef field
+paramByValue :: SutTypeID -> SutID -> SutParam
+
+-- | Helper to abstract the True/False isRef field
+paramByRef :: SutTypeID -> SutID -> SutParam
+
+-- | Lookup all defined functions in a given scope
+lookupAllFunctions :: Scope -> SymTable -> [SymFunction]
 
 
 module Sutori.Parser.TypeCheck
@@ -1343,7 +1364,7 @@ runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState
 module Sutori.Monad.Actions
 
 -- | Run a monadic action only if verbose if turned on
-ifVerbose :: SutMonad () -> SutMonad ()
+whenVerbose :: SutMonad () -> SutMonad ()
 
 -- | Run the monad with a given action
 runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
@@ -1439,6 +1460,9 @@ insertScope :: SutMonad ()
 -- | Removes last scope from the parse
 removeScope :: SutMonad ()
 
+-- | Run a monadic action only if verbose if turned on
+whenVerbose :: SutMonad () -> SutMonad ()
+
 
 module Sutori.Lexer.Internals
 
@@ -1490,10 +1514,13 @@ parserError :: SutToken -> SutMonad a
 typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
 
 -- | Logs an undefined symbol error and continues
-undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
+undefinedError :: SutID -> SymbolCat -> String -> SutMonad ()
 
 -- | Logs a duplicate symbol error and continues
-duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
+duplicateSymbolError :: SutSymbol a => a -> SutMonad ()
+
+-- | Logs a duplicate member error and continues
+duplicateMemberError :: SutID -> SutMonad ()
 
 -- | Logs a wrong number of parameters error and continues
 argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
@@ -1541,10 +1568,13 @@ parserError :: SutToken -> SutMonad a
 typeError :: SutExpression -> SutType -> SutType -> String -> SutMonad ()
 
 -- | Logs an undefined symbol error and continues
-undefinedError :: SutID -> SutSymCategory -> String -> SutMonad ()
+undefinedError :: SutID -> SymbolCat -> String -> SutMonad ()
 
 -- | Logs a duplicate symbol error and continues
-duplicateSymbolError :: SutID -> SutSymCategory -> String -> SutMonad ()
+duplicateSymbolError :: SutSymbol a => a -> SutMonad ()
+
+-- | Logs a duplicate member error and continues
+duplicateMemberError :: SutID -> SutMonad ()
 
 -- | Logs a wrong number of parameters error and continues
 argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
@@ -1552,61 +1582,37 @@ argumentsNumberError :: SutID -> Int -> Int -> SutMonad ()
 
 module Sutori.Parser.Symbols
 
+-- | Finds an existent <a>SutType</a> from its <a>SutTypeID</a>
+findExistentType :: SutTypeID -> SutMonad SutType
+
 -- | Finds the existent typeID or inserts the type and gets the new ID
 findTypeID :: SutType -> SutMonad SutTypeID
 
--- | Finds the typeID from a SutID
+-- | Finds the <a>SutTypeID</a> from a <a>SutID</a>
 findType :: SutID -> SutMonad SutTypeID
 
--- | Finds an existent type from its ID
-findExistentType :: SutTypeID -> SutMonad SutType
-
--- | Checks if the given person already exists
+-- | Checks if the given Person already exists
 findPerson :: SutID -> SutMonad SutID
 
--- | Checks if the given function already exists
-findFunction :: SutID -> SutMonad SutID
+-- | Checks if the given function already exists, returns the <a>SutID</a>
+findFunctionID :: SutID -> SutMonad SutID
 
--- | Checks if the given variable already exists, returns the ID wrapped as
---   an expression
+-- | Checks if the given function already exists, returns the
+--   <a>SutSymbol</a>, if any
+findFunction :: SutID -> SutMonad (Maybe SymFunction)
+
+-- | Checks if the given variable already exists, returns the <a>SutID</a>
+--   wrapped as a <a>SutExpression</a>
 findVariable :: SutID -> SutMonad SutExpression
 
+-- | Checks the living scopes for the symbols with given <a>SutID</a>
+lookupInScope :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad [a]
 
-module Sutori.Parser.Definitions
-
--- | Includes a new person into the story
+-- | Crosses the living scopes with the given <a>SutSymbol</a>s
 --   
---   TODO: Refactor code. all these functions use mostly repeated code
-defPerson :: SutID -> SutMonad ()
-
--- | Defines a new variable of given type and optionally assigns it an
---   initial value.
---   
---   TODO: Add assignment to AST (separate from definition, which does not
---   go into AST)
-defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad ()
-
--- | Associates the SutID to the newly constructed type, assuming the name
---   has not been used before
-defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-
--- | Defines a module for importing/exporting
---   
---   Right now it's basically a stub as there's only one module and the
---   data structure only keeps the <a>SutID</a> and <a>AST</a>
-defModule :: SutID -> SutBlock -> SutMonad ()
-
--- | Defines a function with ID pushed and no parameters
-defFunction :: SutTypeID -> SutBlock -> SutMonad ()
-
--- | Defines a function with ID and parameters already present
-defFunction' :: SutTypeID -> SutBlock -> SutMonad ()
-
--- | Defines a new function with a given name (no parameters or body yet)
-insertFunctionID :: SutID -> SutMonad SutID
-
--- | Defines a new parameter in the last function defined
-insertParam :: (SutParamKind, SutTypeID, SutID) -> SutMonad ()
+--   Uses the fact the both lists are ordered in decreasing order of
+--   <a>SutID</a>
+inScope :: SutSymbol a => [a] -> SutMonad [a]
 
 
 module Sutori.Lexer.Lexer
@@ -1616,6 +1622,9 @@ lexerScanClean :: SutMonad SutToken
 
 -- | Run the lexer on a given input string, with a given function
 runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+
+-- | Run the lexer with no options (default options)
+runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
 
 -- | Run the lexer on a given string, get the results
 runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
@@ -1632,6 +1641,9 @@ lexerScanClean :: SutMonad SutToken
 -- | Run the lexer on a given input string, with a given function
 runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
 
+-- | Run the lexer with no options (default options)
+runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
+
 -- | Run the lexer on a given string, get the results
 runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
 
@@ -1646,7 +1658,8 @@ BLOCK_CLOSE :: SutToken
 PROGRAM_INI :: SutToken
 PROGRAM_FIN :: SutToken
 FUNCTION_INI :: SutToken
-FUNCTION_FIN :: SutToken
+FUNCTION_DECLARE :: SutToken
+FUNCTION_DEFINE :: SutToken
 S_andthatswhere :: SutToken
 S_therewas :: SutToken
 S_brokea :: SutToken
@@ -1758,6 +1771,9 @@ constructArray :: [SutExpression] -> SutMonad SutExpression
 
 -- | Constructs a struct from the list of ID -&gt; Expression mappings
 --   
+--   Right now, we implement these by storing the member IDs into the type
+--   graph
+--   
 --   Note: We do not allow duplicated member IDs
 constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
 unaryPlus :: SutUnaryOp
@@ -1830,8 +1846,7 @@ memberGet :: SutExpression -> SutID -> SutMonad SutExpression
 --   
 --   This checks for the correct number of arguments and their types
 --   
---   Note: Left side is known to be existent function (?) -- TODO: It is
---   not
+--   Note: Left side is known to be existent function (?)
 functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
 
 -- | Creates a dereferencing expression for the given expression
@@ -1847,6 +1862,53 @@ dereference :: SutUnaryOp
 --   
 --   Note: Left side is known to be a person
 createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
+
+
+module Sutori.Parser.Definitions
+
+-- | Decides on whether the given <a>SutID</a> was used for a different
+--   symbol in the same scope
+whenSymbolIsNew :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad () -> SutMonad ()
+
+-- | Defines a new variable of given type and optionally assigns it an
+--   initial value.
+defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
+
+-- | Associates the SutID to the newly constructed type, assuming the name
+--   has not been used before
+defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
+
+-- | Includes a new person into the story
+defPerson :: SutID -> SutMonad ()
+
+-- | Defines a new parameter into a function's scope.
+defParams :: [SutParam] -> SutMonad [SutInstruction]
+
+-- | Defined a list of variables and returns a list of instructions, if any
+--   definition included an assigment
+defVariables :: SutID -> SutTypeID -> [(SutID, Maybe SutExpression)] -> SutMonad [SutInstruction]
+
+-- | Defines a module for importing/exporting
+--   
+--   Right now it's basically a stub as there's only one module and the
+--   data structure only keeps the <a>SutID</a> and <a>AST</a>
+defModule :: SutID -> SutAST -> SutMonad ()
+
+-- | Defines a AST-able function (updates the top function with this ID's
+--   AST)
+--   
+--   Note: We are now in the scope the function is being defined
+defineFunction :: SutID -> SutAST -> SutMonad ()
+
+-- | Inserts a new function symbol with a given name, type and parameters,
+--   if none is present (no body yet)
+--   
+--   Is this action's job to build the initial function symbol (and that
+--   includes the PreAST)
+--   
+--   Note: We are inside the function's scope, so we need to insert the
+--   symbol in the second-to-last scope
+insertFunction :: SutID -> SutTypeID -> [SutParam] -> SutMonad SutID
 
 
 module Sutori.Parser.Parser
