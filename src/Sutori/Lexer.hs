@@ -10,6 +10,7 @@ module Sutori.Lexer
 , SutToken(..)
 , initialPosn
 , SutPosn
+, lexerLoop
 ) where
 
 import Sutori.Lexer.Lexer

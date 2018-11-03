@@ -11,3 +11,4 @@ module Sutori.TAC
 
 import Sutori.TAC.TAC
 import Sutori.TAC.CodeGen
+import Sutori.TAC.Logger ()

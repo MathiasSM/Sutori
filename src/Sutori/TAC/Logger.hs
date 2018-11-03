@@ -3,9 +3,14 @@
 -}
 module Sutori.TAC.Logger() where
 
-import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave), fromLeave)
+import Sutori.Logger       (SutShow(showSut), SutLog(SutLogNode, SutLogLeave), fromLeave)
 
 import Sutori.TAC.TAC
+
+instance SutShow TACTable where
+  showSut (TACTable is ts) = let instrs   = SutLogNode "TAC Instructions (refs)" $ map (SutLogLeave . show) is
+                                 triplets = SutLogNode "TAC Triplets" $ map showSut ts
+                              in SutLogNode "TAC Table" [instrs, triplets]
 
 instance SutShow TACAddress where
   showSut (TACName sid) = SutLogLeave $ "Name:" ++ sid

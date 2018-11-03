@@ -10,17 +10,19 @@ import Sutori.Options.Options
 -- |The execution options can be printed nicely
 instance SutShow Options where
   showSut Options
-    { optVerbose = verbose
+    { optVerbose     = verbose
     , optShowVersion = version
-    , optShowHelp = help
-    , optOutput = output
+    , optShowHelp    = help
+    , optOutput      = output
     , optStopOnLexer = lexer
-    , optStopOnParser = parser
+    , optStopOnAST   = ast
+    , optStopOnTAC   = tac
     } = let showVerbose = SutLogLeave $ "Verbose:       " ++ show verbose
             showVersion = SutLogLeave $ "Show Version:  " ++ show version
             showHelp    = SutLogLeave $ "Show Help:     " ++ show help
             showOutput  = SutLogLeave $ "Output:        " ++ show output
             showLexer   = SutLogLeave $ "Only lexer:    " ++ show lexer
-            showParser  = SutLogLeave $ "Only frontend: " ++ show parser
-            showOptions = [showVerbose, showHelp, showOutput, showLexer, showParser]
+            showAST     = SutLogLeave $ "Only frontend: " ++ show ast
+            showTAC     = SutLogLeave $ "Only intermediate code: " ++ show tac
+            showOptions = [showVerbose, showHelp, showOutput, showLexer, showAST, showTAC]
          in SutLogNode "Compiler options:" showOptions
