@@ -8,14 +8,15 @@ import Sutori.Logger       (SutShow(showSut), SutLog(SutLogNode, SutLogLeave), f
 import Sutori.TAC.TAC
 
 instance SutShow TACTable where
-  showSut (TACTable is ts) = let instrs   = SutLogNode "TAC Instructions (refs)" $ map (SutLogLeave . show) is
-                                 triplets = SutLogNode "TAC Triplets" $ map showSut ts
+  showSut (TACTable is ts) = let instrs   = SutLogNode "TAC Instructions (refs)" [SutLogLeave "--- No optimizations done, still sorted --"]
+                                 triplets = SutLogNode "TAC Triplets" $ zipWith f [0..] (reverse ts)
                               in SutLogNode "TAC Table" [instrs, triplets]
+                             where f i tr = SutLogLeave $ show i ++ "\t: " ++ fromLeave (showSut tr)
 
 instance SutShow TACAddress where
   showSut (TACName sid) = SutLogLeave $ "Name:" ++ sid
   showSut (TACID i)     = SutLogLeave $ "i_" ++ show i
-  showSut (TACLit l)    = SutLogLeave $ "Literal:" ++ fromLeave (showSut l)
+  showSut (TACLit l)    = SutLogLeave $ fromLeave (showSut l)
 
 instance SutShow TAC where
   showSut TAC{ tacType = tt, tac1 = t1, tac2 = t2 } =
@@ -25,7 +26,7 @@ instance SutShow TAC where
      in SutLogLeave $ t' ++ "\t" ++ t1' ++ "\t" ++ t2'
     where fromLeave' = fromLeave . showSut
           fromMLeave (Just l) = fromLeave $ showSut l
-          fromMLeave Nothing  = "\t"
+          fromMLeave Nothing  = "_"
 
 instance SutShow TACType where
   showSut (Basic op)  = SutLogLeave $ "Basic (" ++ fromLeave (showSut op) ++ ")"

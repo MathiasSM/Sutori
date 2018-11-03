@@ -24,7 +24,7 @@ import Sutori.TAC            ()
 -- | Routes a call to the CLI with passed options and files into the correct mode of operation
 route :: (Options, [FilePath]) -> IO ()
 route (opt@Options{optDebug = True}, fs) = showDebugInfo opt fs
-route (opt, fs)                              = route' (opt, fs)
+route (opt, fs)                          = route' (opt, fs)
  where route' :: (Options, [FilePath]) -> IO ()
        route' (opt@Options{optShowHelp = True},    _)  = showHelp opt
        route' (opt@Options{optShowVersion = True}, _)  = showSutoriVersion opt
@@ -108,7 +108,7 @@ runAll :: Options -> [FilePath] -> IO ()
 runAll opt@Options{ optVerbose = v } input = runOnFile parseModule opt input >>= \result ->
   reportResult f result
     where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
-            when v $ printTitledInfo "Intermediate Code TAC" (showSut $ tacTable s)
+            when v $ printInfo (showSut $ tacTable s)
             unless (null errs) $ printTitledErrors "There were errors while processing the input" errs
 
 
