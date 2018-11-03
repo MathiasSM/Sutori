@@ -39,21 +39,20 @@ import Control.Arrow             (second)
 import Control.Monad             (when, unless)
 import Control.Monad.State.Lazy  (get)
 import Data.List                 (find)
-import Data.Maybe                (fromMaybe, isJust, fromJust)
+import Data.Maybe                (isJust, fromJust)
 
 import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
-import Sutori.Lexer     (SutToken(tokenChar, tokenBool, tokenInt, tokenFloat, tokenString))
-import Sutori.Monad     (SutMonad, SutState(SutState, typesGraph, typesNextID, parserTable))
+import Sutori.TAC       (newtemp)
+import Sutori.Monad     (SutMonad, SutState(SutState, parserTable))
 import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateMemberError)
-import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, lookupType, SutTypeID, SutPrimitive(..), primitiveID )
+import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, SutTypeID, SutPrimitive(..))
 import Sutori.Utils     (repeated)
 import Sutori.SymTable
-  ( SutSymbol(..), SymbolCat(..), SutParam(..)
-  , TypedSymbol(..), ParametricSymbol(..)
-  , lookupSymbols)
+  ( SymbolCat(..), SutParam(..)
+  , TypedSymbol(..), ParametricSymbol(..))
 
-import Sutori.Parser.Symbols     (findType, findExistentType, findTypeID, findFunction)
-import Sutori.Parser.TypeCheck   (checkNumeric, checkBoolean, checkSortable, checkEq, checkInt, checkFloat)
+import Sutori.Parser.Symbols
+import Sutori.Parser.TypeCheck
 
 -- |Represents a transformation from an expression to another
 --
@@ -129,7 +128,7 @@ constructStruct es = do
 
 -- |Transforms a member with its type definition to a member with its type ID
 memberType :: (SutID, SutType) -> SutMonad (SutID, SutTypeID)
-memberType (id, t) = findTypeID t >>= \tid -> return (id, tid)
+memberType (mid, t) = findTypeID t >>= \tid -> return (mid, tid)
 
 
 
@@ -260,21 +259,21 @@ arrayGet array index = case expressionType array of
 --
 -- Note: It is known the left lise is assignable
 memberGet :: SutExpression -> SutID -> SutMonad SutExpression
-memberGet struct id = case expressionType struct of
+memberGet struct mid = case expressionType struct of
     SutMachine ms -> checkMember ms
     SutThing ms   -> checkMember ms
     wrongType     -> do
-      typeError struct (SutMachine [(id, 0)]) wrongType "Not a structured type: Machine or Thing"
-      return $ MemberGet primitiveError struct id
+      typeError struct (SutMachine [(mid, 0)]) wrongType "Not a structured type: Machine or Thing"
+      return $ MemberGet primitiveError struct mid
   where
     checkMember :: [(SutID, SutTypeID)] -> SutMonad SutExpression
     checkMember ms = do
-      let member = find ((id ==) . fst) ms
+      let member = find ((mid ==) . fst) ms
           isPresent = isJust member
           tid = if isPresent then snd (fromJust member) else (-1)
-      unless isPresent $ undefinedError id CatMember ("Member '" ++ id ++ "' not present in structure definition")
+      unless isPresent $ undefinedError mid CatMember ("Member '" ++ mid ++ "' not present in structure definition")
       t <- findExistentType tid
-      return $ MemberGet t struct id
+      return $ MemberGet t struct mid
 
 
 -- |Creates a direction to a value of type given
@@ -310,20 +309,20 @@ dereference e = do
 --
 -- Note: Left side is known to be existent function (?)
 functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
-functionCall id actualParams = do
+functionCall fid actualParams = do
   SutState{parserTable = table} <- get
-  func <- findFunction id
+  func <- findFunction fid
   case func of
-    Nothing    -> return $ SutCall primitiveError id actualParams
+    Nothing    -> return $ SutCall primitiveError fid actualParams
     Just func' -> do
       let formalParams = symParams func'
           rType = symType func'
       formalPTypes <- mapM (findExistentType . paramType) formalParams
       returnType   <- findExistentType rType
       let (fpl, apl) = (length formalParams, length actualParams)
-      when (fpl /= apl) $ argumentsNumberError id fpl apl
+      when (fpl /= apl) $ argumentsNumberError fid fpl apl
       checkParamTypes formalPTypes actualParams
-      return $ SutCall returnType id actualParams
+      return $ SutCall returnType fid actualParams
 
 
 -- |Compares the given formal and actual parameters types

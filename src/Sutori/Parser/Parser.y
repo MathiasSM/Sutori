@@ -201,7 +201,7 @@ Assignable        : VariableID         { $1 }
 -- Structures
 ---------------------------------------------------------------------------------------------------
 Array             :: { SutExpression }
-Array             : '[' ArrayList_ ']'                  {% constructArray (reverse $2) }
+Array             : '[' ArrayList_ ']'                 {% constructArray (reverse $2) }
 
 ArrayList_        :: { [SutExpression] }
 ArrayList_        : Expression                         { [ $1 ] }

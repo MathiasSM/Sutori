@@ -6,6 +6,8 @@ module Sutori.TAC
 , TACAddress(..)
 , TACType(..)
 , TAC(..)
+, newtemp
 ) where
 
 import Sutori.TAC.TAC
+import Sutori.TAC.CodeGen

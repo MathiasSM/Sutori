@@ -6,12 +6,9 @@ Description : Provides definition functions that add the appropiate symbols to t
 -}
 module Sutori.Parser.Definitions where
 
-import Control.Monad            (filterM, when)
+import Control.Monad            (when)
 import Control.Monad.State.Lazy (get, put)
-import Data.List                (find)
-import Data.Maybe               (catMaybes, fromJust, isJust)
-
-import Debug.Trace
+import Data.Maybe               (catMaybes)
 
 import Sutori.AST      (SutID, SutExpression, SutAST, SutModule(SutModule), SutInstruction(..))
 import Sutori.Error    (duplicateSymbolError)
@@ -19,15 +16,14 @@ import Sutori.Monad    (SutMonad, SutState(SutState, parserTable, mainModule), p
 import Sutori.Types    (SutTypeID)
 import Sutori.SymTable
 
-import Sutori.Parser.Expressions (assignment)
-import Sutori.Parser.Symbols     (findVariable, findFunction, lookupInScope)
+import Sutori.Parser.Symbols
 
 
 -- |Decides on whether the given 'SutID' was used for a different symbol in the same scope
 whenSymbolIsNew :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad () -> SutMonad ()
-whenSymbolIsNew lookup id a = do
+whenSymbolIsNew lookupSym sid a = do
   s    <- get
-  vars <- lookupInScope lookup id
+  vars <- lookupInScope lookupSym sid
   let currentScope = parserCurrentScope s
       isDefined    = not (null vars)
       isCurrent    = isDefined && (symScope (head vars) == currentScope)
@@ -36,21 +32,21 @@ whenSymbolIsNew lookup id a = do
 
 -- |Defines a new variable of given type and optionally assigns it an initial value.
 defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
-defVariable pid tid (id, mexp) = do
-  whenSymbolIsNew lookupSymbolsVariable id $ do
+defVariable pid tid (vid, mexp) = do
+  whenSymbolIsNew lookupSymbolsVariable vid $ do
     s@SutState{ parserTable = table } <- get
-    let variable = SymVariable' $ SymVariable id currentScope tid
+    let variable = SymVariable' $ SymVariable vid currentScope tid
         currentScope = parserCurrentScope s
     put s{parserTable = insertSymbol variable table}
   case mexp of
-    Just exp -> return $ Just (InstExpression exp)
+    Just expr -> return $ Just (InstExpression expr)
     Nothing  -> return Nothing
 
 -- |Associates the SutID to the newly constructed type, assuming the name has not been used before
 defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-defType pid id tid = whenSymbolIsNew lookupSymbolsType id $ do
+defType pid sid tid = whenSymbolIsNew lookupSymbolsType sid $ do
   s@SutState{ parserTable = table } <- get
-  let variable = SymType' $ SymType id currentScope tid
+  let variable = SymType' $ SymType sid currentScope tid
       currentScope = parserCurrentScope s
   put s{parserTable = insertSymbol variable table}
 
@@ -65,7 +61,8 @@ defPerson pid = whenSymbolIsNew lookupSymbolsPerson pid $ do
 -- |Defines a new parameter into a function's scope.
 defParams :: [SutParam] -> SutMonad [SutInstruction]
 defParams ps = fmap catMaybes (mapM defParam ps)
-  where defParam p@SutParam{paramType = t, paramID = id} = defVariable (if isRef p then "-" else "") t (id, Nothing)
+  where defParam p@SutParam{paramType = t, paramID = sid} =
+          defVariable (if isRef p then "-" else "") t (sid, Nothing)
 
 -- |Defined a list of variables and returns a list of instructions, if any definition included an assigment
 defVariables :: SutID -> SutTypeID -> [(SutID, Maybe SutExpression)] -> SutMonad [SutInstruction]
@@ -76,19 +73,19 @@ defVariables pid tid defs = fmap catMaybes (mapM (defVariable pid tid) defs)
 -- Right now it's basically a stub as there's only one module and
 -- the data structure only keeps the 'SutID' and "AST"
 defModule :: SutID -> SutAST -> SutMonad ()
-defModule id b = get >>= \s -> put s{ mainModule = SutModule id b }
+defModule mid b = get >>= \s -> put s{ mainModule = SutModule mid b }
 
 -- |Defines a AST-able function (updates the top function with this ID's AST)
 --
 -- Note: We are now in the scope the function is being defined
 defineFunction :: SutID -> SutAST -> SutMonad ()
-defineFunction id ast = do
+defineFunction fid ast = do
   SutState{ parserTable = table } <- get
-  let (s@(SymFunction _ tid ps pre ast'):_) = lookupSymbolsFunction id table
+  let (s@(SymFunction _ tid ps pre ast'):_) = lookupSymbolsFunction fid table
   case ast' of
     Just _  -> duplicateSymbolError s
     Nothing -> do
-      let func = SymFunction' $ SymFunction id tid ps pre (Just ast)
+      let func = SymFunction' $ SymFunction fid tid ps pre (Just ast)
       get >>= \s' -> put s'{ parserTable = updateSymbol func table }
 
 -- |Inserts a new function symbol with a given name, type and parameters,
@@ -98,13 +95,13 @@ defineFunction id ast = do
 --
 -- Note: We are inside the function's scope, so we need to insert the symbol in the second-to-last scope
 insertFunction :: SutID -> SutTypeID -> [SutParam] -> SutMonad SutID
-insertFunction id tid ps = do
+insertFunction fid tid ps = do
   state@SutState{ parserTable = table } <- get
-  case lookupSymbolsFunction id table of
+  case lookupSymbolsFunction fid table of
     (f@SymFunction{}:_)  -> when (symType f /= tid || symParams f /= ps) $ duplicateSymbolError f
     _ -> do
       pre <- defParams ps
-      let func = SymFunction' $ SymFunction id tid ps pre Nothing
+      let func = SymFunction' $ SymFunction fid tid ps pre Nothing
       s'@SutState{ parserTable = table' } <- get
       put s'{ parserTable = insertSymbol func table' }
-  return id
+  return fid
