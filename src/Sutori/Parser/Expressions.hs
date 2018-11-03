@@ -42,7 +42,7 @@ import Data.List                 (find)
 import Data.Maybe                (isJust, fromJust)
 
 import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
-import Sutori.TAC       (newtemp)
+import Sutori.TAC       (addTAC, TAC(..), TACAddress(..), TACType(..))
 import Sutori.Monad     (SutMonad, SutState(SutState, parserTable))
 import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateMemberError)
 import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, SutTypeID, SutPrimitive(..))
@@ -68,20 +68,46 @@ type SutBinaryOp = SutExpression -> SutExpression -> SutMonad SutExpression
 
 -- Literals
 -- ================================================================================================
-literalBool :: Bool -> SutExpression
-literalBool = ExprLiteral (SutPrimitiveType SutLight)  . SutBool
 
-literalChar :: String -> SutExpression
-literalChar = ExprLiteral (SutPrimitiveType SutLetter) . SutChar
+-- |Generates AST expression for the given literal
+exprLiteral :: SutPrimitive -> SutLiteral -> SutMonad SutExpression
+exprLiteral t l = do
+  addCodeLiteral l
+  return $ ExprLiteral (SutPrimitiveType t) l
 
-literalInt :: Int -> SutExpression
-literalInt = ExprLiteral (SutPrimitiveType SutBag)    . SutInt
+-- |Generates code for the given literal
+addCodeLiteral :: SutLiteral -> SutMonad TACAddress
+addCodeLiteral l = addTAC $ TAC Copy (Just (TACLit l)) Nothing
 
-literalFloat :: Float -> SutExpression
-literalFloat = ExprLiteral (SutPrimitiveType SutWallet) . SutFloat
+literalBool :: Bool -> SutMonad SutExpression
+literalBool v = do
+  let l    = SutBool v
+      t    = SutLight
+  exprLiteral t l
 
-literalString :: String -> SutExpression
-literalString = ExprLiteral (SutPrimitiveType SutPhrase) . SutString
+literalChar :: String -> SutMonad SutExpression
+literalChar v = do
+  let l    = SutChar v
+      t    = SutLetter
+  exprLiteral t l
+
+literalInt :: Int -> SutMonad SutExpression
+literalInt v = do
+  let l    = SutInt v
+      t    = SutBag
+  exprLiteral t l
+
+literalFloat :: Float -> SutMonad SutExpression
+literalFloat v = do
+  let l    = SutFloat v
+      t    = SutWallet
+  exprLiteral t l
+
+literalString :: String -> SutMonad SutExpression
+literalString v = do
+  let l    = SutString v
+      t    = SutPhrase
+  exprLiteral t l
 
 
 

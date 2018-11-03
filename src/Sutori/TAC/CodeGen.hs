@@ -10,9 +10,9 @@ import Sutori.Monad
 
 import Sutori.TAC.TAC
 
--- |Generates a new (unique) temporal register/address for TAC
-newtemp :: SutMonad TACAddress
-newtemp = do
-  s@SutState{ tempNext = temp } <- get
-  put s{ tempNext = temp + 1 }
-  return $ TACTemp temp
+-- |Appends to the TAC table a new triplet, references it on the instructions TAC table
+addTAC :: TAC -> SutMonad TACAddress
+addTAC tac = do
+  s@SutState{ tacNext = i, tacTable = TACTable{ tacInstructions = is, tacTriplets = tacs } } <- get
+  put s{ tacNext = i + 1, tacTable = TACTable{tacInstructions = i:is, tacTriplets = tac:tacs} }
+  return $ TACID i

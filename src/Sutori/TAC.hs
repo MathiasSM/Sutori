@@ -6,7 +6,7 @@ module Sutori.TAC
 , TACAddress(..)
 , TACType(..)
 , TAC(..)
-, newtemp
+, addTAC
 ) where
 
 import Sutori.TAC.TAC

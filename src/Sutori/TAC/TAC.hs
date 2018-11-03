@@ -19,8 +19,7 @@ data TACTable = TACTable
 data TACAddress
   = TACName SutID     -- ^An actual 'SutID' from the source code.
   | TACLit SutLiteral -- ^A literal either explicit in the source code or calculated on the run.
-  | TACTemp Int       -- ^A temporal register
-  | TACID Int         -- ^The TAC number the calculated the relevant expression
+  | TACID Int         -- ^The TAC number that calculated the relevant expression
 
 -- |TAC Instruction
 data TAC = TAC

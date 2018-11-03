@@ -185,11 +185,11 @@ Expression        : Assignable %prec ASG { $1 }
                   | '(' Expression ')'   { $2 }
 
 Literal           :: { SutExpression }
-Literal           : LITERAL_INT        { literalInt    $1 }
-                  | LITERAL_BOOL       { literalBool   $1 }
-                  | LITERAL_CHAR       { literalChar   $1 }
-                  | LITERAL_FLOAT      { literalFloat  $1 }
-                  | LITERAL_STRING     { literalString $1 }
+Literal           : LITERAL_INT        {% literalInt    $1 }
+                  | LITERAL_BOOL       {% literalBool   $1 }
+                  | LITERAL_CHAR       {% literalChar   $1 }
+                  | LITERAL_FLOAT      {% literalFloat  $1 }
+                  | LITERAL_STRING     {% literalString $1 }
 
 Assignable        :: { SutExpression }
 Assignable        : VariableID         { $1 }

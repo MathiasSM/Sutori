@@ -3,15 +3,14 @@
 -}
 module Sutori.TAC.Logger() where
 
-import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
+import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave), fromLeave)
 
 import Sutori.TAC.TAC
 
 instance SutShow TACAddress where
   showSut (TACName sid) = SutLogLeave $ "Name:" ++ sid
-  showSut (TACLit lit)  = SutLogLeave $ "Lit:" ++ fromLeave (showSut lit)
-  showSut (TACTemp i)   = SutLogLeave $ "t_" ++ show i
   showSut (TACID i)     = SutLogLeave $ "i_" ++ show i
+  showSut (TACLit l)    = SutLogLeave $ "Literal:" ++ fromLeave (showSut l)
 
 instance SutShow TAC where
   showSut TAC{ tacType = tt, tac1 = t1, tac2 = t2 } =
