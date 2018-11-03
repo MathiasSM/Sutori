@@ -4,14 +4,14 @@ Description : Provides 'ShowSut' instances for "Sutori.AST"
 module Sutori.AST.Logger() where
 
 import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
-import Sutori.Types
+import Sutori.Types        ()
 
 import Sutori.AST.Nodes
 
 
 -- |Modules can be printed nicely
 instance SutShow SutModule where
-  showSut (SutModule id b) = SutLogNode ("Module: " ++ show id) (map showSut b)
+  showSut (SutModule mid b) = SutLogNode ("Module: " ++ show mid) (map showSut b)
 
 
 -- |Instructions of the AST can be printed nicely
@@ -44,21 +44,21 @@ instance SutShow SutExpression where
                                        loperand = SutLogNode "Left Operand:" [showSut e1]
                                        roperand = SutLogNode "Right Operand:" [showSut e2]
                                     in SutLogNode "BinaryOperation" [{-etype,-} operator, loperand, roperand]
-  showSut (SutCall t id es)      = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+  showSut (SutCall t fid es)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        args  = SutLogNode "Arguments:" (map showSut es)
-                                    in SutLogNode ("Function call to `" ++ show id ++ "` :") [etype, args]
+                                    in SutLogNode ("Function call to `" ++ show fid ++ "` :") [etype, args]
   showSut (CreatePointer t p)    = let etype = SutLogLeave $ "Type:  " ++ fromLeave (showSut t)
                                        expr  = SutLogLeave $ "Owner: " ++ show p
                                        in SutLogNode "NewPointer" [etype, expr]
   showSut (ExprConstructor t c)  = let etype  = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        constr = SutLogNode "Constructor:" [showSut c]
                                        in SutLogNode "DataStructure" [etype, constr]
-  showSut (ExprID t id)          = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       in SutLogNode ("ID Expression : " ++ show id) [etype]
+  showSut (ExprID t vid)         = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+                                       in SutLogNode ("ID Expression : " ++ show vid) [etype]
   showSut (ExprLiteral t l)      = showSut l
-  showSut (MemberGet t se id)    = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+  showSut (MemberGet t se sid)   = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        struct = SutLogNode "Struct:" [showSut se]
-                                    in SutLogNode ("Acces to member: " ++ show id) [etype, struct]
+                                    in SutLogNode ("Acces to member: " ++ show sid) [etype, struct]
   showSut (UnaryOp t op e)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        operator = showSut op
                                        expr = SutLogNode "Operand: " [showSut e]
@@ -77,7 +77,7 @@ instance SutShow SutLiteral where
 instance SutShow SutConstructor where
   showSut (SutArray es)  = SutLogNode "Chain:" (map showSut es)
   showSut (SutStruct es) = SutLogNode "Machine:" (map showMember es)
-    where showMember (id, e) = SutLogNode ("Member: " ++ show id) [showSut e]
+    where showMember (sid, e) = SutLogNode ("Member: " ++ show sid) [showSut e]
 
 -- |Operators can be printed nicely
 instance SutShow SutOperator where

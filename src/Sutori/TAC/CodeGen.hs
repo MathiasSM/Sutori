@@ -6,7 +6,6 @@ module Sutori.TAC.CodeGen where
 
 import Control.Monad.State (get, put)
 
-import Sutori.AST
 import Sutori.Monad
 
 import Sutori.TAC.TAC
