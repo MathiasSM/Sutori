@@ -14,9 +14,9 @@ instance SutShow TACTable where
                              where f i tr = SutLogLeave $ show i ++ "\t: " ++ fromLeave (showSut tr)
 
 instance SutShow TACAddress where
-  showSut (TACName sid) = SutLogLeave $ "Name:" ++ sid
-  showSut (TACID i)     = SutLogLeave $ "i_" ++ show i
-  showSut (TACLit l)    = SutLogLeave $ fromLeave (showSut l)
+  showSut (TACName (sid, sc)) = SutLogLeave $ "Symbol:" ++ sid ++ " (in scope " ++ show sc ++ ")"
+  showSut (TACID i)           = SutLogLeave $ "i_" ++ show i
+  showSut (TACLit l)          = SutLogLeave $ fromLeave (showSut l)
 
 instance SutShow TAC where
   showSut TAC{ tacType = tt, tac1 = t1, tac2 = t2 } =
@@ -32,11 +32,10 @@ instance SutShow TACType where
   showSut (Basic op)  = SutLogLeave $ "Basic (" ++ fromLeave (showSut op) ++ ")"
   showSut Copy        = SutLogLeave "Copy"
   showSut Jump        = SutLogLeave "Jump"
-  showSut JumpIf      = SutLogLeave "JumpIf"
-  showSut FromArray   = SutLogLeave "FromArray"
-  showSut ToArray     = SutLogLeave "ToArray"
-  showSut FromPointed = SutLogLeave "FromPointed"
-  showSut ToPointed   = SutLogLeave "ToPointed"
+  showSut JumpUnless  = SutLogLeave "JumpUnless"
+  showSut Array       = SutLogLeave "Array"
+  showSut Pointed     = SutLogLeave "Pointed"
   showSut Param       = SutLogLeave "Param"
   showSut Call        = SutLogLeave "Call"
   showSut Return      = SutLogLeave "Return"
+  showSut SysCall     = SutLogLeave "SysCall"

@@ -7,8 +7,6 @@ module Sutori.AST.Utils
 , asTypeError
 ) where
 
-import Data.Maybe
-
 import Sutori.Types     (SutType(SutPrimitiveType), SutPrimitive(SutTypeError))
 import Sutori.AST.Nodes
 
@@ -20,7 +18,7 @@ expressionType (UnaryOp t _ _)       = t
 expressionType (SutCall t _ _)       = t
 expressionType (CreatePointer t _)   = t
 expressionType (ExprConstructor t _) = t
-expressionType (ExprID t _)          = t
+expressionType (ExprID t _ _)        = t
 expressionType (ExprLiteral t _)     = t
 expressionType (Dereference t _)     = t
 expressionType (MemberGet t _ _ )    = t
@@ -34,7 +32,7 @@ withPrimitiveType p (UnaryOp _ o e)       = UnaryOp (SutPrimitiveType p) o e
 withPrimitiveType p (SutCall _ id ps)     = SutCall (SutPrimitiveType p) id ps
 withPrimitiveType p (CreatePointer _ e)   = CreatePointer (SutPrimitiveType p) e
 withPrimitiveType p (ExprConstructor _ c) = ExprConstructor (SutPrimitiveType p) c
-withPrimitiveType p (ExprID _ id)         = ExprID (SutPrimitiveType p) id
+withPrimitiveType p (ExprID _ id s)       = ExprID (SutPrimitiveType p) id s
 withPrimitiveType p (ExprLiteral _ l)     = ExprLiteral (SutPrimitiveType p) l
 withPrimitiveType p (Dereference _ e)     = Dereference (SutPrimitiveType p) e
 withPrimitiveType p (MemberGet _ e id)    = MemberGet (SutPrimitiveType p) e id

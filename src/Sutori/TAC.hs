@@ -7,6 +7,7 @@ module Sutori.TAC
 , TACType(..)
 , TAC(..)
 , addTAC
+, genCode
 ) where
 
 import Sutori.TAC.TAC

@@ -6,32 +6,29 @@ module Sutori.CLI.Router
 ) where
 
 import Control.Monad         (when, unless)
-import Control.Arrow         (second)
 import Data.Version          (showVersion)
 import Paths_sutori          (version)
 import System.Exit           (exitSuccess, die)
-import System.IO             (stderr, stdout, hPrint)
+import System.IO             (stderr, hPrint)
 
 import Sutori.Error          (SutError)
-import Sutori.Lexer          (runLexerScan, runLexer, lexerLoop)
+import Sutori.Lexer          (runLexer, lexerLoop)
 import Sutori.Logger         (SutLogger(..), SutLog(..), SutShow(showSut))
-import Sutori.Monad          (SutMonad, SutState(SutState, mainModule, typesGraph, parserTable, tacTable))
+import Sutori.Monad          (SutMonad, SutState(mainModule, typesGraph, parserTable, tacTable))
 import Sutori.Options        (Options(..), usage)
 import Sutori.Parser         (parseModule)
 import Sutori.SymTable       (lookupAllFunctions)
-import Sutori.TAC            ()
+import Sutori.TAC            (genCode)
 
 -- | Routes a call to the CLI with passed options and files into the correct mode of operation
 route :: (Options, [FilePath]) -> IO ()
-route (opt@Options{optDebug = True}, fs) = showDebugInfo opt fs
-route (opt, fs)                          = route' (opt, fs)
- where route' :: (Options, [FilePath]) -> IO ()
-       route' (opt@Options{optShowHelp = True},    _)  = showHelp opt
-       route' (opt@Options{optShowVersion = True}, _)  = showSutoriVersion opt
-       route' (opt@Options{optStopOnLexer = True}, fs) = runLexerOnly opt fs
-       route' (opt@Options{optStopOnAST = True}, fs)   = runASTOnly opt fs
-       route' (opt@Options{optStopOnTAC = True}, fs)   = runTACOnly opt fs
-       route' (opt,                              fs)   = runAll opt fs -- Default: Run everything!
+route (opt@Options{optDebug = True}, fs)       = showDebugInfo opt fs
+route (opt@Options{optShowHelp = True},    _)  = showHelp opt
+route (opt@Options{optShowVersion = True}, _)  = showSutoriVersion opt
+route (opt@Options{optStopOnLexer = True}, fs) = runLexerOnly opt fs
+route (opt@Options{optStopOnAST = True}, fs)   = runASTOnly opt fs
+route (opt@Options{optStopOnTAC = True}, fs)   = runTACOnly opt fs
+route (opt,                              fs)   = runAll opt fs -- Default: Run everything!
 
 
 -- Routes (mode of operation "selected" according to the passed flags)
@@ -87,6 +84,7 @@ runASTOnly opt@Options{ optVerbose = v } input = runOnFile parseModule opt input
             when v $ printInfo (showSut (typesGraph s))
             when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
             when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
+            unless (null infos) $ printTitledInfos "Verbose" infos
             unless (null errs) $ printTitledErrors "There were errors while processing the input" errs
 
 -- |Runs up to code generation
@@ -95,21 +93,23 @@ runASTOnly opt@Options{ optVerbose = v } input = runOnFile parseModule opt input
 --
 -- TODO: Check state for error code and fail
 runTACOnly :: Options -> [FilePath] -> IO ()
-runTACOnly opt@Options{ optVerbose = v } input = runOnFile parseModule opt input >>= \result ->
+runTACOnly opt@Options{ optVerbose = v } input = do
+  result <- runOnFile (parseModule >> genCode) opt input
   reportResult f result
     where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
+            when v $ printInfo (showSut (typesGraph s))
+            when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
+            when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
             when v $ printTitledInfo "Intermediate Code TAC" (showSut $ tacTable s)
-            unless (null errs) $ printTitledErrors "There were errors while processing the input" errs
+            unless (null infos) $ printTitledInfos "Verbose" infos
+            unless (null errs)  $ printTitledErrors "There were errors while processing the input" errs
+
 
 -- |Runs the whole compiler to generate machine code
 --
--- TODO: Check state for error code and fail
+-- TODO: Still incomplete compiler => Still incomplete ``runAll''
 runAll :: Options -> [FilePath] -> IO ()
-runAll opt@Options{ optVerbose = v } input = runOnFile parseModule opt input >>= \result ->
-  reportResult f result
-    where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
-            when v $ printInfo (showSut $ tacTable s)
-            unless (null errs) $ printTitledErrors "There were errors while processing the input" errs
+runAll = runTACOnly
 
 
 
@@ -152,7 +152,7 @@ printInfos l  = mapM_ printInfo l >> putStrLn ""
 
 -- |Prints an info log under a title
 printTitledInfo :: String -> SutLog -> IO ()
-printTitledInfo title log = printInfo (SutLogNode title [log])
+printTitledInfo title l = printInfo (SutLogNode title [l])
 
 -- |Print a series of info log
 printTitledInfos :: String -> [SutLog] -> IO ()

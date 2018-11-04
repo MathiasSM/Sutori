@@ -42,7 +42,6 @@ import Data.List                 (find)
 import Data.Maybe                (isJust, fromJust)
 
 import Sutori.AST       (SutID, SutExpression(..), SutLiteral(..), SutOperator(..), SutConstructor(..), expressionType)
-import Sutori.TAC       (addTAC, TAC(..), TACAddress(..), TACType(..))
 import Sutori.Monad     (SutMonad, SutState(SutState, parserTable))
 import Sutori.Error     (typeError, argumentsNumberError, undefinedError, duplicateMemberError)
 import Sutori.Types     (SutType(..), generalizeTypes, primitiveError, SutTypeID, SutPrimitive(..))
@@ -71,13 +70,7 @@ type SutBinaryOp = SutExpression -> SutExpression -> SutMonad SutExpression
 
 -- |Generates AST expression for the given literal
 exprLiteral :: SutPrimitive -> SutLiteral -> SutMonad SutExpression
-exprLiteral t l = do
-  addCodeLiteral l
-  return $ ExprLiteral (SutPrimitiveType t) l
-
--- |Generates code for the given literal
-addCodeLiteral :: SutLiteral -> SutMonad TACAddress
-addCodeLiteral l = addTAC $ TAC Copy (Just (TACLit l)) Nothing
+exprLiteral t l = return $ ExprLiteral (SutPrimitiveType t) l
 
 literalBool :: Bool -> SutMonad SutExpression
 literalBool v = do

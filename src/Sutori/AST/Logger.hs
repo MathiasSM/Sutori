@@ -53,8 +53,9 @@ instance SutShow SutExpression where
   showSut (ExprConstructor t c)  = let etype  = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        constr = SutLogNode "Constructor:" [showSut c]
                                        in SutLogNode "DataStructure" [etype, constr]
-  showSut (ExprID t vid)         = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       in SutLogNode ("ID Expression : " ++ show vid) [etype]
+  showSut (ExprID t vid s)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+                                       scope = SutLogLeave $ "Scope: " ++ show s
+                                       in SutLogNode ("ID Expression : " ++ show vid) [etype, scope]
   showSut (ExprLiteral t l)      = showSut l
   showSut (MemberGet t se sid)   = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        struct = SutLogNode "Struct:" [showSut se]

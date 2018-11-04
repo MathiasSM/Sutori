@@ -15,8 +15,10 @@ module Sutori.AST.Nodes
 import Sutori.Utils (SutID)
 import Sutori.Types (SutType)
 
+-- |A 'Scope' is just an identification number
+type Scope = Int
 
--- |A 'SutBlock' is a list of instructions
+-- |A 'SutAST' is a list of instructions
 type SutAST = [SutInstruction]
 
 -- |A Sutori Module has a name and a SutAST
@@ -46,7 +48,7 @@ data SutExpression = ArrayGet        SutType SutExpression  SutExpression     --
                    | SutCall         SutType SutID          [SutExpression]   -- ^ A function call
                    | CreatePointer   SutType SutID                            -- ^ A direction (pointer) creation
                    | ExprConstructor SutType SutConstructor                   -- ^ A construct (machines, chains, etc...)
-                   | ExprID          SutType SutID                            -- ^ An ID as an expression
+                   | ExprID          SutType SutID          Scope             -- ^ An ID as an expression
                    | ExprLiteral     SutType SutLiteral                       -- ^ A literal
                    | Dereference     SutType SutExpression                    -- ^ Dereference of a direction (pointer)
                    | MemberGet       SutType SutExpression  SutID             -- ^ Access to a member of a structured value

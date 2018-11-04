@@ -152,7 +152,7 @@ RemoveScope       : BLOCK_CLOSE                                 {% removeScope }
 LocalStatements_  :: { [SutInstruction] }
 LocalStatements_  : LocalStatements_ Instruction                { $2 : $1 }
                   | LocalStatements_ Return '.'                 { $2 : $1 }
-                  | LocalStatements_ VariableDef '.'            { $1 }
+                  | LocalStatements_ VariableDef '.'            { $2 ++ $1 }
                   | LocalStatements_ PersonDef '.'              { $1 }
                   | {- noop statement -}                        { [] }
 

@@ -17,9 +17,9 @@ data TACTable = TACTable
 
 -- |TACAddress for TAC Instructions
 data TACAddress
-  = TACName SutID     -- ^An actual 'SutID' from the source code.
-  | TACLit SutLiteral -- ^A literal either explicit in the source code or calculated on the run.
-  | TACID Int         -- ^The TAC number that calculated the relevant expression
+  = TACName (SutID, Int)  -- ^An actual ID from the source code. Identified using 'SutID' and 'Scope'.
+  | TACLit SutLiteral     -- ^A literal either explicit in the source code or calculated on the run.
+  | TACID Int             -- ^The TAC number that calculated the relevant expression
 
 -- |TAC Instruction
 data TAC = TAC
@@ -33,11 +33,10 @@ data TACType
     { tacOp :: SutOperator }
   | Copy              -- ^Copy operation, from a address to another
   | Jump              -- ^Unconditional jump, just where to.
-  | JumpIf            -- ^Condition jump
-  | FromArray         -- ^Assign an indexed value to a address
-  | ToArray           -- ^Assign a address to an indexed value.
-  | FromPointed       -- ^Assign a address from a indirect pointer.
-  | ToPointed         -- ^Assign a pointed address to a address.
+  | JumpUnless        -- ^Condition jump
+  | Array             -- ^Assign a address to an indexed value.
+  | Pointed           -- ^Assign a address from a indirect pointer.
   | Param             -- ^Stack a function parameter
   | Call              -- ^Call a function of so many (already stacked) parameters
   | Return            -- ^Return from a function (possibly a value).
+  | SysCall           -- ^Perform a syscall (IO, Mem, else)

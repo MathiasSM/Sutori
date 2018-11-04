@@ -72,9 +72,9 @@ findVariable vid = do
   vars <- lookupInScope lookupSymbolsVariable vid
   case vars of
     (s@SymVariable{}:_) -> do t <- findExistentType (symType s)
-                              return $ ExprID t vid
+                              return $ ExprID t vid (symScope s)
     _                   -> do undefinedError vid CatVariable ("Variable '" ++ vid ++ "' not present in the current story")
-                              return $ ExprID primitiveError vid
+                              return $ ExprID primitiveError vid (-1)
 
 
 -- |Checks the living scopes for the symbols with given 'SutID'
