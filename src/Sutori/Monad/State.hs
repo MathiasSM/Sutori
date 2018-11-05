@@ -11,6 +11,7 @@ import Sutori.AST         (SutModule)
 import Sutori.Lexer.Posn  (SutPosn, initialPosn)
 import Sutori.Error.Error (SutError(NoError))
 import Sutori.SymTable    (SymTable, Scope)
+import Sutori.TAC.TAC     (TACTable(..))
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
 
 
@@ -29,6 +30,9 @@ data SutState = SutState
   , parserScopes    :: Set.Set Scope -- ^ The set of open scopes
   , parserNextScope :: Scope         -- ^ The next scope ID to open
   , mainModule      :: SutModule     -- ^ The main module (where compilation began)
+  , tacTable        :: TACTable      -- ^ The table of generated TAC
+  , tacNext         :: Int           -- ^ The next triplet index/The size of the current table
+  , tacLabel        :: Int           -- ^ The next label for TAC generation
   , typesGraph      :: TypeGraph     -- ^ The constructed type graph
   , typesNextID     :: SutTypeID     -- ^ The next type ID to be introduced
   , logVerbose      :: Bool          -- ^ Set the output to verbose of not
@@ -50,6 +54,9 @@ initialSutoriState = SutState
   , parserScopes    = Set.insert 0 Set.empty
   , parserNextScope = 0
   , mainModule      = undefined
+  , tacTable        = TACTable [] []
+  , tacNext         = 0
+  , tacLabel        = 0
   , typesGraph      = initialTypeGraph
   , typesNextID     = initialNextTypeID
   , logVerbose      = False

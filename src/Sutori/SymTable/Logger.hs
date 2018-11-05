@@ -7,7 +7,6 @@ import Sutori.Logger    (SutShow(showSut), SutLog(SutLogNode, SutLogLeave))
 import Sutori.AST       ()
 
 import Sutori.SymTable.Symbol
-import Sutori.SymTable.Table
 
 
 -- | Constructs a log for the symbol data
@@ -50,8 +49,8 @@ instance SutShow SymType where
 
 -- |A parameter can be printed nicely
 instance SutShow SutParam where
-  showSut SutParam{isRef = r, paramType = t, paramID = id} =
-    SutLogLeave ("Param: " ++ id ++ "; TypeID: " ++ show t ++ "; isRef: " ++ show r)
+  showSut SutParam{isRef = r, paramType = t, paramID = pid} =
+    SutLogLeave ("Param: " ++ pid ++ "; TypeID: " ++ show t ++ "; isRef: " ++ show r)
 
 instance SutShow SymbolCat where
   showSut CatModule   = SutLogLeave "Module"
@@ -59,3 +58,4 @@ instance SutShow SymbolCat where
   showSut CatType     = SutLogLeave "Type"
   showSut CatVariable = SutLogLeave "Variable"
   showSut CatFunction = SutLogLeave "Function"
+  showSut CatMember   = SutLogLeave "Member"

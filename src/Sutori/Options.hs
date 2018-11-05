@@ -5,7 +5,8 @@ module Sutori.Options
 ( Options(..)
 , usage
 , handleFlags
+, defaultOptions
 ) where
 
 import Sutori.Options.Options
-import Sutori.Options.Logger
+import Sutori.Options.Logger ()

@@ -8,6 +8,7 @@ module Sutori.Lexer.Lexer
 , runLexer'
 , runLexerScan   -- Runs the lexer by itself (with the usual scan loop)
 , lexwrap        -- Wrapper around scan used by happy
+, lexerLoop
 ) where
 
 import Control.Monad (when)
@@ -18,7 +19,7 @@ import Control.Monad.Except
 import Data.List
 import Data.Maybe
 
-import Sutori.Options (Options(..), usage)
+import Sutori.Options (Options(..), defaultOptions, usage)
 import Sutori.Logger  (SutLogger(..), SutLog)
 import Sutori.Error   (SutError(LexicalError), lexerError)
 import Sutori.Monad
@@ -62,7 +63,7 @@ tokens :-
 <0>                "made of"                 { tokenize S_madeof               }
 <0>                "there was a"             { tokenize S_therewasa            }
 <0>                "told that story"         { tokenize S_toldthatstory        }
-<0>                "invented"                { tokenize S_invented             }
+<0>                "invented the"            { tokenize S_invented             }
 <0>                "it's a"                  { tokenize S_itsa                 }
 <0>                "and nothing else"        { tokenize S_andnothingelse       }
 <0>                "we will skip this"       { tokenize S_wewillskipthis       }
@@ -298,12 +299,8 @@ lexerScanClean :: SutMonad SutToken
 lexerScanClean = lexerScan >>= checkTokenError >>= checkTokenEOF
 
 
--- |Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
-runLexer Options{ optVerbose = v } input f = runExcept $ runSutMonad f initialSutoriState { lexerInput = input, logVerbose = v }
-
 -- |Run the lexer with no options (default options)
-runLexer' = runLexer Options{}
+runLexer' = runLexer defaultOptions
 
 -- |Gets all tokens recursively
 lexerLoop :: SutMonad [SutToken]
@@ -316,10 +313,13 @@ lexerLoop = do
       return (tk:tks)
 
 
--- |Run the lexer on a given string, get the results
+-- |Run the lexer on a given string, get the resulting tokens
 runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
 runLexerScan opt input = runLexer opt input lexerLoop
 
+-- |Run the lexer on a given input string, with a given monadic action
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+runLexer opt input f = runExcept $ runSutMonad f opt initialSutoriState{lexerInput = input}
 
 -- |Run the lexer, but receive a continuation (Used by Happy)
 lexwrap :: (SutToken -> SutMonad a) -> SutMonad a

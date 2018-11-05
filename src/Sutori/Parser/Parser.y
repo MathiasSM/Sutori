@@ -152,7 +152,7 @@ RemoveScope       : BLOCK_CLOSE                                 {% removeScope }
 LocalStatements_  :: { [SutInstruction] }
 LocalStatements_  : LocalStatements_ Instruction                { $2 : $1 }
                   | LocalStatements_ Return '.'                 { $2 : $1 }
-                  | LocalStatements_ VariableDef '.'            { $1 }
+                  | LocalStatements_ VariableDef '.'            { $2 ++ $1 }
                   | LocalStatements_ PersonDef '.'              { $1 }
                   | {- noop statement -}                        { [] }
 
@@ -185,11 +185,11 @@ Expression        : Assignable %prec ASG { $1 }
                   | '(' Expression ')'   { $2 }
 
 Literal           :: { SutExpression }
-Literal           : LITERAL_INT        { literalInt    $1 }
-                  | LITERAL_BOOL       { literalBool   $1 }
-                  | LITERAL_CHAR       { literalChar   $1 }
-                  | LITERAL_FLOAT      { literalFloat  $1 }
-                  | LITERAL_STRING     { literalString $1 }
+Literal           : LITERAL_INT        {% literalInt    $1 }
+                  | LITERAL_BOOL       {% literalBool   $1 }
+                  | LITERAL_CHAR       {% literalChar   $1 }
+                  | LITERAL_FLOAT      {% literalFloat  $1 }
+                  | LITERAL_STRING     {% literalString $1 }
 
 Assignable        :: { SutExpression }
 Assignable        : VariableID         { $1 }
@@ -201,7 +201,7 @@ Assignable        : VariableID         { $1 }
 -- Structures
 ---------------------------------------------------------------------------------------------------
 Array             :: { SutExpression }
-Array             : '[' ArrayList_ ']'                  {% constructArray (reverse $2) }
+Array             : '[' ArrayList_ ']'                 {% constructArray (reverse $2) }
 
 ArrayList_        :: { [SutExpression] }
 ArrayList_        : Expression                         { [ $1 ] }
@@ -332,13 +332,17 @@ TypeExpr          : TYPE_INT                                     {% findTypeID (
                   | TYPE_STRING                                  {% findTypeID (SutPrimitiveType SutPhrase) }
                   | TYPE_POINTER '(' TO TypeExpr ')'             {% findTypeID (SutDirection $4) }
                   | TYPE_ARRAY   '(' OF LITERAL_INT TypeExpr ')' {% findTypeID (SutChain $4 $5) }
-                  | TYPE_STRUCT  '(' WITH TypeMapping_ ')'       {% findTypeID (SutMachine (reverse $4)) }
-                  | TYPE_UNION   '(' EITHER TypeMapping_ ')'     {% findTypeID (SutThing   (reverse $4)) }
-                  | TypeID                                       {% return $1 }
+                  | TYPE_STRUCT  '(' WITH StructMapping_ ')'     {% findTypeID (SutMachine (reverse $4)) }
+                  | TYPE_UNION   '(' EITHER UnionMapping_ ')'    {% findTypeID (SutThing   (reverse $4)) }
+                  | TypeID                                       { $1 }
 
-TypeMapping_      :: { [(SutID, SutTypeID)] }
-TypeMapping_      : TypeExpr ID                                 { [($2, $1)] }
-                  | TypeMapping_ or TypeExpr ID                 {  ($4, $3) : $1 }
+UnionMapping_     :: { [(SutID, SutTypeID)] }
+UnionMapping_     : TypeExpr ID                                 { [($2, $1)] }
+                  | UnionMapping_ or TypeExpr ID                 {  ($4, $3) : $1 }
+
+StructMapping_    :: { [(SutID, SutTypeID)] }
+StructMapping_    : TypeExpr ID                                 { [($2, $1)] }
+                  | StructMapping_ and TypeExpr ID                 {  ($4, $3) : $1 }
 
 
 

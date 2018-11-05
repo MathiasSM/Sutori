@@ -4,14 +4,14 @@ Description : Provides 'ShowSut' instances for "Sutori.AST"
 module Sutori.AST.Logger() where
 
 import Sutori.Logger       (SutShow(showSut), SutLog(SutLogLeave, SutLogNode), fromLeave)
-import Sutori.Types
+import Sutori.Types        ()
 
 import Sutori.AST.Nodes
 
 
 -- |Modules can be printed nicely
 instance SutShow SutModule where
-  showSut (SutModule id b) = SutLogNode ("Module: " ++ show id) (map showSut b)
+  showSut (SutModule mid b) = SutLogNode ("Module: " ++ show mid) (map showSut b)
 
 
 -- |Instructions of the AST can be printed nicely
@@ -38,27 +38,28 @@ instance SutShow SutExpression where
   showSut (ArrayGet t ae ie)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        array = SutLogNode "Array:" [showSut ae]
                                        index = SutLogNode "Index:" [showSut ie]
-                                    in SutLogNode "ArrayIndexation" [etype, array, index]
-  showSut (BinaryOp t op e1 e2)  = let --etype    = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       operator = showSut op
+                                    in SutLogNode "Array Position" [etype, array, index]
+  showSut (BinaryOp t op e1 e2)  = let etype    = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        loperand = SutLogNode "Left Operand:" [showSut e1]
                                        roperand = SutLogNode "Right Operand:" [showSut e2]
-                                    in SutLogNode "BinaryOperation" [{-etype,-} operator, loperand, roperand]
-  showSut (SutCall t id es)      = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+                                       operator = "BinaryOperation (" ++ fromLeave (showSut op) ++ ")"
+                                    in SutLogNode operator [etype, loperand, roperand]
+  showSut (SutCall t fid es)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        args  = SutLogNode "Arguments:" (map showSut es)
-                                    in SutLogNode ("Function call to `" ++ show id ++ "` :") [etype, args]
+                                    in SutLogNode ("Function call to `" ++ show fid ++ "` :") [etype, args]
   showSut (CreatePointer t p)    = let etype = SutLogLeave $ "Type:  " ++ fromLeave (showSut t)
                                        expr  = SutLogLeave $ "Owner: " ++ show p
                                        in SutLogNode "NewPointer" [etype, expr]
   showSut (ExprConstructor t c)  = let etype  = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        constr = SutLogNode "Constructor:" [showSut c]
                                        in SutLogNode "DataStructure" [etype, constr]
-  showSut (ExprID t id)          = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       in SutLogNode ("ID Expression : " ++ show id) [etype]
+  showSut (ExprID t vid s)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+                                       scope = SutLogLeave $ "Scope: " ++ show s
+                                       in SutLogNode ("Variable: " ++ show vid) [etype, scope]
   showSut (ExprLiteral t l)      = showSut l
-  showSut (MemberGet t se id)    = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
+  showSut (MemberGet t se sid)   = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        struct = SutLogNode "Struct:" [showSut se]
-                                    in SutLogNode ("Acces to member: " ++ show id) [etype, struct]
+                                    in SutLogNode ("Member: " ++ show sid) [etype, struct]
   showSut (UnaryOp t op e)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        operator = showSut op
                                        expr = SutLogNode "Operand: " [showSut e]
@@ -67,38 +68,38 @@ instance SutShow SutExpression where
 
 -- |Literals can be printed nicely
 instance SutShow SutLiteral where
-  showSut (SutString s)  = SutLogLeave $ "Literal: Phrase(" ++ show s ++ ")"
-  showSut (SutInt i)     = SutLogLeave $ "Literal: Bag(" ++ show i ++")"
-  showSut (SutFloat f)   = SutLogLeave $ "Literal: Waller(" ++ show f ++")"
-  showSut (SutChar c)    = SutLogLeave $ "Literal: Letter(" ++ show c ++")"
-  showSut (SutBool b)    = SutLogLeave $ "Literal: Light(" ++ show b ++")"
+  showSut (SutString s)  = SutLogLeave $ "Phrase(" ++ show s ++ ")"
+  showSut (SutInt i)     = SutLogLeave $ "Bag(" ++ show i ++")"
+  showSut (SutFloat f)   = SutLogLeave $ "Wallert(" ++ show f ++")"
+  showSut (SutChar c)    = SutLogLeave $ "Letter(" ++ show c ++")"
+  showSut (SutBool b)    = SutLogLeave $ "Light(" ++ show b ++")"
 
 -- |Constructs can be printed nicely
 instance SutShow SutConstructor where
   showSut (SutArray es)  = SutLogNode "Chain:" (map showSut es)
   showSut (SutStruct es) = SutLogNode "Machine:" (map showMember es)
-    where showMember (id, e) = SutLogNode ("Member: " ++ show id) [showSut e]
+    where showMember (sid, e) = SutLogNode ("Member: " ++ show sid) [showSut e]
 
 -- |Operators can be printed nicely
 instance SutShow SutOperator where
-  showSut SutOpAdd     = SutLogLeave "Operator: +"
-  showSut SutOpAnd     = SutLogLeave "Operator: and"
-  showSut SutOpAssign  = SutLogLeave "Operator: ="
-  showSut SutOpDer     = SutLogLeave "Operator: *dereference"
-  showSut SutOpDiv     = SutLogLeave "Operator: div"
-  showSut SutOpEqual   = SutLogLeave "Operator: =="
-  showSut SutOpGEq     = SutLogLeave "Operator: >="
-  showSut SutOpGreater = SutLogLeave "Operator: >"
-  showSut SutOpIndex   = SutLogLeave "Operator: indexation[i]"
-  showSut SutOpIntDiv  = SutLogLeave "Operator: /"
-  showSut SutOpLEq     = SutLogLeave "Operator: <="
-  showSut SutOpLess    = SutLogLeave "Operator: <"
-  showSut SutOpMember  = SutLogLeave "Operator: memberGet->a"
-  showSut SutOpMod     = SutLogLeave "Operator: %"
-  showSut SutOpMul     = SutLogLeave "Operator: *"
-  showSut SutOpNeg     = SutLogLeave "Operator: -negative"
-  showSut SutOpNot     = SutLogLeave "Operator: !negation"
-  showSut SutOpNotEq   = SutLogLeave "Operator: /="
-  showSut SutOpOr      = SutLogLeave "Operator: or"
-  showSut SutOpPow     = SutLogLeave "Operator: ^"
-  showSut SutOpSub     = SutLogLeave "Operator: -"
+  showSut SutOpAdd     = SutLogLeave "+"
+  showSut SutOpAnd     = SutLogLeave "and"
+  showSut SutOpAssign  = SutLogLeave "="
+  showSut SutOpDer     = SutLogLeave "*dereference"
+  showSut SutOpDiv     = SutLogLeave "div"
+  showSut SutOpEqual   = SutLogLeave "=="
+  showSut SutOpGEq     = SutLogLeave ">="
+  showSut SutOpGreater = SutLogLeave ">"
+  showSut SutOpIndex   = SutLogLeave "indexation[i]"
+  showSut SutOpIntDiv  = SutLogLeave "/"
+  showSut SutOpLEq     = SutLogLeave "<="
+  showSut SutOpLess    = SutLogLeave "<"
+  showSut SutOpMember  = SutLogLeave "memberGet->a"
+  showSut SutOpMod     = SutLogLeave "%"
+  showSut SutOpMul     = SutLogLeave "*"
+  showSut SutOpNeg     = SutLogLeave "-negative"
+  showSut SutOpNot     = SutLogLeave "!negation"
+  showSut SutOpNotEq   = SutLogLeave "/="
+  showSut SutOpOr      = SutLogLeave "or"
+  showSut SutOpPow     = SutLogLeave "^"
+  showSut SutOpSub     = SutLogLeave "-"

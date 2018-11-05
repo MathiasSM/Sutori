@@ -5,39 +5,38 @@ module Sutori.CLI.Router
 ( route
 ) where
 
-import Control.Monad         (when)
-import Control.Arrow         (second)
+import Control.Monad         (when, unless)
 import Data.Version          (showVersion)
 import Paths_sutori          (version)
 import System.Exit           (exitSuccess, die)
-import System.IO             (stderr, stdout, hPrint)
+import System.IO             (stderr, hPrint)
 
 import Sutori.Error          (SutError)
-import Sutori.Lexer          (runLexerScan, runLexer)
+import Sutori.Lexer          (runLexer, lexerLoop)
 import Sutori.Logger         (SutLogger(..), SutLog(..), SutShow(showSut))
-import Sutori.Monad          (SutState(SutState, mainModule, typesGraph, parserTable))
+import Sutori.Monad          (SutMonad, SutState(mainModule, typesGraph, parserTable, tacTable))
 import Sutori.Options        (Options(..), usage)
 import Sutori.Parser         (parseModule)
 import Sutori.SymTable       (lookupAllFunctions)
+import Sutori.TAC            (genCode)
 
 -- | Routes a call to the CLI with passed options and files into the correct mode of operation
 route :: (Options, [FilePath]) -> IO ()
-route (opt@Options{optDebugging = True}, fs) = showDebuggingInfo opt fs
-route (opt, fs)                              = route' (opt, fs)
- where route' :: (Options, [FilePath]) -> IO ()
-       route' (opt@Options{optShowHelp = True},     _ ) = showHelp
-       route' (opt@Options{optShowVersion = True},  _ ) = showSutoriVersion opt
-       route' (opt@Options{optStopOnLexer = True},  fs) = runLexerOnly opt fs
-       route' (opt@Options{optStopOnParser = True}, fs) = runFrontendOnly opt fs
-       route' (opt,                                 fs) = runFrontendOnly opt fs -- Default: Run everything!
+route (opt@Options{optDebug = True}, fs)       = showDebugInfo opt fs
+route (opt@Options{optShowHelp = True},    _)  = showHelp opt
+route (opt@Options{optShowVersion = True}, _)  = showSutoriVersion opt
+route (opt@Options{optStopOnLexer = True}, fs) = runLexerOnly opt fs
+route (opt@Options{optStopOnAST = True}, fs)   = runASTOnly opt fs
+route (opt@Options{optStopOnTAC = True}, fs)   = runTACOnly opt fs
+route (opt,                              fs)   = runAll opt fs -- Default: Run everything!
 
 
 -- Routes (mode of operation "selected" according to the passed flags)
 -- ================================================================================================
 
 -- |Shows debugging information (This is a "prefix" route: Others might follow)
-showDebuggingInfo :: Options -> [FilePath] -> IO ()
-showDebuggingInfo opts fs = do
+showDebugInfo :: Options -> [FilePath] -> IO ()
+showDebugInfo opts fs = do
   print (showSut opts)
   putStrLn "Files:"
   mapM_ (putStrLn . ("  "++)) fs
@@ -45,8 +44,8 @@ showDebuggingInfo opts fs = do
 
 
 -- |Shows usage information and exits
-showHelp :: IO ()
-showHelp = do
+showHelp :: Options -> IO ()
+showHelp _ = do
   putStrLn usage
   exitSuccess
 
@@ -56,34 +55,61 @@ showSutoriVersion _ = do
   putStrLn $ showVersion version
   exitSuccess
 
+runOnFile :: SutMonad a -> Options -> [FilePath] -> IO (Either (SutError, SutLog) ((a, SutState), SutLogger))
+runOnFile f opt@Options{ optOutput = output' } inputFiles = do
+  input <- readInput inputFiles
+  return $ runLexer opt input f
+
+
 -- |Runs the lexer and outputs the list of read tokens
 --
 -- TODO: Check state for error code and fail
 runLexerOnly :: Options -> [FilePath] -> IO ()
-runLexerOnly opt@Options{ optOutput = output' } inputFiles = do
-  input <- readInput inputFiles
-  let result = runLexerScan opt input
-
+runLexerOnly opt input = runOnFile lexerLoop opt input >>= \result ->
   reportResult printTokens result
     where printTokens ((tks, _), SutLogger{logInfo = info, logError = err}) = do
             mapM_ (print.showSut) tks
             printInfos info
             printErrors err
 
--- |Runs the parser/lexer monad without code generation
+-- |Runs the parser/lexer monad without code generation, generates AST
+--
+-- Checks types, symbols consistency, scopes, etc. Can print AST on verbose.
 --
 -- TODO: Check state for error code and fail
-runFrontendOnly :: Options -> [FilePath] -> IO ()
-runFrontendOnly opt@Options{ optOutput = output', optVerbose = v } inputFiles = do
-  input <- readInput inputFiles
-  let result = runLexer opt input parseModule
-
+runASTOnly :: Options -> [FilePath] -> IO ()
+runASTOnly opt@Options{ optVerbose = v } input = runOnFile parseModule opt input >>= \result ->
   reportResult f result
     where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
             when v $ printInfo (showSut (typesGraph s))
             when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
             when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
-            printTitledErrors "There were errors while processing the input" errs
+            unless (null infos) $ printTitledInfos "Verbose" infos
+            unless (null errs) $ printTitledErrors "There were errors while processing the input" errs
+
+-- |Runs up to code generation
+--
+-- This won't generate an AST, even on verbose output.
+--
+-- TODO: Check state for error code and fail
+runTACOnly :: Options -> [FilePath] -> IO ()
+runTACOnly opt@Options{ optVerbose = v } input = do
+  result <- runOnFile (parseModule >> genCode) opt input
+  reportResult f result
+    where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
+            when v $ printInfo (showSut (typesGraph s))
+            when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
+            when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
+            when v $ printTitledInfo "Intermediate Code TAC" (showSut $ tacTable s)
+            unless (null infos) $ printTitledInfos "Verbose" infos
+            unless (null errs)  $ printTitledErrors "There were errors while processing the input" errs
+
+
+-- |Runs the whole compiler to generate machine code
+--
+-- TODO: Still incomplete compiler => Still incomplete ``runAll''
+runAll :: Options -> [FilePath] -> IO ()
+runAll = runTACOnly
 
 
 
@@ -126,7 +152,7 @@ printInfos l  = mapM_ printInfo l >> putStrLn ""
 
 -- |Prints an info log under a title
 printTitledInfo :: String -> SutLog -> IO ()
-printTitledInfo title log = printInfo (SutLogNode title [log])
+printTitledInfo title l = printInfo (SutLogNode title [l])
 
 -- |Print a series of info log
 printTitledInfos :: String -> [SutLog] -> IO ()
