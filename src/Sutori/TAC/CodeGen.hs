@@ -6,7 +6,6 @@ module Sutori.TAC.CodeGen where
 
 import Control.Monad (void)
 import Control.Monad.State (get, put)
-import Data.Maybe (fromJust)
 
 import Sutori.AST
 import Sutori.Monad
@@ -71,11 +70,31 @@ genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
 -- Expression Instruction
 genCodeInstr _ _ (InstExpression expr) = void $ genCodeExpr expr
 
-
 -- Return instructions
 genCodeInstr _ _ (ReturnVal expr) = void $ do
   addr <- genCodeExpr expr
   addTAC $ TAC Return (Just addr) Nothing
+
+-- Free Pointer
+genCodeInstr _ _ (FreePointer _ expr) = void $ do
+  exprAddr <- genCodeExpr expr
+  addTAC $ TAC (SysCall SysFree) (Just exprAddr) Nothing -- TODO: Specify FREE size?
+
+-- Read IO
+genCodeInstr _ _ (ReadVal _ expr) = void $ do
+  addr <- genCodeExpr expr
+  addTAC $ TAC (SysCall SysRead) (Just addr) Nothing
+
+-- Print IO
+genCodeInstr _ _ (PrintVal _ expr) = void $ do
+  addr <- genCodeExpr expr
+  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing
+
+-- Break
+genCodeInstr _ break' Break = void $ addTAC $ TAC Jump (Just $ TACLabel break') Nothing
+
+-- Continue
+genCodeInstr cont' _ Continue = void $ addTAC $ TAC Jump (Just $ TACLabel cont') Nothing
 
 
 -- Selection / If-else
@@ -87,8 +106,10 @@ genCodeInstr cont' break' (Selection sid cond ifb elb) = void $ do
   addTAC $ TAC JumpUnless (Just condAddr) (Just $ TACLabel ell')
   genCodeAST cont' break' ifb
   addTAC $ TAC Jump (Just $ TACLabel nex') Nothing
+
   addTAC ell
   genCodeAST cont' break' elb
+
   addTAC nex
 
 
@@ -124,32 +145,6 @@ genCodeInstr _ _ (IterationB _ idx itb) = void $ do
   addTAC $ TAC Jump (Just $ TACLabel start') Nothing
 
   addTAC next
-
-
--- Free Pointer
-genCodeInstr _ _ (FreePointer _ expr) = void $ do
-  exprAddr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysFree) (Just exprAddr) Nothing
-
-
--- Read IO
-genCodeInstr _ _ (ReadVal _ expr) = void $ do
-  addr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysRead) (Just addr) Nothing
-
-
--- Print IO
-genCodeInstr _ _ (PrintVal _ expr) = void $ do
-  addr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing
-
-
--- Break
-genCodeInstr _ break' Break = void $ addTAC $ TAC Jump (Just $ TACLabel break') Nothing
-
-
--- Continue
-genCodeInstr cont' _ Continue = void $ addTAC $ TAC Jump (Just $ TACLabel cont') Nothing
 
 
 

@@ -1,6 +1,6 @@
 Once upon a time in FactorialCity ...(
 
-  Once upon some other time in iterfacto, there was a bag (made of bag N) ...(
+  Once upon some other time in iterfact, there was a bag (made of bag N) ...(
     There was Facto.
 
     Facto brought a bag: factorial = 1, it = 1.
@@ -14,8 +14,8 @@ Once upon a time in FactorialCity ...(
   )... or that is what they say.
 
 
-  Once upon some other time in recurfacto, there was a bag (made of bag N) ...(
-    And that's where N*recurfacto(with N-1) comes from.
+  Once upon some other time in recurfact, there was a bag (made of bag N) ...(
+    And that's where N*recurfact(with N-1) comes from.
   )... or that is what they say.
 
 
@@ -31,12 +31,12 @@ Once upon a time in FactorialCity ...(
     There was Reporter.
     Infinity dreams of ...(
       Reporter: "Iterative factorial of...". Reporter: N?
-      Reporter: iterfacto(with N).
+      Reporter: iterfact(with N).
     )... when answer < 2.
 
     Infinity dreams of ...(
       Reporter: "Recursive factorial of...". Reporter: N?
-      Reporter: recurfacto(with N).
+      Reporter: recurfact(with N).
     )... when (answer == "r").
 
     Infinity dreams of ...(

@@ -30,7 +30,7 @@ instance SutShow TAC where
     let t'  = fromLeave' tt
         t1' = fromMLeave t1
         t2' = fromMLeave t2
-     in SutLogLeave $ "\t\t" ++ t' ++ "\t" ++ t1' ++ "\t" ++ t2'
+     in SutLogLeave $ "\t\t" ++ t' ++ "\t" ++ t1' ++ "\t  " ++ t2'
     where fromLeave' = fromLeave . showSut
           fromMLeave (Just l) = fromLeave $ showSut l
           fromMLeave Nothing  = "_\t"
