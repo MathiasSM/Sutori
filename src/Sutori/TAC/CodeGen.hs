@@ -4,8 +4,9 @@
 
 module Sutori.TAC.CodeGen where
 
-import Control.Monad (void)
+import Control.Monad (void, foldM_)
 import Control.Monad.State (get, put)
+import Data.Maybe (fromJust)
 
 import Sutori.AST
 import Sutori.Monad
@@ -152,6 +153,8 @@ genCodeInstr _ _ (IterationB _ idx itb) = void $ do
 
 
 -- |Generates code for expressions
+--
+-- Each production returns the address (as temporal register) of the resulting expression
 genCodeExpr :: SutExpression -> SutMonad TACAddress
 
 genCodeExpr (ExprID _ vid s) = return $ TACName (vid, s)
@@ -197,7 +200,7 @@ genCodeExpr (MemberGet t expr mid) = do
 
 genCodeExpr (ExprConstructor (SutChain _ t) (SutArray elems)) = do
   addrs <- mapM genCodeExpr elems
-  arrA <- addTAC $ TAC Copy Nothing Nothing
+  arrA <- addTAC $ TAC Copy Nothing Nothing -- TODO: Where is the array?
   SutState{typesGraph = g} <- get
   let (Just (_,offm)) = lookupType t g -- Copy from the array position, offset by ``offm * index'' units
   mapM_ (addElem offm arrA) (zip [0..] addrs)
@@ -207,4 +210,18 @@ genCodeExpr (ExprConstructor (SutChain _ t) (SutArray elems)) = do
       posA <- addTAC $ TAC Addr (Just arr) (Just $ TACLit $ SutInt (idx * offm))
       addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just valueA)
 
-genCodeExpr (ExprConstructor _ (SutStruct members)) = error ""
+genCodeExpr (ExprConstructor _ (SutStruct members)) = do
+  addrs <- mapM (genCodeExpr . snd) members
+  strA <- addTAC $ TAC Copy Nothing Nothing -- TODO: Where is the struct?
+  SutState{typesGraph = g} <- get
+  addElems strA (zip (map (snd .fromJust . (`lookupTypeID` g) . expressionType . snd) members) addrs)
+  return strA
+  where
+    addElems :: TACAddress -> [(Int, TACAddress)] -> SutMonad ()
+    addElems str = foldM_ (addMember str) 0
+
+    addMember :: TACAddress -> Int -> (Int, TACAddress) -> SutMonad Int
+    addMember strA acc (size, valA) = do
+      posA <- addTAC $ TAC Addr (Just strA) (Just $ TACLit $ SutInt acc)
+      addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just valA)
+      return (acc + size)
