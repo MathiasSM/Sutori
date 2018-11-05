@@ -4,6 +4,7 @@
 
 module Sutori.TAC.CodeGen where
 
+import Control.Monad (void)
 import Control.Monad.State (get, put)
 import Data.Maybe (fromJust)
 
@@ -24,29 +25,12 @@ addTAC tac = do
   return $ TACID i
 
 
-
--- -- Updates an "old" instruction with a new TAC (Backpatching)
--- --
--- -- More commonly used to update Jumps with now-known addresses
--- updateCode :: TACAddress -> TAC -> SutMonad TACAddress
--- updateCode ja@(TACID j) tac = do
---   s@SutState{ tacNext = i, tacTable = t@TACTable{ tacTriplets = tacs } } <- get
---   let idx    = i - j
---       (bnew, _:bold) = splitAt idx tacs -- Hopefuly not too far from the present
---       tacs' = bnew ++ tac:bold
---   put s{tacTable = t{tacTriplets = tacs'}}
---   return ja
-
-
-
 -- Gets the next label
-nextLabel :: SutMonad TACAddress
-nextLabel = get >>= \SutState{ tacNext = i } -> return (TACID i)
-
-
--- Wraps a code-generation monadic action to return the first and next addresses
-genCodeWrap :: SutMonad a -> SutMonad (TACAddress, TACAddress)
-genCodeWrap a = nextLabel >>= \f -> a >> nextLabel >>= \n -> return (f,n)
+newLabel :: SutMonad TAC
+newLabel = do
+  s@SutState{ tacLabel = i } <- get
+  put s{ tacLabel = i + 1 }
+  return $ Label i
 
 
 -- Generates code from the already built 'mainModule' AST
@@ -54,108 +38,102 @@ genCode :: SutMonad TACTable
 genCode = do
   SutState{ mainModule = (SutModule _ m), parserTable = st } <- get
   let fs = map (\(SymFunction fid _ _ a1 a2) -> (fid, (a1, a2))) $ lookupAllFunctions 0 st
-  mapM_ genCodeAST [n | (a,b) <- map snd fs, n <- [a, fromJust b]] -- TODO: This fails badly if some function has no body
-  genCodeAST m
+  mapM_ (genCodeAST (-1) (-1)) [n | (a,b) <- map snd fs, n <- [a, fromJust b]] -- TODO: This fails badly if some function has no body
+  genCodeAST (-1) (-1) m
   SutState{ tacTable = t } <- get
   return t
 
 
 -- Generates code for a block of instructions (AST)
---
--- Returns the first address and next address in a pair
-genCodeAST :: SutAST -> SutMonad (TACAddress, TACAddress)
-genCodeAST ast = genCodeWrap $ mapM_ genCodeInstr ast
+genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
+genCodeAST start' next' = mapM_ (genCodeInstr start' next')
 
 
 -- |Generates code for instructions
---
--- Each production returns the first and next instruction addresses
-genCodeInstr :: SutInstruction -> SutMonad (TACAddress, TACAddress)
+genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
 
 -- Expression Instruction
-genCodeInstr (InstExpression expr) = genCodeWrap $ genCodeExpr expr
+genCodeInstr _ _ (InstExpression expr) = void $ genCodeExpr expr
 
 
 -- Return instructions
-genCodeInstr (ReturnVal expr) = genCodeWrap $ do
+genCodeInstr _ _ (ReturnVal expr) = void $ do
   addr <- genCodeExpr expr
   addTAC $ TAC Return (Just addr) Nothing
 
 
 -- Selection / If-else
-genCodeInstr (Selection sid cond ifb elb) = genCodeWrap $ do
-  coAddr <- genCodeExpr cond
-  jump1 <- addTAC $ TAC JumpUnless (Just coAddr) Nothing
+genCodeInstr cont' break' (Selection sid cond ifb elb) = void $ do
+  ell@(Label ell') <- newLabel
+  nex@(Label nex') <- newLabel
 
-  (ifAddr, _) <- genCodeAST ifb
-  jump2 <- addTAC $ TAC Jump Nothing Nothing
-
-  -- (elAddr, l)  <-
-  genCodeAST elb
-
-  -- TODO: We need to update / backpatch the incomplete jump instructions
-  -- updateCode jump1 (TAC JumpUnless (Just coAddr) (Just elAddr))
-  -- updateCode jump2 (TAC Jump       (Just l) Nothing)
+  condAddr <- genCodeExpr cond
+  addTAC $ TAC JumpUnless (Just condAddr) (Just $ TACLabel ell')
+  genCodeAST cont' break' ifb
+  addTAC $ TAC Jump (Just $ TACLabel nex') Nothing
+  addTAC ell
+  genCodeAST cont' break' elb
+  addTAC nex
 
 
 -- IterationU / While
-genCodeInstr (IterationU _ cond itb) = genCodeWrap $ do
-  coAddr <- genCodeExpr cond
-  jump1 <- addTAC $ TAC JumpUnless (Just coAddr) Nothing
+genCodeInstr _ _ (IterationU _ cond itb) = void $ do
+  start@(Label start') <- newLabel
+  next@(Label next')   <- newLabel
 
-  genCodeAST itb
-  addTAC $ TAC Jump (Just coAddr) Nothing
+  addTAC start
 
-  -- l  <- nextLabel
+  condAddr <- genCodeExpr cond
+  addTAC $ TAC JumpUnless (Just condAddr) (Just $ TACLabel next')
 
-  -- TODO: We need to update / backpatch the incomplete jump instructions
-  -- updateCode jump1 (TAC JumpUnless (Just coAddr) (Just l))
+  genCodeAST start' next' itb
+  addTAC $ TAC Jump (Just $ TACLabel start') Nothing
+
+  addTAC next
 
 
 -- IterationB / For
-genCodeInstr (IterationB _ idx itb) = genCodeWrap $ do
-  idxAddr <- genCodeExpr idx
-  jump1 <- addTAC $ TAC JumpUnless (Just idxAddr) Nothing
+genCodeInstr _ _ (IterationB _ idx itb) = void $ do
+  start@(Label start') <- newLabel
+  next@(Label next')   <- newLabel
 
-  genCodeAST itb
+  idxAddr <- genCodeExpr idx
+
+  addTAC start
+  addTAC $ TAC JumpUnless (Just idxAddr) (Just $ TACLabel next')
+
+  genCodeAST start' next' itb
   mi <- addTAC $ TAC (Basic SutOpSub) (Just idxAddr) (Just $ TACLit $ SutInt 1)
   addTAC $ TAC (Basic SutOpAssign) (Just idxAddr) (Just mi)
-  addTAC $ TAC Jump (Just idxAddr) Nothing
+  addTAC $ TAC Jump (Just $ TACLabel start') Nothing
 
-  -- l  <- nextLabel
-
-  -- TODO: We need to update / backpatch the incomplete jump instructions
-  -- updateCode jump1 (TAC JumpUnless (Just idxAddr) (Just l))
+  addTAC next
 
 
 -- Free Pointer
-genCodeInstr (FreePointer _ expr) = genCodeWrap $ do
+genCodeInstr _ _ (FreePointer _ expr) = void $ do
   exprAddr <- genCodeExpr expr
-  addTAC $ TAC SysCall (Just exprAddr) Nothing -- TODO: Specify FREE instruction
+  addTAC $ TAC (SysCall SysFree) (Just exprAddr) Nothing
 
 
 -- Read IO
-genCodeInstr (ReadVal _ expr) = genCodeWrap $ do
+genCodeInstr _ _ (ReadVal _ expr) = void $ do
   addr <- genCodeExpr expr
-  addTAC $ TAC SysCall (Just addr) Nothing -- TODO: Specify READ instruction
+  addTAC $ TAC (SysCall SysRead) (Just addr) Nothing -- TODO: Specify READ instruction
+
 
 -- Print IO
-genCodeInstr (PrintVal _ expr) = genCodeWrap $ do
+genCodeInstr _ _ (PrintVal _ expr) = void $ do
   addr <- genCodeExpr expr
-  addTAC $ TAC SysCall (Just addr) Nothing -- TODO: Specify PRINT instruction
+  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing -- TODO: Specify PRINT instruction
+
 
 -- Break
-genCodeInstr Break = genCodeWrap $ do
-  addTAC $ TAC Jump Nothing Nothing
-  -- We need to update / backpatch the incomplete jump instructions
-  -- TODO: We cannot do this here, must do it offline
+genCodeInstr _ break' Break = void $ addTAC $ TAC Jump (Just $ TACLabel break') Nothing
+
 
 -- Continue
-genCodeInstr Continue = genCodeWrap $ do
-  addTAC $ TAC Jump Nothing Nothing
-  -- We need to update / backpatch the incomplete jump instructions
-  -- TODO: We cannot do this here, must do it offline
-
+genCodeInstr cont' _ Continue = void $ addTAC $ TAC Jump (Just $ TACLabel cont') Nothing
 
 
 
@@ -180,7 +158,7 @@ genCodeExpr (SutCall _ fid ps) = do
   mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa  -- We stack the parameters
   addTAC $ TAC Call (Just $ TACName (fid, 0)) (Just $ TACLit $ SutInt $ length ps)
 
-genCodeExpr (CreatePointer _ _) = addTAC $ TAC SysCall Nothing Nothing -- TODO: Specify ALLOC instruction
+genCodeExpr (CreatePointer _ _) = addTAC $ TAC (SysCall SysAlloc) Nothing Nothing -- TODO: Specify ALLOC instruction
 
 genCodeExpr (Dereference _ expr) = do
   pt <- genCodeExpr expr

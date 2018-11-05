@@ -10,13 +10,14 @@ import Control.Monad            (when)
 import Control.Monad.State.Lazy (get, put)
 import Data.Maybe               (catMaybes)
 
-import Sutori.AST      (SutID, SutExpression, SutAST, SutModule(SutModule), SutInstruction(..))
+import Sutori.AST      (SutID, SutExpression(ExprID), SutAST, SutModule(SutModule), SutInstruction(..))
 import Sutori.Error    (duplicateSymbolError)
 import Sutori.Monad    (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
 import Sutori.Types    (SutTypeID)
 import Sutori.SymTable
 
 import Sutori.Parser.Symbols
+import Sutori.Parser.Expressions
 
 
 -- |Decides on whether the given 'SutID' was used for a different symbol in the same scope
@@ -33,13 +34,17 @@ whenSymbolIsNew lookupSym sid a = do
 -- |Defines a new variable of given type and optionally assigns it an initial value.
 defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
 defVariable pid tid (vid, mexp) = do
+  s@SutState{ parserTable = table } <- get
+  let currentScope = parserCurrentScope s
   whenSymbolIsNew lookupSymbolsVariable vid $ do
-    s@SutState{ parserTable = table } <- get
     let variable = SymVariable' $ SymVariable vid currentScope tid
-        currentScope = parserCurrentScope s
     put s{parserTable = insertSymbol variable table}
   case mexp of
-    Just expr -> return $ Just (InstExpression expr)
+    Just expr -> do
+      ety <- findExistentType tid
+      let left = ExprID ety vid currentScope
+      res <- assignment left expr
+      return $ Just $ InstExpression res
     Nothing  -> return Nothing
 
 -- |Associates the SutID to the newly constructed type, assuming the name has not been used before

@@ -39,11 +39,11 @@ instance SutShow SutExpression where
                                        array = SutLogNode "Array:" [showSut ae]
                                        index = SutLogNode "Index:" [showSut ie]
                                     in SutLogNode "ArrayIndexation" [etype, array, index]
-  showSut (BinaryOp t op e1 e2)  = let --etype    = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
-                                       operator = showSut op
+  showSut (BinaryOp t op e1 e2)  = let etype    = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        loperand = SutLogNode "Left Operand:" [showSut e1]
                                        roperand = SutLogNode "Right Operand:" [showSut e2]
-                                    in SutLogNode "BinaryOperation" [{-etype,-} operator, loperand, roperand]
+                                       operator = "BinaryOperation (" ++ fromLeave (showSut op) ++ ")"
+                                    in SutLogNode operator [etype, loperand, roperand]
   showSut (SutCall t fid es)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        args  = SutLogNode "Arguments:" (map showSut es)
                                     in SutLogNode ("Function call to `" ++ show fid ++ "` :") [etype, args]

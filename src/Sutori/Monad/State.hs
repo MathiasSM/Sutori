@@ -32,6 +32,7 @@ data SutState = SutState
   , mainModule      :: SutModule     -- ^ The main module (where compilation began)
   , tacTable        :: TACTable      -- ^ The table of generated TAC
   , tacNext         :: Int           -- ^ The next triplet index/The size of the current table
+  , tacLabel        :: Int           -- ^ The next label for TAC generation
   , typesGraph      :: TypeGraph     -- ^ The constructed type graph
   , typesNextID     :: SutTypeID     -- ^ The next type ID to be introduced
   , logVerbose      :: Bool          -- ^ Set the output to verbose of not
@@ -55,6 +56,7 @@ initialSutoriState = SutState
   , mainModule      = undefined
   , tacTable        = TACTable [] []
   , tacNext         = 0
+  , tacLabel        = 0
   , typesGraph      = initialTypeGraph
   , typesNextID     = initialNextTypeID
   , logVerbose      = False
