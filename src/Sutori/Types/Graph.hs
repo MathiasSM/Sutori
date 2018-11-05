@@ -71,7 +71,9 @@ insertType (t, tid) g@TypeGraph{typeToIDMap = l, idToTypeMap = r} =
 memberOffset :: SutType -> String -> Int
 memberOffset (SutMachine members) sid = f sid members
   where
+    f a []           = 0
     f a ((mid,s):ms) = if sid == mid then 0 else s + f a ms
+memberOffset _ _ = 0
 
 -- |Maybe the 'SutTypeID' of the given type
 lookupTypeID :: SutType -> TypeGraph -> Maybe (SutTypeID, Int)

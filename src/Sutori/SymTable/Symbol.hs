@@ -34,7 +34,7 @@ module Sutori.SymTable.Symbol
 , unBoxType
 ) where
 
-import Data.Maybe   (fromJust)
+import Data.Maybe   (fromMaybe)
 
 import Sutori.AST   (SutID, SutAST)
 import Sutori.Types (SutTypeID)
@@ -120,7 +120,7 @@ instance ParametricSymbol SymFunction where
   symParams (SymFunction _ _ ps _ _) = ps
 
 instance ASTSymbol SymFunction where
-  symAST (SymFunction _ _ _ _ ast) = fromJust ast
+  symAST (SymFunction _ _ _ _ ast) = fromMaybe [] ast
   symPreAST (SymFunction _ _ _ ast _) = ast
 
 

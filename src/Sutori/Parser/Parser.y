@@ -332,13 +332,17 @@ TypeExpr          : TYPE_INT                                     {% findTypeID (
                   | TYPE_STRING                                  {% findTypeID (SutPrimitiveType SutPhrase) }
                   | TYPE_POINTER '(' TO TypeExpr ')'             {% findTypeID (SutDirection $4) }
                   | TYPE_ARRAY   '(' OF LITERAL_INT TypeExpr ')' {% findTypeID (SutChain $4 $5) }
-                  | TYPE_STRUCT  '(' WITH TypeMapping_ ')'       {% findTypeID (SutMachine (reverse $4)) }
-                  | TYPE_UNION   '(' EITHER TypeMapping_ ')'     {% findTypeID (SutThing   (reverse $4)) }
+                  | TYPE_STRUCT  '(' WITH StructMapping_ ')'     {% findTypeID (SutMachine (reverse $4)) }
+                  | TYPE_UNION   '(' EITHER UnionMapping_ ')'    {% findTypeID (SutThing   (reverse $4)) }
                   | TypeID                                       { $1 }
 
-TypeMapping_      :: { [(SutID, SutTypeID)] }
-TypeMapping_      : TypeExpr ID                                 { [($2, $1)] }
-                  | TypeMapping_ or TypeExpr ID                 {  ($4, $3) : $1 }
+UnionMapping_     :: { [(SutID, SutTypeID)] }
+UnionMapping_     : TypeExpr ID                                 { [($2, $1)] }
+                  | UnionMapping_ or TypeExpr ID                 {  ($4, $3) : $1 }
+
+StructMapping_    :: { [(SutID, SutTypeID)] }
+StructMapping_    : TypeExpr ID                                 { [($2, $1)] }
+                  | StructMapping_ and TypeExpr ID                 {  ($4, $3) : $1 }
 
 
 

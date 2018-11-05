@@ -291,7 +291,7 @@ memberGet struct mid = case expressionType struct of
           isPresent = isJust member
           tid = if isPresent then snd (fromJust member) else (-1)
       unless isPresent $ undefinedError mid CatMember ("Member '" ++ mid ++ "' not present in structure definition")
-      t <- findExistentType tid
+      t <- if isPresent then findExistentType tid else return primitiveError
       return $ MemberGet t struct mid
 
 

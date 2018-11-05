@@ -13,41 +13,46 @@ Once upon a time in Peroles ...(
   ).
 
 
-  Once upon some other time in swamp (made of your perol a, your perol b) ...(
+  Once upon some other time in swamp, there was a gap (made of your perol a, your perol b) ...(
     There was Shrek. Shrek brought a perol: tempo = a. a = b. b = tempo.
-  )...
+  )... or that is what they say.
 
-  Once upon some other time in Dutchland (made of your chain (of 20 perol) elems, bag N) ...(
+  Once upon some other time in Dutchland, there was a gap (made of your chain (of 20 perol) elems, bag N) ...(
     There was Dijkstra.
     Dijkstra brought a bag: nextBool=0, nextChar=0, nextInt=0, nextFloat=N-1.
 
     Dijkstra keeps dreaming of nextInt <= nextFloat ...(
-      ...(
-        swamp(elems[nextBool], elems[nextInt]).
+      Dijkstra dreams of ...(
+        swamp(with elems[nextBool], elems[nextInt]).
         nextBool = nextBool + 1.
 
-        ...(nextChar = nextChar + 1)... when nextChar < nextBool.
-        ...(nextInt  = nextInt + 1)...  when nextInt < nextBool.
-      )... when elems[i] == 0 ...otherwise...(...(
+        Dijkstra dreams of ...(nextChar = nextChar + 1.)... when nextChar < nextBool.
+        Dijkstra dreams of ...(nextInt  = nextInt + 1.)...  when nextInt < nextBool.
+      )... when elems[i] == 0 otherwise ...(
+        Dijkstra dreams of ...(
 
-        swamp(elems[nextChar], elems[nextInt]).
-        nextChar = nextChar + 1.
-        nextInt = nextInt + 1.
-      )... when elems[i] == 1... otherwise ...(...(
+          swamp(with elems[nextChar], elems[nextInt]).
+          nextChar = nextChar + 1.
+          nextInt = nextInt + 1.
+        )... when elems[i] == 1 otherwise ...(
 
-        nextInt = nextInt + 1.
-      )... when elems[i] == 2...otherwise ...(...(
+          Dijkstra dreams of ...(
+            nextInt = nextInt + 1.
+          )... when elems[i] == 2 otherwise ...(
 
-        swamp(elems[nextInt], elems[nextFloat]).
-        nextFloat = nextFloat - 1.
-      )... when elems[i] == 3...otherwise...(
+            Dijkstra dreams of ...(
+              swamp(with elems[nextInt], elems[nextFloat]).
+              nextFloat = nextFloat - 1.
+            )... when elems[i] == 3 otherwise ...(
 
-        Dijkstra: "Is type this a type?"
-        --|exit 1|--
-      )...)...)...)...
-
-    And that's where elems comes from.
-  )...
+              Dijkstra: "Is this type event a type?".
+              --|exit 1|--
+            )...
+          )...
+        )...
+      )...
+    )...
+  )... or that is what they say.
 
 
   There was Infinity.
@@ -57,23 +62,23 @@ Once upon a time in Peroles ...(
   Infinity brought a chain (of 100 perol): perols.
 
   Infinity keeps dreaming of 42 ...(
-    Infinity: "Do you want to sort some perols?"
-    answer?
+    Infinity: "Do you want to sort some perols?".
+    Infinity: answer?
 
     Infinity dreams of ...(
       There was Reco and Resu.
-      Reco: "How many perols?". N?
+      Reco: "How many perols?". Reco: N?
       Reco: "Gimme perols".
       Reco brought a bag: index = 0.
       ...(
-        perols[index]->type?.
-        ...( perols[index]->bool?  )... when perols[index]->type == 0 ...otherwise...(
-        ...( perols[index]->char?  )... when perols[index]->type == 1 ...otherwise...(
-        ...( perols[index]->int?   )... when perols[index]->type == 2 ...otherwise...(
-        ...( perols[index]->float? )... when perols[index]->type == 3 ...otherwise...(
-          Reco: "Is type this a type? What are you huh?"
+        Reco: perols[index]->type ?
+        Reco dreams of ...( Reco: perols[index]->bool?  )... when perols[index]->type == 0 otherwise ...(
+        Reco dreams of ...( Reco: perols[index]->char?  )... when perols[index]->type == 1 otherwise ...(
+        Reco dreams of ...( Reco: perols[index]->int?   )... when perols[index]->type == 2 otherwise ...(
+        Reco dreams of ...( Reco: perols[index]->float? )... when perols[index]->type == 3 otherwise ...(
+          Reco: "Is type this a type? What are you huh?".
           --|exit 1|--
-        )...)...)...)...
+        )... )... )... )...
         index = index + 1.
       )... Reco told that story N times.
 
@@ -81,8 +86,8 @@ Once upon a time in Peroles ...(
       There was Reporter.
 
       Resu: "Sorting perols... Sorted.".
-      Resu: Dutchland(perols).
-    )... when (answer == "y") or (answer == "yes")
-    ... otherwise ...( --|exit|-- )...
+      Resu: Dutchland(with perols).
+    )... when (answer == "y") or (answer == "yes").
   )...
-)...
+
+)... and they lived happily ever after.

@@ -38,7 +38,7 @@ instance SutShow SutExpression where
   showSut (ArrayGet t ae ie)     = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        array = SutLogNode "Array:" [showSut ae]
                                        index = SutLogNode "Index:" [showSut ie]
-                                    in SutLogNode "ArrayIndexation" [etype, array, index]
+                                    in SutLogNode "Array Position" [etype, array, index]
   showSut (BinaryOp t op e1 e2)  = let etype    = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        loperand = SutLogNode "Left Operand:" [showSut e1]
                                        roperand = SutLogNode "Right Operand:" [showSut e2]
@@ -55,11 +55,11 @@ instance SutShow SutExpression where
                                        in SutLogNode "DataStructure" [etype, constr]
   showSut (ExprID t vid s)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        scope = SutLogLeave $ "Scope: " ++ show s
-                                       in SutLogNode ("ID Expression : " ++ show vid) [etype, scope]
+                                       in SutLogNode ("Variable: " ++ show vid) [etype, scope]
   showSut (ExprLiteral t l)      = showSut l
   showSut (MemberGet t se sid)   = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        struct = SutLogNode "Struct:" [showSut se]
-                                    in SutLogNode ("Acces to member: " ++ show sid) [etype, struct]
+                                    in SutLogNode ("Member: " ++ show sid) [etype, struct]
   showSut (UnaryOp t op e)       = let etype = SutLogLeave $ "Type: " ++ fromLeave (showSut t)
                                        operator = showSut op
                                        expr = SutLogNode "Operand: " [showSut e]

@@ -63,7 +63,7 @@ tokens :-
 <0>                "made of"                 { tokenize S_madeof               }
 <0>                "there was a"             { tokenize S_therewasa            }
 <0>                "told that story"         { tokenize S_toldthatstory        }
-<0>                "invented"                { tokenize S_invented             }
+<0>                "invented the"            { tokenize S_invented             }
 <0>                "it's a"                  { tokenize S_itsa                 }
 <0>                "and nothing else"        { tokenize S_andnothingelse       }
 <0>                "we will skip this"       { tokenize S_wewillskipthis       }
