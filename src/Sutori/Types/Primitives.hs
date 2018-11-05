@@ -6,6 +6,7 @@ module Sutori.Types.Primitives
 ( SutPrimitive(..)
 , SutTypeID
 , primitives
+, primitiveSize
 , primitiveID
 , primitiveIDs
 , generalizePrimitives
@@ -46,6 +47,17 @@ primitives =
   , SutWallet
   , SutPhrase ]
 
+-- |Defines sizes for each primitive ("in bytes"-ish)
+primitiveSize :: SutPrimitive -> Int
+primitiveSize SutTypeError = 0
+primitiveSize SutTypeVoid  = 0
+primitiveSize SutLight     = 1
+primitiveSize SutLetter    = 1
+primitiveSize SutBag       = 4
+primitiveSize SutWallet    = 8
+primitiveSize SutPhrase    = 4
+
+
 -- |Zipped primitives with their IDs
 primitiveIDs :: [(SutPrimitive, SutTypeID)]
 primitiveIDs = zip primitives [0..]
@@ -55,6 +67,7 @@ primitiveID :: SutPrimitive -> SutTypeID
 primitiveID p = fromJust $ lookup p primitiveIDs
 
 -- |Graph for primitives generalization
+primitiveEdges :: [(SutPrimitive, SutTypeID, [SutTypeID])]
 primitiveEdges =
   [ (SutTypeError, primitiveID SutTypeError, []                 )
   , (SutTypeVoid,  primitiveID SutTypeVoid,  [primitiveID SutLight]  )
@@ -65,6 +78,8 @@ primitiveEdges =
   , (SutPhrase,    primitiveID SutPhrase,    []                 )
   ]
 
+
+primitiveG :: Graph
 (primitiveG, _, _) = graphFromEdges primitiveEdges
 
 

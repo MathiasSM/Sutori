@@ -20,16 +20,16 @@ import Sutori.SymTable
 
 -- |Finds an existent 'SutType' from its 'SutTypeID'
 findExistentType :: SutTypeID -> SutMonad SutType
-findExistentType tid = get >>= \SutState{typesGraph = tg} -> return $ fromJust (lookupType tid tg)
+findExistentType tid = get >>= \SutState{typesGraph = tg} -> return $ fst $ fromJust (lookupType tid tg)
 
 -- |Finds the existent typeID or inserts the type and gets the new ID
 findTypeID :: SutType -> SutMonad SutTypeID
 findTypeID t = do
   oldState@SutState { typesGraph = graph, typesNextID = nextID } <- get
   case lookupTypeID t graph of
-    Just tid -> return tid
-    Nothing -> let newGraph = insertType (t, nextID) graph
-                in put oldState { typesGraph = newGraph, typesNextID = nextID + 1 } >> return nextID
+    Just (tid, _) -> return tid
+    Nothing       -> let newGraph = insertType (t, nextID) graph
+                      in put oldState { typesGraph = newGraph, typesNextID = nextID + 1 } >> return nextID
 
 -- |Finds the 'SutTypeID' from a 'SutID'
 findType :: SutID -> SutMonad SutTypeID

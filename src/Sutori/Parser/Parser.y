@@ -334,7 +334,7 @@ TypeExpr          : TYPE_INT                                     {% findTypeID (
                   | TYPE_ARRAY   '(' OF LITERAL_INT TypeExpr ')' {% findTypeID (SutChain $4 $5) }
                   | TYPE_STRUCT  '(' WITH TypeMapping_ ')'       {% findTypeID (SutMachine (reverse $4)) }
                   | TYPE_UNION   '(' EITHER TypeMapping_ ')'     {% findTypeID (SutThing   (reverse $4)) }
-                  | TypeID                                       {% return $1 }
+                  | TypeID                                       { $1 }
 
 TypeMapping_      :: { [(SutID, SutTypeID)] }
 TypeMapping_      : TypeExpr ID                                 { [($2, $1)] }

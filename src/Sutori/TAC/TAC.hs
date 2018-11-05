@@ -38,9 +38,9 @@ data TAC
 data TACType
   = Basic { tacOp :: SutOperator } -- ^For simple expressions.
   | Copy                           -- ^Copy operation, from a address to another
+  | Addr                           -- ^Address for an indirection
   | Jump                           -- ^Unconditional jump, just where to.
   | JumpUnless                     -- ^Condition jump
-  | Array                          -- ^Assign a address to an indexed value.
   | Pointed                        -- ^Assign a address from a indirect pointer.
   | Param                          -- ^Stack a function parameter
   | Call                           -- ^Call a function of so many (already stacked) parameters

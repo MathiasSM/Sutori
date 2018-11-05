@@ -10,6 +10,7 @@ import Control.Monad.State (get, put)
 import Sutori.AST
 import Sutori.Monad
 import Sutori.SymTable
+import Sutori.Types
 
 import Sutori.TAC.TAC
 
@@ -175,22 +176,30 @@ genCodeExpr (Dereference _ expr) = do
   pt <- genCodeExpr expr
   addTAC $ TAC Pointed (Just pt) Nothing
 
-genCodeExpr (ArrayGet _ expr idx) = do
+genCodeExpr (ArrayGet t expr idx) = do
   arr <- genCodeExpr expr
   ida <- genCodeExpr idx
-  posA <- addTAC $ TAC Array (Just arr) (Just ida)
-  addTAC $ TAC Copy (Just posA) Nothing
+  SutState{typesGraph = g} <- get
+  let (Just (_,offm)) = lookupTypeID t g -- Copy from the array position, offset by ``offm * index'' units
+  i <- addTAC $ TAC (Basic SutOpMul) (Just ida) (Just $ TACLit $ SutInt offm)
+  valA <- addTAC $ TAC Copy (Just arr) (Just i)
+  addTAC $ TAC Copy (Just valA) Nothing
 
-genCodeExpr (MemberGet _ expr mid) = error ""
+genCodeExpr (MemberGet t expr mid) = do
+  str <- genCodeExpr expr
+  let off = memberOffset t mid -- Copy from the struct position, offset by ``off'' units
+  addTAC $ TAC Copy (Just str) (Just $ TACLit $ SutInt off)
 
-genCodeExpr (ExprConstructor _ (SutArray elems)) = do
+genCodeExpr (ExprConstructor (SutChain _ t) (SutArray elems)) = do
   addrs <- mapM genCodeExpr elems
   arrA <- addTAC $ TAC Copy Nothing Nothing
-  mapM_ (addElem arrA) (zip [0..] addrs)
+  SutState{typesGraph = g} <- get
+  let (Just (_,offm)) = lookupType t g -- Copy from the array position, offset by ``offm * index'' units
+  mapM_ (addElem offm arrA) (zip [0..] addrs)
   return arrA
   where
-    addElem arr (idx, valueA) = do
-      posA <- addTAC $ TAC Array (Just arr) (Just $ TACLit $ SutInt idx)
+    addElem offm arr (idx, valueA) = do
+      posA <- addTAC $ TAC Addr (Just arr) (Just $ TACLit $ SutInt (idx * offm))
       addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just valueA)
 
 genCodeExpr (ExprConstructor _ (SutStruct members)) = error ""

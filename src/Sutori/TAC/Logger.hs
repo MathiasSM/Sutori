@@ -42,7 +42,7 @@ instance SutShow TACType where
   showSut Copy        = SutLogLeave "Copy       "
   showSut Jump        = SutLogLeave "Jump       "
   showSut JumpUnless  = SutLogLeave "JumpUnless "
-  showSut Array       = SutLogLeave "Array      "
+  showSut Addr        = SutLogLeave "Address    "
   showSut Pointed     = SutLogLeave "Pointed    "
   showSut Param       = SutLogLeave "Param      "
   showSut Call        = SutLogLeave "Call       "

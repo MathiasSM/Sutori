@@ -10,8 +10,6 @@ module Sutori.Types.Constructors
 , primitiveError
 ) where
 
-import Data.List(intercalate)
-
 import Sutori.Utils            (SutID)
 
 import Sutori.Types.Primitives (SutPrimitive(SutTypeError), SutTypeID, generalizePrimitives)

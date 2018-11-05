@@ -28,9 +28,10 @@ module Sutori.Types
 , toTypePhrase
 , toTypeSortable
 , toTypeEq
+, memberOffset
 ) where
 
 import Sutori.Types.Primitives
 import Sutori.Types.Constructors
 import Sutori.Types.Graph
-import Sutori.Types.Logger
+import Sutori.Types.Logger ()
