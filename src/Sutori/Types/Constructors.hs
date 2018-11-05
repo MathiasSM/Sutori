@@ -29,9 +29,11 @@ primitiveType _                    = SutTypeError
 
 -- |Generalize two types to their LCA, if any
 generalizeTypes :: SutType -> SutType -> SutType
-generalizeTypes t1 t2 = let p1 = primitiveType t1
-                            p2 = primitiveType t2
-                         in SutPrimitiveType $ generalizePrimitives p1 p2
+generalizeTypes t1 t2 = if t1 == t2
+                           then t1
+                           else let p1 = primitiveType t1
+                                    p2 = primitiveType t2
+                                 in SutPrimitiveType $ generalizePrimitives p1 p2
 
 -- |Constant primitive error type
 primitiveError :: SutType
