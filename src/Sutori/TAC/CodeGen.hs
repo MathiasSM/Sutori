@@ -78,8 +78,10 @@ genCodeInstr _ _ (ReturnVal expr) = void $ do
 
 -- Free Pointer
 genCodeInstr _ _ (FreePointer _ expr) = void $ do
+  SutState{typesGraph = g} <- get
+  let (Just (_,size)) = lookupTypeID (expressionType expr) g
   exprAddr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysFree) (Just exprAddr) Nothing -- TODO: Specify FREE size?
+  addTAC $ TAC (SysCall SysFree) (Just exprAddr) (Just $ TACLit $ SutInt size)
 
 -- Read IO
 genCodeInstr _ _ (ReadVal _ expr) = void $ do
@@ -170,7 +172,10 @@ genCodeExpr (SutCall _ fid ps) = do
   mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa  -- We stack the parameters
   addTAC $ TAC Call (Just $ TACName (fid, 0)) (Just $ TACLit $ SutInt $ length ps)
 
-genCodeExpr (CreatePointer _ _) = addTAC $ TAC (SysCall SysAlloc) Nothing Nothing -- TODO: Specify ALLOC size
+genCodeExpr (CreatePointer t _) = do
+  SutState{typesGraph = g} <- get
+  let (Just (_,size)) = lookupTypeID t g
+  addTAC $ TAC (SysCall SysAlloc) (Just $ TACLit $ SutInt size) Nothing
 
 genCodeExpr (Dereference _ expr) = do
   pt <- genCodeExpr expr
