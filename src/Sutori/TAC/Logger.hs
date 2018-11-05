@@ -34,7 +34,8 @@ instance SutShow TAC where
     where fromLeave' = fromLeave . showSut
           fromMLeave (Just l) = fromLeave $ showSut l
           fromMLeave Nothing  = "_\t"
-  showSut (Label l) = SutLogLeave $ "LABEL_" ++ show l ++ ":"
+  showSut (Label l)    = SutLogLeave $ "LABEL_" ++ show l ++ ":"
+  showSut (FunLabel l) = SutLogLeave $ "FUN_" ++ l ++ ":"
 
 instance SutShow TACType where
   showSut (Basic op)  = SutLogLeave $ "Basic (" ++ fromLeave (showSut op) ++ ")"

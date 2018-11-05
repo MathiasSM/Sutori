@@ -18,10 +18,10 @@ data TACTable = TACTable
 
 -- |TACAddress for TAC Instructions
 data TACAddress
-  = TACName (SutID, Int)  -- ^An actual ID from the source code. Identified using 'SutID' and 'Scope'.
+  = TACName (SutID, Int)  -- ^An actual ID from the source code. Identified using 'SutID' and 'Scope'. Used for variables
   | TACLit SutLiteral     -- ^A literal either explicit in the source code or calculated on the run.
-  | TACID Int             -- ^The TAC number that calculated the relevant expression
-  | TACLabel Int          -- ^The label to some code
+  | TACID Int             -- ^The TAC number that calculated the relevant expression.
+  | TACLabel Int          -- ^An inc label to some code.
 
 -- |TAC Instruction
 data TAC
@@ -29,8 +29,10 @@ data TAC
   = TAC { tacType :: TACType               -- ^Operation to perform
         , tac1    :: Maybe TACAddress      -- ^First address. Usually first operand.
         , tac2    :: Maybe TACAddress }    -- ^Second address. Usually second operand.
-  -- |A label to output literally
-  | Label Int
+  -- |A numbered label to output literally
+  | Label    Int
+  -- |A string label to output literally
+  | FunLabel SutID
 
 -- |A TAC Instruction to be appended to the generated intermediate code
 data TACType

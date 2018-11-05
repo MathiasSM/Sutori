@@ -15,14 +15,20 @@ import Sutori.SymTable
 import Sutori.TAC.TAC
 
 
+
 -- |Appends to the TAC table a new triplet, references it on the instructions TAC table
 --
 -- Returns the Address of the inserted TAC
 addTAC :: TAC -> SutMonad TACAddress
 addTAC tac = do
-  s@SutState{ tacNext = i, tacTable = TACTable{ tacInstructions = is, tacTriplets = tacs } } <- get
-  put s{ tacNext = i + 1, tacTable = TACTable{tacInstructions = i:is, tacTriplets = tac:tacs} }
+  s@SutState{ tacNext = i
+            , tacTable = TACTable{ tacInstructions = is
+                                 , tacTriplets     = tacs } } <- get
+  put s{ tacNext = i + 1
+       , tacTable = TACTable{ tacInstructions = i:is
+                            , tacTriplets     = tac:tacs } }
   return $ TACID i
+
 
 
 -- Gets the next label
@@ -33,20 +39,30 @@ newLabel = do
   return $ Label i
 
 
+
 -- Generates code from the already built 'mainModule' AST
 genCode :: SutMonad TACTable
 genCode = do
   SutState{ mainModule = (SutModule _ m), parserTable = st } <- get
   genCodeAST (-1) (-1) m
-  let fs = map (\(SymFunction fid _ _ a1 a2) -> (fid, (a1, a2))) $ lookupAllFunctions 0 st
-  mapM_ (genCodeAST (-1) (-1)) [n | (a,b) <- map snd fs, n <- [a, fromJust b]] -- TODO: This fails badly if some function has no body
+  mapM_ genFunCode $ lookupAllFunctions 0 st
   SutState{ tacTable = t } <- get
   return t
+  where
+    genFunCode :: SymFunction -> SutMonad ()
+    genFunCode (SymFunction fid _ _ a1 (Just a2)) = void $ do -- TODO: This fails badly if some function has no body
+      newLabel
+      addTAC $ FunLabel fid
+      genCodeAST (-1) (-1) a1
+      genCodeAST (-1) (-1) a2
+      addTAC $ TAC Return Nothing Nothing
+
 
 
 -- Generates code for a block of instructions (AST)
 genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
 genCodeAST start' next' = mapM_ (genCodeInstr start' next')
+
 
 
 -- |Generates code for instructions
@@ -119,13 +135,13 @@ genCodeInstr _ _ (FreePointer _ expr) = void $ do
 -- Read IO
 genCodeInstr _ _ (ReadVal _ expr) = void $ do
   addr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysRead) (Just addr) Nothing -- TODO: Specify READ instruction
+  addTAC $ TAC (SysCall SysRead) (Just addr) Nothing
 
 
 -- Print IO
 genCodeInstr _ _ (PrintVal _ expr) = void $ do
   addr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing -- TODO: Specify PRINT instruction
+  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing
 
 
 -- Break
@@ -158,7 +174,7 @@ genCodeExpr (SutCall _ fid ps) = do
   mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa  -- We stack the parameters
   addTAC $ TAC Call (Just $ TACName (fid, 0)) (Just $ TACLit $ SutInt $ length ps)
 
-genCodeExpr (CreatePointer _ _) = addTAC $ TAC (SysCall SysAlloc) Nothing Nothing -- TODO: Specify ALLOC instruction
+genCodeExpr (CreatePointer _ _) = addTAC $ TAC (SysCall SysAlloc) Nothing Nothing -- TODO: Specify ALLOC size
 
 genCodeExpr (Dereference _ expr) = do
   pt <- genCodeExpr expr
