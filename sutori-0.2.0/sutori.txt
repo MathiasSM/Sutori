@@ -232,13 +232,13 @@ module Sutori.Options.Options
 
 -- | Options for command-line parsing
 data Options
-Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Options
+Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Bool -> Options
 
 -- | Verbose switch
 [optVerbose] :: Options -> Bool
 
 -- | Debugging switch
-[optDebugging] :: Options -> Bool
+[optDebug] :: Options -> Bool
 
 -- | Output file
 [optOutput] :: Options -> Maybe FilePath
@@ -253,7 +253,13 @@ Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Opt
 [optStopOnLexer] :: Options -> Bool
 
 -- | Mode: Run only frontend
-[optStopOnParser] :: Options -> Bool
+[optStopOnAST] :: Options -> Bool
+
+-- | Mode: Run only until intermediate code generation
+[optStopOnTAC] :: Options -> Bool
+
+-- | The default options for a Sutori run
+defaultOptions :: Options
 
 -- | Parse command-line flags
 handleFlags :: [String] -> IO (Options, [String])
@@ -270,13 +276,13 @@ module Sutori.Options
 
 -- | Options for command-line parsing
 data Options
-Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Options
+Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Bool -> Options
 
 -- | Verbose switch
 [optVerbose] :: Options -> Bool
 
 -- | Debugging switch
-[optDebugging] :: Options -> Bool
+[optDebug] :: Options -> Bool
 
 -- | Output file
 [optOutput] :: Options -> Maybe FilePath
@@ -291,13 +297,19 @@ Options :: Bool -> Bool -> Maybe FilePath -> Bool -> Bool -> Bool -> Bool -> Opt
 [optStopOnLexer] :: Options -> Bool
 
 -- | Mode: Run only frontend
-[optStopOnParser] :: Options -> Bool
+[optStopOnAST] :: Options -> Bool
+
+-- | Mode: Run only until intermediate code generation
+[optStopOnTAC] :: Options -> Bool
 
 -- | Complete usage information
 usage :: String
 
 -- | Parse command-line flags
 handleFlags :: [String] -> IO (Options, [String])
+
+-- | The default options for a Sutori run
+defaultOptions :: Options
 
 
 module Sutori.Types.Primitives
@@ -331,6 +343,9 @@ type SutTypeID = Int
 
 -- | Predefined Sutori types to initialize symtable
 primitives :: [SutPrimitive]
+
+-- | Defines sizes for each primitive ("in bytes"-ish)
+primitiveSize :: SutPrimitive -> Int
 
 -- | Eventual TypeIDs for the type graph
 primitiveID :: SutPrimitive -> SutTypeID
@@ -451,7 +466,7 @@ module Sutori.Types.Graph
 -- | The type graph must be a biderectional map (as there's a bijection
 --   between type and its ID)
 data TypeGraph
-TypeGraph :: Map SutType SutTypeID -> Map SutTypeID SutType -> TypeGraph
+TypeGraph :: Map SutType (SutTypeID, Int) -> Map SutTypeID (SutType, Int) -> TypeGraph
 
 -- | The initial value for the graph. That is, the primitives added
 initialTypeGraph :: TypeGraph
@@ -463,13 +478,16 @@ initialNextTypeID :: Int
 insertType :: (SutType, SutTypeID) -> TypeGraph -> TypeGraph
 
 -- | Maybe the <a>SutTypeID</a> of the given type
-lookupTypeID :: SutType -> TypeGraph -> Maybe SutTypeID
+lookupTypeID :: SutType -> TypeGraph -> Maybe (SutTypeID, Int)
 
 -- | Maybe the type of the given <a>SutTypeID</a>
-lookupType :: SutTypeID -> TypeGraph -> Maybe SutType
+lookupType :: SutTypeID -> TypeGraph -> Maybe (SutType, Int)
 
 -- | The graph as a list sorted by ID (first appearance?)
-orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
+orderedGraph :: TypeGraph -> [(SutTypeID, (SutType, Int))]
+
+-- | Lookup and check a member's offset
+memberOffset :: SutType -> String -> Int
 
 
 module Sutori.Types.Logger
@@ -514,7 +532,7 @@ primitiveError :: SutType
 -- | The type graph must be a biderectional map (as there's a bijection
 --   between type and its ID)
 data TypeGraph
-TypeGraph :: Map SutType SutTypeID -> Map SutTypeID SutType -> TypeGraph
+TypeGraph :: Map SutType (SutTypeID, Int) -> Map SutTypeID (SutType, Int) -> TypeGraph
 
 -- | The initial value for the graph. That is, the primitives added
 initialTypeGraph :: TypeGraph
@@ -526,13 +544,13 @@ initialNextTypeID :: Int
 insertType :: (SutType, SutTypeID) -> TypeGraph -> TypeGraph
 
 -- | Maybe the <a>SutTypeID</a> of the given type
-lookupTypeID :: SutType -> TypeGraph -> Maybe SutTypeID
+lookupTypeID :: SutType -> TypeGraph -> Maybe (SutTypeID, Int)
 
 -- | Maybe the type of the given <a>SutTypeID</a>
-lookupType :: SutTypeID -> TypeGraph -> Maybe SutType
+lookupType :: SutTypeID -> TypeGraph -> Maybe (SutType, Int)
 
 -- | The graph as a list sorted by ID (first appearance?)
-orderedGraph :: TypeGraph -> [(SutTypeID, SutType)]
+orderedGraph :: TypeGraph -> [(SutTypeID, (SutType, Int))]
 
 -- | Sutori primitives
 data SutPrimitive
@@ -592,13 +610,16 @@ toTypeSortable :: SutPrimitive -> SutPrimitive
 -- | Convert primitive to a equalable type or error
 toTypeEq :: SutPrimitive -> SutPrimitive
 
+-- | Lookup and check a member's offset
+memberOffset :: SutType -> String -> Int
+
 
 module Sutori.AST.Nodes
 
 -- | Global type for Sutori IDs
 type SutID = String
 
--- | A <tt>SutBlock</tt> is a list of instructions
+-- | A <a>SutAST</a> is a list of instructions
 type SutAST = [SutInstruction]
 
 -- | A Sutori Module has a name and a SutAST
@@ -663,7 +684,7 @@ CreatePointer :: SutType -> SutID -> SutExpression
 ExprConstructor :: SutType -> SutConstructor -> SutExpression
 
 -- | An ID as an expression
-ExprID :: SutType -> SutID -> SutExpression
+ExprID :: SutType -> SutID -> Scope -> SutExpression
 
 -- | A literal
 ExprLiteral :: SutType -> SutLiteral -> SutExpression
@@ -810,7 +831,7 @@ module Sutori.AST
 -- | Global type for Sutori IDs
 type SutID = String
 
--- | A <tt>SutBlock</tt> is a list of instructions
+-- | A <a>SutAST</a> is a list of instructions
 type SutAST = [SutInstruction]
 
 -- | A Sutori Module has a name and a SutAST
@@ -875,7 +896,7 @@ CreatePointer :: SutType -> SutID -> SutExpression
 ExprConstructor :: SutType -> SutConstructor -> SutExpression
 
 -- | An ID as an expression
-ExprID :: SutType -> SutID -> SutExpression
+ExprID :: SutType -> SutID -> Scope -> SutExpression
 
 -- | A literal
 ExprLiteral :: SutType -> SutLiteral -> SutExpression
@@ -991,6 +1012,109 @@ withPrimitiveType :: SutPrimitive -> SutExpression -> SutExpression
 
 -- | Clones the expression but sets the type as a TypeError
 asTypeError :: SutExpression -> SutExpression
+
+
+module Sutori.TAC.TAC
+data TACTable
+
+-- | Table of triplets
+TACTable :: [Int] -> [TAC] -> TACTable
+
+-- | Table of pointers to triplets
+[tacInstructions] :: TACTable -> [Int]
+[tacTriplets] :: TACTable -> [TAC]
+
+-- | TACAddress for TAC Instructions
+data TACAddress
+
+-- | An actual ID from the source code. Identified using <a>SutID</a> and
+--   <tt>Scope</tt>. Used for variables
+TACName :: (SutID, Int) -> TACAddress
+
+-- | A literal either explicit in the source code or calculated on the run.
+TACLit :: SutLiteral -> TACAddress
+
+-- | The TAC number that calculated the relevant expression.
+TACID :: Int -> TACAddress
+
+-- | An inc label to some code.
+TACLabel :: Int -> TACAddress
+
+-- | A TAC Instruction to be appended to the generated intermediate code
+data TACType
+
+-- | For simple expressions.
+Basic :: SutOperator -> TACType
+[tacOp] :: TACType -> SutOperator
+
+-- | Copy operation, from a address to another
+Copy :: TACType
+
+-- | Address for an indirection
+Addr :: TACType
+
+-- | Unconditional jump, just where to.
+Jump :: TACType
+
+-- | Condition jump
+JumpUnless :: TACType
+
+-- | Assign a address from a indirect pointer.
+Pointed :: TACType
+
+-- | Stack a function parameter
+Param :: TACType
+
+-- | Call a function of so many (already stacked) parameters
+Call :: TACType
+
+-- | Return from a function (possibly a value).
+Return :: TACType
+
+-- | Perform a syscall (IO, Mem, else)
+SysCall :: SutSys -> TACType
+[tacSys] :: TACType -> SutSys
+
+-- | TAC Instruction
+data TAC
+
+-- | Second address. Usually second operand. |A numbered label to output
+--   literally
+TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
+
+-- | Operation to perform
+[tacType] :: TAC -> TACType
+
+-- | First address. Usually first operand.
+[tac1] :: TAC -> Maybe TACAddress
+[tac2] :: TAC -> Maybe TACAddress
+Label :: Int -> TAC
+
+-- | A string label to output literally
+FunLabel :: SutID -> TAC
+
+-- | Represents a kind of possible system call
+data SutSys
+
+-- | IO Read operation
+SysRead :: SutSys
+
+-- | IO Print operation
+SysPrint :: SutSys
+
+-- | Memory allocation operation
+SysAlloc :: SutSys
+
+-- | Memory freeing operation
+SysFree :: SutSys
+
+
+module Sutori.TAC.Logger
+instance Sutori.Logger.Log.SutShow Sutori.TAC.TAC.TACTable
+instance Sutori.Logger.Log.SutShow Sutori.TAC.TAC.TACAddress
+instance Sutori.Logger.Log.SutShow Sutori.TAC.TAC.TAC
+instance Sutori.Logger.Log.SutShow Sutori.TAC.TAC.TACType
+instance Sutori.Logger.Log.SutShow Sutori.TAC.TAC.SutSys
 
 
 module Sutori.SymTable.Symbol
@@ -1294,7 +1418,7 @@ module Sutori.Monad.State
 data SutState
 
 -- | Current error code, if any
-SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
 
 -- | Position at current input location
 [lexerPosn] :: SutState -> SutPosn
@@ -1334,6 +1458,15 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 
 -- | The main module (where compilation began)
 [mainModule] :: SutState -> SutModule
+
+-- | The table of generated TAC
+[tacTable] :: SutState -> TACTable
+
+-- | The next triplet index/The size of the current table
+[tacNext] :: SutState -> Int
+
+-- | The next label for TAC generation
+[tacLabel] :: SutState -> Int
 
 -- | The constructed type graph
 [typesGraph] :: SutState -> TypeGraph
@@ -1355,10 +1488,10 @@ parserCurrentScope :: SutState -> Scope
 module Sutori.Monad.Monad
 
 -- | The Sutori monad. Composes state, logging and exception handling
-type SutMonad a = StateT SutState (WriterT SutLogger (Except (SutError, SutLog))) a
+type SutMonad a = ReaderT Options (StateT SutState (WriterT SutLogger (Except (SutError, SutLog)))) a
 
 -- | Run the monad with a given action
-runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
+runSutMonad :: SutMonad a -> Options -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
 
 
 module Sutori.Monad.Actions
@@ -1367,7 +1500,7 @@ module Sutori.Monad.Actions
 whenVerbose :: SutMonad () -> SutMonad ()
 
 -- | Run the monad with a given action
-runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
+runSutMonad :: SutMonad a -> Options -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
 
 -- | Inserts a new scope into the parse
 insertScope :: SutMonad ()
@@ -1385,13 +1518,13 @@ setErrorCode :: SutError -> SutMonad ()
 module Sutori.Monad
 
 -- | The Sutori monad. Composes state, logging and exception handling
-type SutMonad a = StateT SutState (WriterT SutLogger (Except (SutError, SutLog))) a
+type SutMonad a = ReaderT Options (StateT SutState (WriterT SutLogger (Except (SutError, SutLog)))) a
 
 -- | Monadic Lexer/Parser current state.
 data SutState
 
 -- | Current error code, if any
-SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
 
 -- | Position at current input location
 [lexerPosn] :: SutState -> SutPosn
@@ -1432,6 +1565,15 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 -- | The main module (where compilation began)
 [mainModule] :: SutState -> SutModule
 
+-- | The table of generated TAC
+[tacTable] :: SutState -> TACTable
+
+-- | The next triplet index/The size of the current table
+[tacNext] :: SutState -> Int
+
+-- | The next label for TAC generation
+[tacLabel] :: SutState -> Int
+
 -- | The constructed type graph
 [typesGraph] :: SutState -> TypeGraph
 
@@ -1443,7 +1585,7 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 [errorCode] :: SutState -> SutError
 
 -- | Run the monad with a given action
-runSutMonad :: SutMonad a -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
+runSutMonad :: SutMonad a -> Options -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
 
 -- | Get the current open scope
 parserCurrentScope :: SutState -> Scope
@@ -1462,6 +1604,114 @@ removeScope :: SutMonad ()
 
 -- | Run a monadic action only if verbose if turned on
 whenVerbose :: SutMonad () -> SutMonad ()
+
+
+module Sutori.TAC.CodeGen
+
+-- | Appends to the TAC table a new triplet, references it on the
+--   instructions TAC table
+--   
+--   Returns the Address of the inserted TAC
+addTAC :: TAC -> SutMonad TACAddress
+newLabel :: SutMonad TAC
+genCode :: SutMonad TACTable
+genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
+
+-- | Generates code for instructions
+genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
+
+-- | Generates code for expressions
+--   
+--   Each production returns the address (as temporal register) of the
+--   resulting expression
+genCodeExpr :: SutExpression -> SutMonad TACAddress
+
+
+module Sutori.TAC
+data TACTable
+
+-- | Table of triplets
+TACTable :: [Int] -> [TAC] -> TACTable
+
+-- | Table of pointers to triplets
+[tacInstructions] :: TACTable -> [Int]
+[tacTriplets] :: TACTable -> [TAC]
+
+-- | TACAddress for TAC Instructions
+data TACAddress
+
+-- | An actual ID from the source code. Identified using <a>SutID</a> and
+--   <tt>Scope</tt>. Used for variables
+TACName :: (SutID, Int) -> TACAddress
+
+-- | A literal either explicit in the source code or calculated on the run.
+TACLit :: SutLiteral -> TACAddress
+
+-- | The TAC number that calculated the relevant expression.
+TACID :: Int -> TACAddress
+
+-- | An inc label to some code.
+TACLabel :: Int -> TACAddress
+
+-- | A TAC Instruction to be appended to the generated intermediate code
+data TACType
+
+-- | For simple expressions.
+Basic :: SutOperator -> TACType
+[tacOp] :: TACType -> SutOperator
+
+-- | Copy operation, from a address to another
+Copy :: TACType
+
+-- | Address for an indirection
+Addr :: TACType
+
+-- | Unconditional jump, just where to.
+Jump :: TACType
+
+-- | Condition jump
+JumpUnless :: TACType
+
+-- | Assign a address from a indirect pointer.
+Pointed :: TACType
+
+-- | Stack a function parameter
+Param :: TACType
+
+-- | Call a function of so many (already stacked) parameters
+Call :: TACType
+
+-- | Return from a function (possibly a value).
+Return :: TACType
+
+-- | Perform a syscall (IO, Mem, else)
+SysCall :: SutSys -> TACType
+[tacSys] :: TACType -> SutSys
+
+-- | TAC Instruction
+data TAC
+
+-- | Second address. Usually second operand. |A numbered label to output
+--   literally
+TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
+
+-- | Operation to perform
+[tacType] :: TAC -> TACType
+
+-- | First address. Usually first operand.
+[tac1] :: TAC -> Maybe TACAddress
+[tac2] :: TAC -> Maybe TACAddress
+Label :: Int -> TAC
+
+-- | A string label to output literally
+FunLabel :: SutID -> TAC
+
+-- | Appends to the TAC table a new triplet, references it on the
+--   instructions TAC table
+--   
+--   Returns the Address of the inserted TAC
+addTAC :: TAC -> SutMonad TACAddress
+genCode :: SutMonad TACTable
 
 
 module Sutori.Lexer.Internals
@@ -1615,136 +1865,6 @@ lookupInScope :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad 
 inScope :: SutSymbol a => [a] -> SutMonad [a]
 
 
-module Sutori.Lexer.Lexer
-
--- | Scans for next token, but passes it though checks first
-lexerScanClean :: SutMonad SutToken
-
--- | Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
-
--- | Run the lexer with no options (default options)
-runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
-
--- | Run the lexer on a given string, get the results
-runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
-
--- | Run the lexer, but receive a continuation (Used by Happy)
-lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
-
-
-module Sutori.Lexer
-
--- | Scans for next token, but passes it though checks first
-lexerScanClean :: SutMonad SutToken
-
--- | Run the lexer on a given input string, with a given function
-runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
-
--- | Run the lexer with no options (default options)
-runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
-
--- | Run the lexer on a given string, get the results
-runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
-
--- | Run the lexer, but receive a continuation (Used by Happy)
-lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
-
--- | Sutori token classes. Their RegEx' are defined in Alex file
-data SutToken
-SutTkEOF :: SutToken
-BLOCK_OPEN :: SutToken
-BLOCK_CLOSE :: SutToken
-PROGRAM_INI :: SutToken
-PROGRAM_FIN :: SutToken
-FUNCTION_INI :: SutToken
-FUNCTION_DECLARE :: SutToken
-FUNCTION_DEFINE :: SutToken
-S_andthatswhere :: SutToken
-S_therewas :: SutToken
-S_brokea :: SutToken
-S_broughta :: SutToken
-S_comesfrom :: SutToken
-S_dreamsof :: SutToken
-S_keepsdreamingof :: SutToken
-S_madea :: SutToken
-S_madeof :: SutToken
-S_therewasa :: SutToken
-S_toldthatstory :: SutToken
-S_invented :: SutToken
-S_itsa :: SutToken
-S_andnothingelse :: SutToken
-S_wewillskipthis :: SutToken
-TYPE_INT :: SutToken
-TYPE_FLOAT :: SutToken
-TYPE_CHAR :: SutToken
-TYPE_VOID :: SutToken
-TYPE_BOOL :: SutToken
-TYPE_ARRAY :: SutToken
-TYPE_STRUCT :: SutToken
-TYPE_UNION :: SutToken
-TYPE_STRING :: SutToken
-TYPE_POINTER :: SutToken
-OPEN_PAREN :: SutToken
-OPEN_BRACKETS :: SutToken
-OPEN_BRACES :: SutToken
-CLOSE_PAREN :: SutToken
-CLOSE_BRACKETS :: SutToken
-CLOSE_BRACES :: SutToken
-ELLIPSIS :: SutToken
-PERIOD :: SutToken
-COMMA :: SutToken
-COLON :: SutToken
-SEMICOLON :: SutToken
-QUESTIONMARK :: SutToken
-EXCLAMATION :: SutToken
-ARROW_RIGHT :: SutToken
-PLUS :: SutToken
-MINUS :: SutToken
-EQUAL :: SutToken
-ASSIGNMENT :: SutToken
-ASTERISK :: SutToken
-PERCENT :: SutToken
-SLASH :: SutToken
-DIV :: SutToken
-NOT_EQUAL :: SutToken
-GREATER_EQUAL :: SutToken
-LESS_EQUAL :: SutToken
-GREATER :: SutToken
-LESS :: SutToken
-POWER :: SutToken
-AND :: SutToken
-OR :: SutToken
-WITH :: SutToken
-YOUR :: SutToken
-OF :: SutToken
-EITHER :: SutToken
-TO :: SutToken
-WHEN :: SutToken
-OTHERWISE :: SutToken
-TIMES :: SutToken
-SutTkBool :: Bool -> SutToken
-[tokenBool] :: SutToken -> Bool
-SutTkChar :: String -> SutToken
-[tokenChar] :: SutToken -> String
-SutTkFloat :: Float -> SutToken
-[tokenFloat] :: SutToken -> Float
-SutTkInt :: Int -> SutToken
-[tokenInt] :: SutToken -> Int
-SutTkString :: String -> SutToken
-[tokenString] :: SutToken -> String
-SutTkError :: String -> SutToken
-[tokenError] :: SutToken -> String
-SutTkID :: String -> SutToken
-[tokenID] :: SutToken -> String
-
--- | Initial position of the scanner
-initialPosn :: SutPosn
-
--- | Source position (Characters before, Row number, Column number)
-data SutPosn
-
-
 module Sutori.Parser.Expressions
 
 -- | Represents a transformation from an expression to another
@@ -1757,11 +1877,11 @@ type SutUnaryOp = SutExpression -> SutMonad SutExpression
 
 -- | Represents a binary operation expression constructor
 type SutBinaryOp = SutExpression -> SutExpression -> SutMonad SutExpression
-literalBool :: Bool -> SutExpression
-literalChar :: String -> SutExpression
-literalInt :: Int -> SutExpression
-literalFloat :: Float -> SutExpression
-literalString :: String -> SutExpression
+literalBool :: Bool -> SutMonad SutExpression
+literalChar :: String -> SutMonad SutExpression
+literalInt :: Int -> SutMonad SutExpression
+literalFloat :: Float -> SutMonad SutExpression
+literalString :: String -> SutMonad SutExpression
 
 -- | Constructs an array from the list of expressions All expressions must
 --   be of the same type
@@ -1909,6 +2029,142 @@ defineFunction :: SutID -> SutAST -> SutMonad ()
 --   Note: We are inside the function's scope, so we need to insert the
 --   symbol in the second-to-last scope
 insertFunction :: SutID -> SutTypeID -> [SutParam] -> SutMonad SutID
+
+
+module Sutori.Lexer.Lexer
+
+-- | Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+
+-- | Run the lexer on a given input string, with a given monadic action
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+
+-- | Run the lexer with no options (default options)
+runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
+
+-- | Run the lexer on a given string, get the resulting tokens
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
+
+-- | Run the lexer, but receive a continuation (Used by Happy)
+lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+
+-- | Gets all tokens recursively
+lexerLoop :: SutMonad [SutToken]
+
+
+module Sutori.Lexer
+
+-- | Scans for next token, but passes it though checks first
+lexerScanClean :: SutMonad SutToken
+
+-- | Run the lexer on a given input string, with a given monadic action
+runLexer :: Options -> String -> SutMonad a -> Either (SutError, SutLog) (((a, SutState), SutLogger))
+
+-- | Run the lexer with no options (default options)
+runLexer' :: () => String -> SutMonad a -> Either (SutError, SutLog) ((a, SutState), SutLogger)
+
+-- | Run the lexer on a given string, get the resulting tokens
+runLexerScan :: Options -> String -> Either (SutError, SutLog) ((([SutToken], SutState), SutLogger))
+
+-- | Run the lexer, but receive a continuation (Used by Happy)
+lexwrap :: (SutToken -> SutMonad a) -> SutMonad a
+
+-- | Sutori token classes. Their RegEx' are defined in Alex file
+data SutToken
+SutTkEOF :: SutToken
+BLOCK_OPEN :: SutToken
+BLOCK_CLOSE :: SutToken
+PROGRAM_INI :: SutToken
+PROGRAM_FIN :: SutToken
+FUNCTION_INI :: SutToken
+FUNCTION_DECLARE :: SutToken
+FUNCTION_DEFINE :: SutToken
+S_andthatswhere :: SutToken
+S_therewas :: SutToken
+S_brokea :: SutToken
+S_broughta :: SutToken
+S_comesfrom :: SutToken
+S_dreamsof :: SutToken
+S_keepsdreamingof :: SutToken
+S_madea :: SutToken
+S_madeof :: SutToken
+S_therewasa :: SutToken
+S_toldthatstory :: SutToken
+S_invented :: SutToken
+S_itsa :: SutToken
+S_andnothingelse :: SutToken
+S_wewillskipthis :: SutToken
+TYPE_INT :: SutToken
+TYPE_FLOAT :: SutToken
+TYPE_CHAR :: SutToken
+TYPE_VOID :: SutToken
+TYPE_BOOL :: SutToken
+TYPE_ARRAY :: SutToken
+TYPE_STRUCT :: SutToken
+TYPE_UNION :: SutToken
+TYPE_STRING :: SutToken
+TYPE_POINTER :: SutToken
+OPEN_PAREN :: SutToken
+OPEN_BRACKETS :: SutToken
+OPEN_BRACES :: SutToken
+CLOSE_PAREN :: SutToken
+CLOSE_BRACKETS :: SutToken
+CLOSE_BRACES :: SutToken
+ELLIPSIS :: SutToken
+PERIOD :: SutToken
+COMMA :: SutToken
+COLON :: SutToken
+SEMICOLON :: SutToken
+QUESTIONMARK :: SutToken
+EXCLAMATION :: SutToken
+ARROW_RIGHT :: SutToken
+PLUS :: SutToken
+MINUS :: SutToken
+EQUAL :: SutToken
+ASSIGNMENT :: SutToken
+ASTERISK :: SutToken
+PERCENT :: SutToken
+SLASH :: SutToken
+DIV :: SutToken
+NOT_EQUAL :: SutToken
+GREATER_EQUAL :: SutToken
+LESS_EQUAL :: SutToken
+GREATER :: SutToken
+LESS :: SutToken
+POWER :: SutToken
+AND :: SutToken
+OR :: SutToken
+WITH :: SutToken
+YOUR :: SutToken
+OF :: SutToken
+EITHER :: SutToken
+TO :: SutToken
+WHEN :: SutToken
+OTHERWISE :: SutToken
+TIMES :: SutToken
+SutTkBool :: Bool -> SutToken
+[tokenBool] :: SutToken -> Bool
+SutTkChar :: String -> SutToken
+[tokenChar] :: SutToken -> String
+SutTkFloat :: Float -> SutToken
+[tokenFloat] :: SutToken -> Float
+SutTkInt :: Int -> SutToken
+[tokenInt] :: SutToken -> Int
+SutTkString :: String -> SutToken
+[tokenString] :: SutToken -> String
+SutTkError :: String -> SutToken
+[tokenError] :: SutToken -> String
+SutTkID :: String -> SutToken
+[tokenID] :: SutToken -> String
+
+-- | Initial position of the scanner
+initialPosn :: SutPosn
+
+-- | Source position (Characters before, Row number, Column number)
+data SutPosn
+
+-- | Gets all tokens recursively
+lexerLoop :: SutMonad [SutToken]
 
 
 module Sutori.Parser.Parser
