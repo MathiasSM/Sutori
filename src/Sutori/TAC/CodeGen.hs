@@ -37,9 +37,9 @@ newLabel = do
 genCode :: SutMonad TACTable
 genCode = do
   SutState{ mainModule = (SutModule _ m), parserTable = st } <- get
+  genCodeAST (-1) (-1) m
   let fs = map (\(SymFunction fid _ _ a1 a2) -> (fid, (a1, a2))) $ lookupAllFunctions 0 st
   mapM_ (genCodeAST (-1) (-1)) [n | (a,b) <- map snd fs, n <- [a, fromJust b]] -- TODO: This fails badly if some function has no body
-  genCodeAST (-1) (-1) m
   SutState{ tacTable = t } <- get
   return t
 

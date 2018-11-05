@@ -25,26 +25,25 @@ data TACAddress
 
 -- |TAC Instruction
 data TAC
-  = TAC                              -- ^An instruction
-    { tacType :: TACType               -- ^Operation to perform
-    , tac1    :: Maybe TACAddress      -- ^First address. Usually first operand.
-    , tac2    :: Maybe TACAddress }    -- ^Second address. Usually second operand.
-  | Label Int                        -- ^A label to output literally
+  -- |An instruction
+  = TAC { tacType :: TACType               -- ^Operation to perform
+        , tac1    :: Maybe TACAddress      -- ^First address. Usually first operand.
+        , tac2    :: Maybe TACAddress }    -- ^Second address. Usually second operand.
+  -- |A label to output literally
+  | Label Int
 
 -- |A TAC Instruction to be appended to the generated intermediate code
 data TACType
-  = Basic             -- ^For simple expressions.
-    { tacOp :: SutOperator }
-  | Copy              -- ^Copy operation, from a address to another
-  | Jump              -- ^Unconditional jump, just where to.
-  | JumpUnless        -- ^Condition jump
-  | Array             -- ^Assign a address to an indexed value.
-  | Pointed           -- ^Assign a address from a indirect pointer.
-  | Param             -- ^Stack a function parameter
-  | Call              -- ^Call a function of so many (already stacked) parameters
-  | Return            -- ^Return from a function (possibly a value).
-  | SysCall           -- ^Perform a syscall (IO, Mem, else)
-    { tacSys :: SutSys }
+  = Basic { tacOp :: SutOperator } -- ^For simple expressions.
+  | Copy                           -- ^Copy operation, from a address to another
+  | Jump                           -- ^Unconditional jump, just where to.
+  | JumpUnless                     -- ^Condition jump
+  | Array                          -- ^Assign a address to an indexed value.
+  | Pointed                        -- ^Assign a address from a indirect pointer.
+  | Param                          -- ^Stack a function parameter
+  | Call                           -- ^Call a function of so many (already stacked) parameters
+  | Return                         -- ^Return from a function (possibly a value).
+  | SysCall { tacSys :: SutSys }   -- ^Perform a syscall (IO, Mem, else)
 
 -- |Represents a kind of possible system call
 data SutSys
