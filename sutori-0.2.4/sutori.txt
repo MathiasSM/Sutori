@@ -1015,6 +1015,9 @@ asTypeError :: SutExpression -> SutExpression
 
 
 module Sutori.TAC.TAC
+
+-- | The actual generated code is a list of instruction triplets and a list
+--   of pointers to them
 data TACTable
 
 -- | Table of triplets
@@ -1047,6 +1050,10 @@ data TACType
 Basic :: SutOperator -> TACType
 [tacOp] :: TACType -> SutOperator
 
+-- | Perform a syscall (IO, Mem, else)
+SysCall :: SutSys -> TACType
+[tacSys] :: TACType -> SutSys
+
 -- | Copy operation, from a address to another
 Copy :: TACType
 
@@ -1071,15 +1078,10 @@ Call :: TACType
 -- | Return from a function (possibly a value).
 Return :: TACType
 
--- | Perform a syscall (IO, Mem, else)
-SysCall :: SutSys -> TACType
-[tacSys] :: TACType -> SutSys
-
 -- | TAC Instruction
 data TAC
 
--- | Second address. Usually second operand. |A numbered label to output
---   literally
+-- | An instruction
 TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
 
 -- | Operation to perform
@@ -1087,7 +1089,11 @@ TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
 
 -- | First address. Usually first operand.
 [tac1] :: TAC -> Maybe TACAddress
+
+-- | Second address. Usually second operand.
 [tac2] :: TAC -> Maybe TACAddress
+
+-- | A numbered label to output literally
 Label :: Int -> TAC
 
 -- | A string label to output literally
@@ -1613,8 +1619,14 @@ module Sutori.TAC.CodeGen
 --   
 --   Returns the Address of the inserted TAC
 addTAC :: TAC -> SutMonad TACAddress
+
+-- | Gets the next label
 newLabel :: SutMonad TAC
+
+-- | Generates code from the already built <a>mainModule</a> AST
 genCode :: SutMonad TACTable
+
+-- | Generates code for a block of instructions (AST)
 genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
 
 -- | Generates code for instructions
@@ -1628,6 +1640,9 @@ genCodeExpr :: SutExpression -> SutMonad TACAddress
 
 
 module Sutori.TAC
+
+-- | The actual generated code is a list of instruction triplets and a list
+--   of pointers to them
 data TACTable
 
 -- | Table of triplets
@@ -1660,6 +1675,10 @@ data TACType
 Basic :: SutOperator -> TACType
 [tacOp] :: TACType -> SutOperator
 
+-- | Perform a syscall (IO, Mem, else)
+SysCall :: SutSys -> TACType
+[tacSys] :: TACType -> SutSys
+
 -- | Copy operation, from a address to another
 Copy :: TACType
 
@@ -1684,15 +1703,10 @@ Call :: TACType
 -- | Return from a function (possibly a value).
 Return :: TACType
 
--- | Perform a syscall (IO, Mem, else)
-SysCall :: SutSys -> TACType
-[tacSys] :: TACType -> SutSys
-
 -- | TAC Instruction
 data TAC
 
--- | Second address. Usually second operand. |A numbered label to output
---   literally
+-- | An instruction
 TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
 
 -- | Operation to perform
@@ -1700,7 +1714,11 @@ TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
 
 -- | First address. Usually first operand.
 [tac1] :: TAC -> Maybe TACAddress
+
+-- | Second address. Usually second operand.
 [tac2] :: TAC -> Maybe TACAddress
+
+-- | A numbered label to output literally
 Label :: Int -> TAC
 
 -- | A string label to output literally
@@ -1711,6 +1729,8 @@ FunLabel :: SutID -> TAC
 --   
 --   Returns the Address of the inserted TAC
 addTAC :: TAC -> SutMonad TACAddress
+
+-- | Generates code from the already built <a>mainModule</a> AST
 genCode :: SutMonad TACTable
 
 
@@ -1994,9 +2014,11 @@ whenSymbolIsNew :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMona
 --   initial value.
 defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
 
--- | Associates the SutID to the newly constructed type, assuming the name
---   has not been used before
-defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
+-- | Defines a SutID to be now known as a type
+insertType :: SutID -> SutID -> SutMonad SutID
+
+-- | Associates the SutID to the newly constructed type
+defineType :: SutID -> SutTypeID -> SutMonad ()
 
 -- | Includes a new person into the story
 defPerson :: SutID -> SutMonad ()
