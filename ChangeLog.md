@@ -1,3 +1,3 @@
-# Changelog for lenguaje
+# Changelog for Sutori
 
 ## Unreleased changes

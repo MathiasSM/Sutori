@@ -11,7 +11,7 @@ module Sutori.TAC.TAC
 
 import Sutori.AST   (SutID, SutLiteral, SutOperator)
 
--- The actual generated code is a list of instruction triplets and a list of pointers to them
+-- |The actual generated code is a list of instruction triplets and a list of pointers to them
 data TACTable = TACTable
   { tacInstructions :: [Int]   -- ^Table of pointers to triplets
   , tacTriplets     :: [TAC] } -- ^Table of triplets
@@ -26,17 +26,18 @@ data TACAddress
 -- |TAC Instruction
 data TAC
   -- |An instruction
-  = TAC { tacType :: TACType               -- ^Operation to perform
-        , tac1    :: Maybe TACAddress      -- ^First address. Usually first operand.
-        , tac2    :: Maybe TACAddress }    -- ^Second address. Usually second operand.
-  -- |A numbered label to output literally
-  | Label    Int
-  -- |A string label to output literally
-  | FunLabel SutID
+  = TAC
+    { tacType :: TACType               -- ^Operation to perform
+    , tac1    :: Maybe TACAddress      -- ^First address. Usually first operand.
+    , tac2    :: Maybe TACAddress      -- ^Second address. Usually second operand.
+    }
+  | Label    Int    -- ^A numbered label to output literally
+  | FunLabel SutID  -- ^A string label to output literally
 
 -- |A TAC Instruction to be appended to the generated intermediate code
 data TACType
   = Basic { tacOp :: SutOperator } -- ^For simple expressions.
+  | SysCall { tacSys :: SutSys }   -- ^Perform a syscall (IO, Mem, else)
   | Copy                           -- ^Copy operation, from a address to another
   | Addr                           -- ^Address for an indirection
   | Jump                           -- ^Unconditional jump, just where to.
@@ -45,7 +46,6 @@ data TACType
   | Param                          -- ^Stack a function parameter
   | Call                           -- ^Call a function of so many (already stacked) parameters
   | Return                         -- ^Return from a function (possibly a value).
-  | SysCall { tacSys :: SutSys }   -- ^Perform a syscall (IO, Mem, else)
 
 -- |Represents a kind of possible system call
 data SutSys

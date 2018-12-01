@@ -32,7 +32,7 @@ addTAC tac = do
 
 
 
--- Gets the next label
+-- |Gets the next label
 newLabel :: SutMonad TAC
 newLabel = do
   s@SutState{ tacLabel = i } <- get
@@ -41,7 +41,7 @@ newLabel = do
 
 
 
--- Generates code from the already built 'mainModule' AST
+-- |Generates code from the already built 'mainModule' AST
 genCode :: SutMonad TACTable
 genCode = do
   SutState{ mainModule = (SutModule _ m), parserTable = st } <- get
@@ -60,7 +60,7 @@ genCode = do
 
 
 
--- Generates code for a block of instructions (AST)
+-- |Generates code for a block of instructions (AST)
 genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
 genCodeAST start' next' = mapM_ (genCodeInstr start' next')
 

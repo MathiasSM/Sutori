@@ -3,11 +3,11 @@ version: 0.2.4
 github: MathiasSM/Sutori
 license: BSD3
 author:
-  - Mathias San Miguel <mathiassanmiguel@gmail.com>
-  - Génesis Kufatty <gdkufatty@gmail.com>
+  - "Mathias San Miguel <mathiassanmiguel@gmail.com>"
+  - "Génesis Kufatty <gdkufatty@gmail.com>"
 maintainer:
-  - Mathias San Miguel <mathiassanmiguel@gmail.com>
-  - Génesis Kufatty <gdkufatty@gmail.com>
+  - "Mathias San Miguel <mathiassanmiguel@gmail.com>"
+  - "Génesis Kufatty <gdkufatty@gmail.com>"
 copyright:
   - (c) 2018 Mathias San Miguel
   - (c) 2018 Génesis Kufatty
