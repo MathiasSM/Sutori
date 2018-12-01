@@ -317,7 +317,10 @@ VariableList_     : VariableList_ ',' ID                        {  ($3, Nothing)
 
 -- Type Definition (see Type Expressions, below)
 TypeDef           :: { () }
-TypeDef           : PersonID S_invented ID ';' S_itsa TypeExpr  {% defType $1 $3 $6 }
+TypeDef           : TypeDef_o ';' S_itsa TypeExpr               {% defineType $1 $4 }
+
+TypeDef_o         :: { SutID }
+TypeDef_o         : PersonID S_invented ID                      {% insertType $1 $3 }
 
 
 
