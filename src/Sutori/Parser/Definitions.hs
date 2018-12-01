@@ -47,13 +47,22 @@ defVariable pid tid (vid, mexp) = do
       return $ Just $ InstExpression res
     Nothing  -> return Nothing
 
--- |Associates the SutID to the newly constructed type, assuming the name has not been used before
-defType :: SutID -> SutID -> SutTypeID -> SutMonad ()
-defType pid sid tid = whenSymbolIsNew lookupSymbolsType sid $ do
+-- |Defines a SutID to be now known as a type
+insertType :: SutID -> SutID -> SutMonad SutID
+insertType pid sid = whenSymbolIsNew lookupSymbolsType sid insertTypeID >> return sid
+  where insertTypeID = do
+          s@SutState{ parserTable = table } <- get
+          let tvar = SymType' $ SymType sid currentScope (-1)
+              currentScope = parserCurrentScope s
+          put s{parserTable = insertSymbol tvar table}
+
+-- |Associates the SutID to the newly constructed type
+defineType :: SutID -> SutTypeID -> SutMonad ()
+defineType sid tid = do
   s@SutState{ parserTable = table } <- get
-  let variable = SymType' $ SymType sid currentScope tid
-      currentScope = parserCurrentScope s
-  put s{parserTable = insertSymbol variable table}
+  let (s@(SymType _ scp _):_) = lookupSymbolsType sid table
+      tvar = SymType' $ SymType sid scp tid
+  get >>= \s' -> put s'{ parserTable = updateSymbol tvar table }
 
 -- |Includes a new person into the story
 defPerson :: SutID -> SutMonad ()
