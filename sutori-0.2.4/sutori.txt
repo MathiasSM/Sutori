@@ -486,7 +486,7 @@ lookupType :: SutTypeID -> TypeGraph -> Maybe (SutType, Int)
 -- | The graph as a list sorted by ID (first appearance?)
 orderedGraph :: TypeGraph -> [(SutTypeID, (SutType, Int))]
 
--- | Lookup and check a member's offset
+-- | Lookup and check a machine/thing member's offset
 memberOffset :: SutType -> String -> Int
 
 
@@ -610,7 +610,7 @@ toTypeSortable :: SutPrimitive -> SutPrimitive
 -- | Convert primitive to a equalable type or error
 toTypeEq :: SutPrimitive -> SutPrimitive
 
--- | Lookup and check a member's offset
+-- | Lookup and check a machine/thing member's offset
 memberOffset :: SutType -> String -> Int
 
 
@@ -1030,18 +1030,24 @@ TACTable :: [Int] -> [TAC] -> TACTable
 -- | TACAddress for TAC Instructions
 data TACAddress
 
--- | An actual ID from the source code. Identified using <a>SutID</a> and
---   <tt>Scope</tt>. Used for variables
-TACName :: (SutID, Int) -> TACAddress
+-- | An actual ID from the source code. Used for global (scope 0) variables
+TACGlobal :: SutID -> TACAddress
 
--- | A literal either explicit in the source code or calculated on the run.
+-- | An offset from the current frame pointer
+TACOffset :: Int -> TACAddress
+
+-- | A literal value either explicit in the source code or calculated on
+--   the run.
 TACLit :: SutLiteral -> TACAddress
 
 -- | The TAC number that calculated the relevant expression.
 TACID :: Int -> TACAddress
 
--- | An inc label to some code.
+-- | An incremental label to some code.
 TACLabel :: Int -> TACAddress
+
+-- | A function name/label
+TACFun :: SutID -> TACAddress
 
 -- | A TAC Instruction to be appended to the generated intermediate code
 data TACType
@@ -1066,7 +1072,7 @@ Jump :: TACType
 -- | Condition jump
 JumpUnless :: TACType
 
--- | Assign a address from a indirect pointer.
+-- | Assign an address from a indirect pointer.
 Pointed :: TACType
 
 -- | Stack a function parameter
@@ -1113,6 +1119,7 @@ SysAlloc :: SutSys
 
 -- | Memory freeing operation
 SysFree :: SutSys
+type Offset = Int
 
 
 module Sutori.TAC.Logger
@@ -1143,6 +1150,10 @@ symType :: TypedSymbol a => a -> SutTypeID
 class SutSymbol a => ASTSymbol a
 symAST :: ASTSymbol a => a -> SutAST
 symPreAST :: ASTSymbol a => a -> SutAST
+
+-- | Represents a symbol that _may_ hold an offset
+class SutSymbol a => OffsetSymbol a
+symOffset :: OffsetSymbol a => a -> Offset
 
 -- | A <a>Scope</a> is just a number uniquely representing a scope (NOT a
 --   level, but an ID)
@@ -1176,7 +1187,7 @@ SymPerson :: SutID -> Scope -> SymPerson
 
 -- | A variable
 data SymVariable
-SymVariable :: SutID -> Scope -> SutTypeID -> SymVariable
+SymVariable :: SutID -> Scope -> SutTypeID -> Offset -> SymVariable
 
 -- | A reference to a (now named) type
 data SymType
@@ -1218,6 +1229,7 @@ instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymType
 instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymType
 instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymVariable
 instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymVariable
+instance Sutori.SymTable.Symbol.OffsetSymbol Sutori.SymTable.Symbol.SymVariable
 instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymPerson
 instance Sutori.SymTable.Symbol.SutSymbol Sutori.SymTable.Symbol.SymFunction
 instance Sutori.SymTable.Symbol.TypedSymbol Sutori.SymTable.Symbol.SymFunction
@@ -1295,6 +1307,10 @@ class SutSymbol a => ASTSymbol a
 symAST :: ASTSymbol a => a -> SutAST
 symPreAST :: ASTSymbol a => a -> SutAST
 
+-- | Represents a symbol that _may_ hold an offset
+class SutSymbol a => OffsetSymbol a
+symOffset :: OffsetSymbol a => a -> Offset
+
 -- | Represents a symbol which also has some parameters
 class SutSymbol a => ParametricSymbol a
 symParams :: ParametricSymbol a => a -> [SutParam]
@@ -1339,7 +1355,7 @@ SymType :: SutID -> Scope -> SutTypeID -> SymType
 
 -- | A variable
 data SymVariable
-SymVariable :: SutID -> Scope -> SutTypeID -> SymVariable
+SymVariable :: SutID -> Scope -> SutTypeID -> Offset -> SymVariable
 data SymbolCat
 CatModule :: SymbolCat
 CatPerson :: SymbolCat
@@ -1424,7 +1440,7 @@ module Sutori.Monad.State
 data SutState
 
 -- | Current error code, if any
-SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Offset -> [Offset] -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
 
 -- | Position at current input location
 [lexerPosn] :: SutState -> SutPosn
@@ -1458,6 +1474,12 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 
 -- | The set of open scopes
 [parserScopes] :: SutState -> Set Scope
+
+-- | Current offset to set on new local mem allocations
+[parserOffset] :: SutState -> Offset
+
+-- | Stack of past scope offsets (to return to, once the scopes are closed
+[parserOffsetStk] :: SutState -> [Offset]
 
 -- | The next scope ID to open
 [parserNextScope] :: SutState -> Scope
@@ -1509,9 +1531,23 @@ whenVerbose :: SutMonad () -> SutMonad ()
 runSutMonad :: SutMonad a -> Options -> SutState -> Except (SutError, SutLog) ((a, SutState), SutLogger)
 
 -- | Inserts a new scope into the parse
+--   
+--   <ul>
+--   <li>Inserts the scope into the open scopes set.</li>
+--   <li>Pushes the scope into the open scopes stack.</li>
+--   <li>Saves the current offset to return to it once the scope is
+--   closed.</li>
+--   </ul>
 insertScope :: SutMonad ()
 
 -- | Removes last scope from the parse
+--   
+--   <ul>
+--   <li>Pops closing scope from stack of open scopes.</li>
+--   <li>Removes closing scope from set of open scopes.</li>
+--   <li>Recovers previous offset to write new data over just-closed
+--   scope</li>
+--   </ul>
 removeScope :: SutMonad ()
 
 -- | Get the current open scope
@@ -1519,6 +1555,7 @@ parserCurrentScope :: SutState -> Scope
 
 -- | Set the current error code for the compilation
 setErrorCode :: SutError -> SutMonad ()
+functionStarts :: SutMonad ()
 
 
 module Sutori.Monad
@@ -1530,7 +1567,7 @@ type SutMonad a = ReaderT Options (StateT SutState (WriterT SutLogger (Except (S
 data SutState
 
 -- | Current error code, if any
-SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
+SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool -> SymTable -> [Scope] -> Set Scope -> Offset -> [Offset] -> Scope -> SutModule -> TACTable -> Int -> Int -> TypeGraph -> SutTypeID -> Bool -> SutError -> SutState
 
 -- | Position at current input location
 [lexerPosn] :: SutState -> SutPosn
@@ -1564,6 +1601,12 @@ SutState :: SutPosn -> String -> Char -> Int -> [Word8] -> Int -> String -> Bool
 
 -- | The set of open scopes
 [parserScopes] :: SutState -> Set Scope
+
+-- | Current offset to set on new local mem allocations
+[parserOffset] :: SutState -> Offset
+
+-- | Stack of past scope offsets (to return to, once the scopes are closed
+[parserOffsetStk] :: SutState -> [Offset]
 
 -- | The next scope ID to open
 [parserNextScope] :: SutState -> Scope
@@ -1603,135 +1646,28 @@ setErrorCode :: SutError -> SutMonad ()
 initialSutoriState :: SutState
 
 -- | Inserts a new scope into the parse
+--   
+--   <ul>
+--   <li>Inserts the scope into the open scopes set.</li>
+--   <li>Pushes the scope into the open scopes stack.</li>
+--   <li>Saves the current offset to return to it once the scope is
+--   closed.</li>
+--   </ul>
 insertScope :: SutMonad ()
 
 -- | Removes last scope from the parse
+--   
+--   <ul>
+--   <li>Pops closing scope from stack of open scopes.</li>
+--   <li>Removes closing scope from set of open scopes.</li>
+--   <li>Recovers previous offset to write new data over just-closed
+--   scope</li>
+--   </ul>
 removeScope :: SutMonad ()
 
 -- | Run a monadic action only if verbose if turned on
 whenVerbose :: SutMonad () -> SutMonad ()
-
-
-module Sutori.TAC.CodeGen
-
--- | Appends to the TAC table a new triplet, references it on the
---   instructions TAC table
---   
---   Returns the Address of the inserted TAC
-addTAC :: TAC -> SutMonad TACAddress
-
--- | Gets the next label
-newLabel :: SutMonad TAC
-
--- | Generates code from the already built <a>mainModule</a> AST
-genCode :: SutMonad TACTable
-
--- | Generates code for a block of instructions (AST)
-genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
-
--- | Generates code for instructions
-genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
-
--- | Generates code for expressions
---   
---   Each production returns the address (as temporal register) of the
---   resulting expression
-genCodeExpr :: SutExpression -> SutMonad TACAddress
-
-
-module Sutori.TAC
-
--- | The actual generated code is a list of instruction triplets and a list
---   of pointers to them
-data TACTable
-
--- | Table of triplets
-TACTable :: [Int] -> [TAC] -> TACTable
-
--- | Table of pointers to triplets
-[tacInstructions] :: TACTable -> [Int]
-[tacTriplets] :: TACTable -> [TAC]
-
--- | TACAddress for TAC Instructions
-data TACAddress
-
--- | An actual ID from the source code. Identified using <a>SutID</a> and
---   <tt>Scope</tt>. Used for variables
-TACName :: (SutID, Int) -> TACAddress
-
--- | A literal either explicit in the source code or calculated on the run.
-TACLit :: SutLiteral -> TACAddress
-
--- | The TAC number that calculated the relevant expression.
-TACID :: Int -> TACAddress
-
--- | An inc label to some code.
-TACLabel :: Int -> TACAddress
-
--- | A TAC Instruction to be appended to the generated intermediate code
-data TACType
-
--- | For simple expressions.
-Basic :: SutOperator -> TACType
-[tacOp] :: TACType -> SutOperator
-
--- | Perform a syscall (IO, Mem, else)
-SysCall :: SutSys -> TACType
-[tacSys] :: TACType -> SutSys
-
--- | Copy operation, from a address to another
-Copy :: TACType
-
--- | Address for an indirection
-Addr :: TACType
-
--- | Unconditional jump, just where to.
-Jump :: TACType
-
--- | Condition jump
-JumpUnless :: TACType
-
--- | Assign a address from a indirect pointer.
-Pointed :: TACType
-
--- | Stack a function parameter
-Param :: TACType
-
--- | Call a function of so many (already stacked) parameters
-Call :: TACType
-
--- | Return from a function (possibly a value).
-Return :: TACType
-
--- | TAC Instruction
-data TAC
-
--- | An instruction
-TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
-
--- | Operation to perform
-[tacType] :: TAC -> TACType
-
--- | First address. Usually first operand.
-[tac1] :: TAC -> Maybe TACAddress
-
--- | Second address. Usually second operand.
-[tac2] :: TAC -> Maybe TACAddress
-
--- | A numbered label to output literally
-Label :: Int -> TAC
-
--- | A string label to output literally
-FunLabel :: SutID -> TAC
-
--- | Appends to the TAC table a new triplet, references it on the
---   instructions TAC table
---   
---   Returns the Address of the inserted TAC
-addTAC :: TAC -> SutMonad TACAddress
-
--- | Generates code from the already built <a>mainModule</a> AST
-genCode :: SutMonad TACTable
+functionStarts :: SutMonad ()
 
 
 module Sutori.Lexer.Internals
@@ -1885,6 +1821,140 @@ lookupInScope :: SutSymbol a => (SutID -> SymTable -> [a]) -> SutID -> SutMonad 
 inScope :: SutSymbol a => [a] -> SutMonad [a]
 
 
+module Sutori.TAC.CodeGen
+
+-- | Appends to the TAC table a new triplet, references it on the
+--   instructions TAC table
+--   
+--   Returns the Address of the inserted TAC
+addTAC :: TAC -> SutMonad TACAddress
+
+-- | Gets the next label
+newLabel :: SutMonad TAC
+
+-- | Generates code from the already built <a>mainModule</a> AST
+--   
+--   Generates in order: TAC for main/global code, then TACs for each
+--   function.
+genCode :: SutMonad TACTable
+
+-- | Generates code for a block of instructions (AST)
+genCodeAST :: Int -> Int -> SutAST -> SutMonad ()
+
+-- | Generates code for instructions
+genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
+
+-- | Generates code for expressions
+--   
+--   Each production returns the address (as temporal register) of the
+--   resulting expression
+genCodeExpr :: SutExpression -> SutMonad TACAddress
+
+
+module Sutori.TAC
+
+-- | The actual generated code is a list of instruction triplets and a list
+--   of pointers to them
+data TACTable
+
+-- | Table of triplets
+TACTable :: [Int] -> [TAC] -> TACTable
+
+-- | Table of pointers to triplets
+[tacInstructions] :: TACTable -> [Int]
+[tacTriplets] :: TACTable -> [TAC]
+
+-- | TACAddress for TAC Instructions
+data TACAddress
+
+-- | An actual ID from the source code. Used for global (scope 0) variables
+TACGlobal :: SutID -> TACAddress
+
+-- | An offset from the current frame pointer
+TACOffset :: Int -> TACAddress
+
+-- | A literal value either explicit in the source code or calculated on
+--   the run.
+TACLit :: SutLiteral -> TACAddress
+
+-- | The TAC number that calculated the relevant expression.
+TACID :: Int -> TACAddress
+
+-- | An incremental label to some code.
+TACLabel :: Int -> TACAddress
+
+-- | A function name/label
+TACFun :: SutID -> TACAddress
+
+-- | A TAC Instruction to be appended to the generated intermediate code
+data TACType
+
+-- | For simple expressions.
+Basic :: SutOperator -> TACType
+[tacOp] :: TACType -> SutOperator
+
+-- | Perform a syscall (IO, Mem, else)
+SysCall :: SutSys -> TACType
+[tacSys] :: TACType -> SutSys
+
+-- | Copy operation, from a address to another
+Copy :: TACType
+
+-- | Address for an indirection
+Addr :: TACType
+
+-- | Unconditional jump, just where to.
+Jump :: TACType
+
+-- | Condition jump
+JumpUnless :: TACType
+
+-- | Assign an address from a indirect pointer.
+Pointed :: TACType
+
+-- | Stack a function parameter
+Param :: TACType
+
+-- | Call a function of so many (already stacked) parameters
+Call :: TACType
+
+-- | Return from a function (possibly a value).
+Return :: TACType
+
+-- | TAC Instruction
+data TAC
+
+-- | An instruction
+TAC :: TACType -> Maybe TACAddress -> Maybe TACAddress -> TAC
+
+-- | Operation to perform
+[tacType] :: TAC -> TACType
+
+-- | First address. Usually first operand.
+[tac1] :: TAC -> Maybe TACAddress
+
+-- | Second address. Usually second operand.
+[tac2] :: TAC -> Maybe TACAddress
+
+-- | A numbered label to output literally
+Label :: Int -> TAC
+
+-- | A string label to output literally
+FunLabel :: SutID -> TAC
+
+-- | Appends to the TAC table a new triplet, references it on the
+--   instructions TAC table
+--   
+--   Returns the Address of the inserted TAC
+addTAC :: TAC -> SutMonad TACAddress
+
+-- | Generates code from the already built <a>mainModule</a> AST
+--   
+--   Generates in order: TAC for main/global code, then TACs for each
+--   function.
+genCode :: SutMonad TACTable
+
+
 module Sutori.Parser.Expressions
 
 -- | Represents a transformation from an expression to another
@@ -1897,17 +1967,14 @@ type SutUnaryOp = SutExpression -> SutMonad SutExpression
 
 -- | Represents a binary operation expression constructor
 type SutBinaryOp = SutExpression -> SutExpression -> SutMonad SutExpression
+
+-- | Generates AST expression for the given literal
+exprLiteral :: SutPrimitive -> SutLiteral -> SutMonad SutExpression
 literalBool :: Bool -> SutMonad SutExpression
 literalChar :: String -> SutMonad SutExpression
 literalInt :: Int -> SutMonad SutExpression
 literalFloat :: Float -> SutMonad SutExpression
 literalString :: String -> SutMonad SutExpression
-
--- | Constructs an array from the list of expressions All expressions must
---   be of the same type
---   
---   Note: Sutori grammar doesn't allow empty arrays
-constructArray :: [SutExpression] -> SutMonad SutExpression
 
 -- | Constructs a struct from the list of ID -&gt; Expression mappings
 --   
@@ -1916,9 +1983,33 @@ constructArray :: [SutExpression] -> SutMonad SutExpression
 --   
 --   Note: We do not allow duplicated member IDs
 constructStruct :: [(SutID, SutExpression)] -> SutMonad SutExpression
+
+-- | Transforms a member with its type definition to a member with its type
+--   ID
+memberType :: (SutID, SutType) -> SutMonad (SutID, SutTypeID)
 unaryPlus :: SutUnaryOp
 unaryMinus :: SutUnaryOp
 unaryNot :: SutUnaryOp
+
+-- | Gives the most general type from two expressions to which they can be
+--   casted
+generalizeExprType :: SutExpression -> SutExpression -> SutType
+
+-- | General constructor for binary operation with the given operator
+--   applying the given checks
+binaryOp :: ExprTransform -> ExprTransform -> ExprTransform -> SutOperator -> SutBinaryOp
+
+-- | Binary operation specific constructor check
+numericBinaryOp :: SutOperator -> SutBinaryOp
+
+-- | Binary operation specific constructor check
+booleanBinaryOp :: SutOperator -> SutBinaryOp
+
+-- | Binary operation specific constructor check
+sortBinaryOp :: SutOperator -> SutBinaryOp
+
+-- | Binary operation specific constructor check
+eqBinaryOp :: SutOperator -> SutBinaryOp
 opAddition :: SutBinaryOp
 opSubstraction :: SutBinaryOp
 opMultiplication :: SutBinaryOp
@@ -1939,17 +2030,17 @@ opLess :: SutBinaryOp
 -- | (&gt;) receives two "sortable" types
 opGreater :: SutBinaryOp
 
--- | Equality check receives two "equalable" types
-opEqual :: SutBinaryOp
-
--- | NotEquality check receives two "equalable" types
-opNotEqual :: SutBinaryOp
-
 -- | Boolean AND receives two booleans
 opAnd :: SutBinaryOp
 
 -- | Boolean OR receives two booleans
 opOr :: SutBinaryOp
+
+-- | Equality check receives two "equalable" types
+opEqual :: SutBinaryOp
+
+-- | NotEquality check receives two "equalable" types
+opNotEqual :: SutBinaryOp
 
 -- | An assignement to the left side of the value from the right side
 --   
@@ -1982,12 +2073,12 @@ arrayGet :: SutBinaryOp
 --   Note: It is known the left lise is assignable
 memberGet :: SutExpression -> SutID -> SutMonad SutExpression
 
--- | A call to a function (ID) with parameters (given list)
+-- | Creates a direction to a value of type given
 --   
---   This checks for the correct number of arguments and their types
+--   Note: We are already given the existent type ID
 --   
---   Note: Left side is known to be existent function (?)
-functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
+--   Note: Left side is known to be a person
+createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
 
 -- | Creates a dereferencing expression for the given expression
 --   
@@ -1996,12 +2087,25 @@ functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
 --   Note: It is know the expression is assignable
 dereference :: SutUnaryOp
 
--- | Creates a direction to a value of type given
+-- | A call to a function (ID) with parameters (given list)
 --   
---   Note: We are already given the existent type ID
+--   This checks for the correct number of arguments and their types
 --   
---   Note: Left side is known to be a person
-createPointer :: SutID -> SutTypeID -> SutMonad SutExpression
+--   Note: Left side is known to be existent function (?)
+functionCall :: SutID -> [SutExpression] -> SutMonad SutExpression
+
+-- | Compares the given formal and actual parameters types
+checkParamTypes :: [SutType] -> [SutExpression] -> SutMonad ()
+
+-- | Constructs an array from the list of expressions All expressions must
+--   be of the same type
+--   
+--   Note: Sutori grammar doesn't allow empty arrays
+constructArray :: [SutExpression] -> SutMonad SutExpression
+
+-- | Checks the type of the array is consistent with the types of its
+--   elements
+checkArrayType :: SutExpression -> SutType -> [SutType] -> SutMonad ()
 
 
 module Sutori.Parser.Definitions
