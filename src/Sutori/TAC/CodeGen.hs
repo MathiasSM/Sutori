@@ -6,12 +6,14 @@ module Sutori.TAC.CodeGen where
 
 import Control.Monad (void, foldM_)
 import Control.Monad.State (get, put)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
+import Data.List (find)
 
 import Sutori.AST
 import Sutori.Monad
 import Sutori.SymTable
 import Sutori.Types
+import Sutori.Parser.Symbols
 
 import Sutori.TAC.TAC
 
@@ -115,10 +117,12 @@ genCodeInstr _ _ (ReadVal _ expr) = void $ do
 -- Generates code to evaluate expression.
 -- Makes syscall to print given address.
 --
--- TODO: Size/type missing? Probably.
+-- Note: Nothing special done for non-raw types
 genCodeInstr _ _ (PrintVal _ expr) = void $ do
+  SutState{typesGraph = g} <- get
+  let (Just (_,size)) = lookupTypeID (expressionType expr) g
   addr <- genCodeExpr expr
-  addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing
+  addTAC $ TAC (SysCall SysPrint) (Just addr) (Just $ TACLit $ SutInt size)
 
 
 -- Break.
@@ -211,8 +215,16 @@ genCodeExpr :: SutExpression -> SutMonad TACAddress
 
 -- Variables
 --
--- References a variable by 'SutID' and 'Scope'
-genCodeExpr (ExprID _ vid s) = return $ TACName (vid, s)
+-- Globals get referenced by name in the TAC. Locals get referenced by their offset, relative to the FP.
+genCodeExpr (ExprID _ vid s) =
+  case s of
+     0 -> return $ TACGlobal vid
+     _ -> do
+       SutState{ parserTable = symTable } <- get
+       let syms = lookupSymbolsVariable vid symTable
+           msym = find ((== s) . symScope) syms
+           offs = maybe (-1) symOffset msym
+       return $ TACOffset offs
 
 -- Literals
 --
@@ -244,7 +256,7 @@ genCodeExpr (UnaryOp _ op op1) = do
 genCodeExpr (SutCall _ fid ps) = do
   psa <- mapM genCodeExpr ps
   mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa
-  addTAC $ TAC Call (Just $ TACName (fid, 0)) (Just $ TACLit $ SutInt $ length ps)
+  addTAC $ TAC Call (Just $ TACFun fid) (Just $ TACLit $ SutInt $ length ps)
 
 -- Pointer creation / memory allocation
 --

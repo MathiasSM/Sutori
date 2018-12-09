@@ -11,6 +11,7 @@ module Sutori.Monad
 , insertScope
 , removeScope
 , whenVerbose
+, functionStarts
 ) where
 
 import Sutori.Monad.State

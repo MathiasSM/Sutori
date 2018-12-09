@@ -17,7 +17,7 @@ import Sutori.SymTable  (SutParam(..), paramByValue, paramByRef)
 
 import Sutori.Lexer     (SutToken(..), lexwrap)
 
-import Sutori.Monad     (SutMonad, insertScope, removeScope)
+import Sutori.Monad     (SutMonad, insertScope, removeScope, functionStarts)
 import Sutori.Error     (SutError(..), parserError)
 
 import Sutori.Parser.Definitions
@@ -291,7 +291,7 @@ FunctionDef       : FunctionDef_o '.' FUNCTION_DECLARE  { }
 
 FunctionDef_o     :: { SutID }
 FunctionDef_o     : FUNCTION_INI ID ',' S_therewasa TypeExpr FunctionParams InsertScope
-                  {% insertFunction $2 $5 $6 }
+                  {% functionStarts >> insertFunction $2 $5 $6 }
 
 FunctionParams    :: { [SutParam] }
 FunctionParams    : '(' S_madeof ParamsDef_ ')' { reverse $3 }

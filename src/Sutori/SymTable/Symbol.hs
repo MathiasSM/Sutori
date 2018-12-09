@@ -6,6 +6,7 @@ module Sutori.SymTable.Symbol
 , ParametricSymbol(..)
 , TypedSymbol(..)
 , ASTSymbol(..)
+, OffsetSymbol(..)
 
 , Scope
 , SutParam(..)
@@ -36,8 +37,9 @@ module Sutori.SymTable.Symbol
 
 import Data.Maybe   (fromMaybe)
 
-import Sutori.AST   (SutID, SutAST)
-import Sutori.Types (SutTypeID)
+import Sutori.AST       (SutID, SutAST)
+import Sutori.Types     (SutTypeID)
+import Sutori.TAC.TAC   (Offset, TACAddress)
 
 
 -- |A 'Scope' is just a number uniquely representing a scope (NOT a level, but an ID)
@@ -78,6 +80,10 @@ class SutSymbol a => ASTSymbol a where
   symAST    :: a -> SutAST        -- ^ The AST held by the symbol
   symPreAST :: a -> SutAST        -- ^ An optional (empty by default) AST (hidden, preppended)
   symPreAST _ = []
+
+-- | Represents a symbol that _may_ hold an offset
+class SutSymbol a => OffsetSymbol a where
+  symOffset :: a -> Offset
 
 
 -- |A 'SutParam' represents a function parameter, and
@@ -134,15 +140,19 @@ instance SutSymbol SymPerson where
 
 
 -- | A variable
-data SymVariable = SymVariable SutID Scope SutTypeID
+data SymVariable = SymVariable SutID Scope SutTypeID Offset
 
 instance SutSymbol SymVariable where
-  symID (SymVariable id _ _)   = id
-  symScope (SymVariable _ s _) = s
+  symID (SymVariable id _ _ _)   = id
+  symScope (SymVariable _ s _ _) = s
   symCat _ = CatVariable
 
 instance TypedSymbol SymVariable where
-  symType (SymVariable _ _ tid) = tid
+  symType (SymVariable _ _ tid _) = tid
+
+instance OffsetSymbol SymVariable where
+  symOffset (SymVariable _ _ _ off) = off
+
 
 
 -- | A reference to a (now named) type

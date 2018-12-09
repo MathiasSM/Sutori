@@ -13,6 +13,7 @@ import Sutori.Error.Error (SutError(NoError))
 import Sutori.SymTable    (SymTable, Scope)
 import Sutori.TAC.TAC     (TACTable(..))
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
+import Sutori.TAC.TAC     (Offset)
 
 
 -- |Monadic Lexer/Parser current state.
@@ -28,6 +29,8 @@ data SutState = SutState
   , parserTable     :: SymTable      -- ^ The symtable
   , parserStack     :: [Scope]       -- ^ The scopes stack
   , parserScopes    :: Set.Set Scope -- ^ The set of open scopes
+  , parserOffset    :: Offset        -- ^ Current offset to set on new local mem allocations
+  , parserOffsetStk :: [Offset]      -- ^ Stack of past scope offsets (to return to, once the scopes are closed
   , parserNextScope :: Scope         -- ^ The next scope ID to open
   , mainModule      :: SutModule     -- ^ The main module (where compilation began)
   , tacTable        :: TACTable      -- ^ The table of generated TAC
@@ -52,6 +55,8 @@ initialSutoriState = SutState
   , parserTable     = Map.empty
   , parserStack     = [0]
   , parserScopes    = Set.insert 0 Set.empty
+  , parserOffset    = 0
+  , parserOffsetStk = []
   , parserNextScope = 0
   , mainModule      = undefined
   , tacTable        = TACTable [] []

@@ -15,9 +15,11 @@ instance SutShow TACTable where
                              where f i tr = SutLogLeave $ show i ++ "\t: " ++ fromLeave (showSut tr)
 
 instance SutShow TACAddress where
-  showSut (TACName (sid, sc))             = fillTabLog $ "&(" ++ sid ++ ", " ++ show sc ++ ")"
+  showSut (TACOffset off)                 = fillTabLog $ "base[" ++ show off ++ "]"
+  showSut (TACGlobal sid)                 = fillTabLog $ "&(" ++ sid ++ ")"
   showSut (TACID i)                       = fillTabLog $ "(( " ++ show i ++ " ))"
   showSut (TACLabel i)                    = fillTabLog $ "LABEL_" ++ show i
+  showSut (TACFun f)                      = fillTabLog $ "FUN_" ++ f
   showSut (TACLit (SutString (a:b:c:_)))  = fillTabLog $ "Phrase(\"" ++ [a,b,c] ++"..\")"
   showSut (TACLit (SutString s))          = fillTabLog $ "Phrase(\"" ++ s ++"\")"
   showSut (TACLit l)                      = fillTabLog $ fromLeave (showSut l)

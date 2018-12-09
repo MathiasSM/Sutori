@@ -8,12 +8,13 @@ module Sutori.Parser.Definitions where
 
 import Control.Monad            (when)
 import Control.Monad.State.Lazy (get, put)
-import Data.Maybe               (catMaybes)
+import Data.Maybe               (catMaybes, fromJust)
+import qualified Data.Map as Map
 
 import Sutori.AST      (SutID, SutExpression(ExprID), SutAST, SutModule(SutModule), SutInstruction(..))
 import Sutori.Error    (duplicateSymbolError)
-import Sutori.Monad    (SutMonad, SutState(SutState, parserTable, mainModule), parserCurrentScope)
-import Sutori.Types    (SutTypeID)
+import Sutori.Monad    (SutMonad, SutState(SutState, parserTable, parserOffset, typesGraph, mainModule), parserCurrentScope)
+import Sutori.Types    (SutTypeID, lookupType)
 import Sutori.SymTable
 
 import Sutori.Parser.Symbols
@@ -34,11 +35,19 @@ whenSymbolIsNew lookupSym sid a = do
 -- |Defines a new variable of given type and optionally assigns it an initial value.
 defVariable :: SutID -> SutTypeID -> (SutID, Maybe SutExpression) -> SutMonad (Maybe SutInstruction)
 defVariable pid tid (vid, mexp) = do
-  s@SutState{ parserTable = table } <- get
+  s@SutState
+    { parserTable  = table
+    , parserOffset = currentOffset
+    , typesGraph   = g       } <- get
   let currentScope = parserCurrentScope s
+
   whenSymbolIsNew lookupSymbolsVariable vid $ do
-    let variable = SymVariable' $ SymVariable vid currentScope tid
-    put s{parserTable = insertSymbol variable table}
+    let variable = SymVariable' $ SymVariable vid currentScope tid currentOffset
+        (Just (_,size)) = lookupType tid g
+    put s
+      { parserTable  = insertSymbol variable table
+      , parserOffset = currentOffset + size }
+
   case mexp of
     Just expr -> do
       ety <- findExistentType tid

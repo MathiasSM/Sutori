@@ -7,9 +7,12 @@ module Sutori.TAC.TAC
 , TACType(..)
 , TAC(..)
 , SutSys(..)
+, Offset
 ) where
 
 import Sutori.AST   (SutID, SutLiteral, SutOperator)
+
+type Offset = Int -- An offset in bytes
 
 -- |The actual generated code is a list of instruction triplets and a list of pointers to them
 data TACTable = TACTable
@@ -18,10 +21,12 @@ data TACTable = TACTable
 
 -- |TACAddress for TAC Instructions
 data TACAddress
-  = TACName (SutID, Int)  -- ^An actual ID from the source code. Identified using 'SutID' and 'Scope'. Used for variables
+  = TACGlobal SutID       -- ^An actual ID from the source code. Used for global (scope 0) variables
+  | TACOffset Int         -- ^An offset from the current frame pointer
   | TACLit SutLiteral     -- ^A literal value either explicit in the source code or calculated on the run.
   | TACID Int             -- ^The TAC number that calculated the relevant expression.
   | TACLabel Int          -- ^An incremental label to some code.
+  | TACFun SutID          -- ^A function name/label
 
 -- |TAC Instruction
 data TAC

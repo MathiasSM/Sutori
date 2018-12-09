@@ -8,6 +8,7 @@ module Sutori.SymTable
 ( SutSymbol(..)
 , SutSymbol'(..)
 , ASTSymbol(..)
+, OffsetSymbol(..)
 , ParametricSymbol(..)
 , Scope
 , SutParam(..)
