@@ -54,8 +54,8 @@ primitiveSize SutTypeVoid  = 0
 primitiveSize SutLight     = 1
 primitiveSize SutLetter    = 1
 primitiveSize SutBag       = 4
-primitiveSize SutWallet    = 8
-primitiveSize SutPhrase    = 4
+primitiveSize SutWallet    = 8 -- Double precision
+primitiveSize SutPhrase    = 4 -- Basically a pointer to the actual string
 
 
 -- |Zipped primitives with their IDs

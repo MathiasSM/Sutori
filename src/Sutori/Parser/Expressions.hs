@@ -2,38 +2,7 @@
 Description : Defines all AST expression monadic constructors,
               that check for all kind of possible errors to log.
 -}
-module Sutori.Parser.Expressions
-( -- * Type aliases
-  -- Way too long signature for way too long explanations of way too long descriptions
-  -- for way too long type aliases for way too long signatures.
-  ExprTransform, SutUnaryOp, SutBinaryOp
-
-  -- * Expressions
-  -- Or more accurately: Expression constructors. These are monadic actions that
-  -- ultimately construct the "AST" using the defined data constructors, but whoe job
-  -- is to also check for type errors and other inconsistencies that need to be addressed.
-  --
-  -- ** Literals
-  -- Including both expression literals for primitive types, and literal constructs of
-  -- complex data structures (the latter might include non-literal sub-expressions).
-, literalBool, literalChar, literalInt, literalFloat, literalString
-, constructArray, constructStruct
-
-  -- ** Simple Operations
-  -- The usual arithmetic, boolean and otherwise obvious operations, except when otherwise noted.
-  --
-  -- *** Unary operations
-, unaryPlus, unaryMinus, unaryNot
-  -- *** Numerical binary operations
-, opAddition, opSubstraction, opMultiplication, opDivision, opIntDivision, opModulo, opPower
-  -- *** Sorting/Comparison operations
-, opGreaterEqual, opLessEqual, opLess, opGreater
-  -- *** Boolean binary operations
-, opEqual, opNotEqual, opAnd, opOr
-
-  -- ** Complex operations
-, assignment, arrayGet, memberGet, functionCall, dereference, createPointer
-) where
+module Sutori.Parser.Expressions where
 
 import Control.Arrow             (second)
 import Control.Monad             (when, unless)
@@ -53,6 +22,12 @@ import Sutori.SymTable
 import Sutori.Parser.Symbols
 import Sutori.Parser.TypeCheck
 
+
+
+--- * Type aliases
+-- Way too long signature for way too long explanations of way too long descriptions
+-- for way too long type aliases for way too long signatures.
+
 -- |Represents a transformation from an expression to another
 --
 -- Ex. Change of type to TypeError
@@ -65,8 +40,18 @@ type SutUnaryOp  = SutExpression -> SutMonad SutExpression
 type SutBinaryOp = SutExpression -> SutExpression -> SutMonad SutExpression
 
 
--- Literals
--- ================================================================================================
+
+-- * Expressions
+--
+-- Or more accurately: Expression constructors. These are monadic actions that
+-- ultimately construct the "AST" using the defined data constructors, but whoe job
+-- is to also check for type errors and other inconsistencies that need to be addressed.
+
+
+-- ** Literals
+--
+-- Including both expression literals for primitive types, and literal constructs of
+-- complex data structures (the latter might include non-literal sub-expressions).
 
 -- |Generates AST expression for the given literal
 exprLiteral :: SutPrimitive -> SutLiteral -> SutMonad SutExpression
@@ -102,34 +87,6 @@ literalString v = do
       t    = SutPhrase
   exprLiteral t l
 
-
-
--- Data structure constructors
--- ================================================================================================
-
--- |Constructs an array from the list of expressions
--- All expressions must be of the same type
---
--- Note: Sutori grammar doesn't allow empty arrays
-constructArray :: [SutExpression] -> SutMonad SutExpression
-constructArray es = do
-  let felem = head es
-      t     = expressionType felem
-
-  tid <- findTypeID t
-  let at = SutChain (length es) tid
-      expr = ExprConstructor at (SutArray es)
-
-  checkArrayType expr t (map expressionType es)
-  return expr
-
--- |Checks the type of the array is consistent with the types of its elements
-checkArrayType :: SutExpression -> SutType -> [SutType] -> SutMonad ()
-checkArrayType expr t [] = return ()
-checkArrayType expr t (t':ts) = do
-  unless (t == t') $ typeError expr t t' "Chains must be consistent with their type"
-  checkArrayType expr t ts
-
 -- |Constructs a struct from the list of ID -> Expression mappings
 --
 -- Right now, we implement these by storing the member IDs into the type graph
@@ -151,20 +108,18 @@ memberType (mid, t) = findTypeID t >>= \tid -> return (mid, tid)
 
 
 
--- Unary operations
--- ================================================================================================
+-- ** Simple Operations
+--
+-- The usual arithmetic, boolean and otherwise obvious operations, except when otherwise noted.
+
+
+-- *** Unary operations
 unaryPlus, unaryMinus, unaryNot :: SutUnaryOp
 unaryPlus e'  = let e = checkNumeric e' in return $ UnaryOp (expressionType e) SutOpPos e
 unaryMinus e' = let e = checkNumeric e' in return $ UnaryOp (expressionType e) SutOpNeg e
 unaryNot e'   = let e = checkBoolean e' in return $ UnaryOp (expressionType e) SutOpNot e
 
-
-
--- Binary operations
--- ================================================================================================
-
--- Helpers
--- ------------------------------------------------------------------------------------------------
+-- *** Helpers
 
 -- |Gives the most general type from two expressions to which they can be casted
 generalizeExprType :: SutExpression -> SutExpression -> SutType
@@ -191,8 +146,7 @@ sortBinaryOp    = binaryOp checkSortable checkSortable checkBoolean
 eqBinaryOp      = binaryOp checkEq       checkEq       checkBoolean
 
 
--- Numerical operations
--- ------------------------------------------------------------------------------------------------
+-- *** Numerical binary operations
 opAddition, opSubstraction, opMultiplication :: SutBinaryOp
 opAddition       = numericBinaryOp SutOpAdd
 opSubstraction   = numericBinaryOp SutOpSub
@@ -207,19 +161,7 @@ opPower :: SutBinaryOp
 opPower = numericBinaryOp SutOpPow
 
 
--- Boolean operations (all return booleans)
--- ------------------------------------------------------------------------------------------------
-opAnd, opOr :: SutBinaryOp
--- | Boolean AND receives two booleans
-opAnd = booleanBinaryOp SutOpAnd
--- | Boolean OR receives two booleans
-opOr  = booleanBinaryOp SutOpOr
-
-opEqual, opNotEqual :: SutBinaryOp
--- | Equality check receives two "equalable" types
-opEqual    = eqBinaryOp SutOpEqual
--- | NotEquality check receives two "equalable" types
-opNotEqual = eqBinaryOp SutOpNotEq
+-- *** Sorting/Comparison operations
 
 opGreaterEqual, opLessEqual, opLess, opGreater :: SutBinaryOp
 -- | (>=) receives two "sortable" types
@@ -232,8 +174,22 @@ opGreater      = sortBinaryOp SutOpGreater
 opLess         = sortBinaryOp SutOpLess
 
 
--- Complex operations
--- ================================================================================================
+-- *** Boolean binary operations
+
+opAnd, opOr :: SutBinaryOp
+-- | Boolean AND receives two booleans
+opAnd = booleanBinaryOp SutOpAnd
+-- | Boolean OR receives two booleans
+opOr  = booleanBinaryOp SutOpOr
+
+opEqual, opNotEqual :: SutBinaryOp
+-- | Equality check receives two "equalable" types
+opEqual    = eqBinaryOp SutOpEqual
+-- | NotEquality check receives two "equalable" types
+opNotEqual = eqBinaryOp SutOpNotEq
+
+
+-- ** Complex operations
 
 -- |An assignement to the left side of the value from the right side
 --
@@ -354,3 +310,26 @@ checkParamTypes = checkParamTypes' 1
           let t = expressionType p
           unless (ft == t) $ typeError p ft t ("Argument #" ++ show i)
           checkParamTypes' (i+1) fts ps
+
+-- |Constructs an array from the list of expressions
+-- All expressions must be of the same type
+--
+-- Note: Sutori grammar doesn't allow empty arrays
+constructArray :: [SutExpression] -> SutMonad SutExpression
+constructArray es = do
+  let felem = head es
+      t     = expressionType felem
+
+  tid <- findTypeID t
+  let at = SutChain (length es) tid
+      expr = ExprConstructor at (SutArray es)
+
+  checkArrayType expr t (map expressionType es)
+  return expr
+
+-- |Checks the type of the array is consistent with the types of its elements
+checkArrayType :: SutExpression -> SutType -> [SutType] -> SutMonad ()
+checkArrayType expr t [] = return ()
+checkArrayType expr t (t':ts) = do
+  unless (t == t') $ typeError expr t t' "Chains must be consistent with their type"
+  checkArrayType expr t ts

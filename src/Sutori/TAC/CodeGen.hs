@@ -42,6 +42,8 @@ newLabel = do
 
 
 -- |Generates code from the already built 'mainModule' AST
+--
+-- Generates in order: TAC for main/global code, then TACs for each function.
 genCode :: SutMonad TACTable
 genCode = do
   SutState{ mainModule = (SutModule _ m), parserTable = st } <- get
@@ -67,41 +69,77 @@ genCodeAST start' next' = mapM_ (genCodeInstr start' next')
 
 
 -- |Generates code for instructions
-genCodeInstr :: Int -> Int -> SutInstruction -> SutMonad ()
+genCodeInstr :: Int -- ^ Label (ID) pointing to the first instruction in this block
+             -> Int -- ^ Label (ID) pointing to the first instruction following this block
+             -> SutInstruction -- ^ Currently processing instruction
+             -> SutMonad ()
 
--- Expression Instruction
+
+-- Expression Instruction.
+--
+-- Generates code to evaluate the expression
 genCodeInstr _ _ (InstExpression expr) = void $ genCodeExpr expr
 
--- Return instructions
+
+-- Return instruction.
+--
+-- Generates code to evaluate the returned expression.
+-- Then generates code to call return on the result.
 genCodeInstr _ _ (ReturnVal expr) = void $ do
   addr <- genCodeExpr expr
   addTAC $ TAC Return (Just addr) Nothing
 
--- Free Pointer
+
+-- Free Pointer.
+--
+-- Generates code to evaluate the expression,
+-- then calls free on the given address for the type size.
 genCodeInstr _ _ (FreePointer _ expr) = void $ do
   SutState{typesGraph = g} <- get
   let (Just (_,size)) = lookupTypeID (expressionType expr) g
   exprAddr <- genCodeExpr expr
   addTAC $ TAC (SysCall SysFree) (Just exprAddr) (Just $ TACLit $ SutInt size)
 
--- Read IO
+
+-- Read IO.
+--
+-- Generates code to evaluate expression.
+-- Makes syscall to read on given address.
 genCodeInstr _ _ (ReadVal _ expr) = void $ do
   addr <- genCodeExpr expr
   addTAC $ TAC (SysCall SysRead) (Just addr) Nothing
 
--- Print IO
+
+-- Print IO.
+--
+-- Generates code to evaluate expression.
+-- Makes syscall to print given address.
+--
+-- TODO: Size/type missing? Probably.
 genCodeInstr _ _ (PrintVal _ expr) = void $ do
   addr <- genCodeExpr expr
   addTAC $ TAC (SysCall SysPrint) (Just addr) Nothing
 
--- Break
+
+-- Break.
+--
+-- Generates code to jump to the "next address following block".
 genCodeInstr _ break' Break = void $ addTAC $ TAC Jump (Just $ TACLabel break') Nothing
 
--- Continue
+
+-- Continue.
+--
+-- Generates code to jump to the "first address in code".
 genCodeInstr cont' _ Continue = void $ addTAC $ TAC Jump (Just $ TACLabel cont') Nothing
 
 
--- Selection / If-else
+-- Selection / If-else.
+--
+-- Generates code to evaluate condition, then jump to the "else" if condition is false.
+-- Generates code for the "if" block, then jump to after the "else".
+-- Generates code for the "else" block.
+--
+-- Adds appropriate labels for jumping.
 genCodeInstr cont' break' (Selection sid cond ifb elb) = void $ do
   ell@(Label ell') <- newLabel
   nex@(Label nex') <- newLabel
@@ -117,7 +155,12 @@ genCodeInstr cont' break' (Selection sid cond ifb elb) = void $ do
   addTAC nex
 
 
--- IterationU / While
+-- IterationU / While.
+--
+-- Generates code to evaluate condition, then jump to the "next address after iterative block" if condition false.
+-- Generates code for the iterative block, then jump to the first address, before evaluating the condition.
+--
+-- Adds appropriate labels for jumping.
 genCodeInstr _ _ (IterationU _ cond itb) = void $ do
   start@(Label start') <- newLabel
   next@(Label next')   <- newLabel
@@ -134,6 +177,14 @@ genCodeInstr _ _ (IterationU _ cond itb) = void $ do
 
 
 -- IterationB / For
+--
+-- Generates code toevaluate index expression.
+-- Jump unless it is non-zero/false.
+-- Generates code for iterative block.
+-- Generates code to substract one (1) from the index expression.
+-- Jumps to before the condition is checked (after it was initially evaluated)
+--
+-- Adds appropriate labels for jumping.
 genCodeInstr _ _ (IterationB _ idx itb) = void $ do
   start@(Label start') <- newLabel
   next@(Label next')   <- newLabel
@@ -157,71 +208,122 @@ genCodeInstr _ _ (IterationB _ idx itb) = void $ do
 -- Each production returns the address (as temporal register) of the resulting expression
 genCodeExpr :: SutExpression -> SutMonad TACAddress
 
+
+-- Variables
+--
+-- References a variable by 'SutID' and 'Scope'
 genCodeExpr (ExprID _ vid s) = return $ TACName (vid, s)
 
+-- Literals
+--
+-- Copies a literal into a register
 genCodeExpr (ExprLiteral _ lit) = addTAC $ TAC Copy (Just $ TACLit lit) Nothing
 
+-- Binary operations
+--
+-- Generates code to evaluate each operand.
+-- Generates instruction for the binary operation.
 genCodeExpr (BinaryOp _ op op1 op2) = do
   a1 <- genCodeExpr op1
   a2 <- genCodeExpr op2
   addTAC $ TAC (Basic op) (Just a1) (Just a2)
 
+-- Unary operations
+--
+-- Generates code to evaluate the operand.
+-- Generates operation.
 genCodeExpr (UnaryOp _ op op1) = do
   a <- genCodeExpr op1
   addTAC $ TAC (Basic op) (Just a) Nothing
 
+-- Function calls
+--
+-- Generates code to evaluate each parameter.
+-- Generate 'push' instruction for each parameter (into the parameter stack).
+-- Generate 'call' instruction for the function with the given number of parameters.
 genCodeExpr (SutCall _ fid ps) = do
-  psa <- mapM genCodeExpr ps                               -- We evaluate the expression, get their final addresses
-  mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa  -- We stack the parameters
+  psa <- mapM genCodeExpr ps
+  mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa
   addTAC $ TAC Call (Just $ TACName (fid, 0)) (Just $ TACLit $ SutInt $ length ps)
 
+-- Pointer creation / memory allocation
+--
+-- Gets the size required by the type.
+-- Issues an 'alloc' syscall for said size.
 genCodeExpr (CreatePointer t _) = do
   SutState{typesGraph = g} <- get
   let (Just (_,size)) = lookupTypeID t g
   addTAC $ TAC (SysCall SysAlloc) (Just $ TACLit $ SutInt size) Nothing
 
+-- Dereference
+--
+-- Generates code to evaluate expression.
+-- Generates instruction to get the pointed address.
 genCodeExpr (Dereference _ expr) = do
   pt <- genCodeExpr expr
   addTAC $ TAC Pointed (Just pt) Nothing
 
+-- Indexation
+--
+-- Generates code for array expression.
+-- Generates code for index expression.
+-- Gets element size and the array offset. TODO: What is the array offset???
+-- Generates instructions to calculate element offset (iwc).
+-- Generates instruction to get element from said offset.
 genCodeExpr (ArrayGet t expr idx) = do
   arr <- genCodeExpr expr
   ida <- genCodeExpr idx
   SutState{typesGraph = g} <- get
-  let (Just (_,offm)) = lookupTypeID t g -- Copy from the array position, offset by ``offm * index'' units
-  i <- addTAC $ TAC (Basic SutOpMul) (Just ida) (Just $ TACLit $ SutInt offm)
-  valA <- addTAC $ TAC Copy (Just arr) (Just i)
+  let (Just (_,elemSize)) = lookupTypeID t g
+      arrOffset = Just $ TACLit $ SutInt (-1)
+  iw <- addTAC $ TAC (Basic SutOpMul) (Just ida) (Just $ TACLit $ SutInt elemSize)
+  iwc <- addTAC $ TAC (Basic SutOpAdd) (Just iw) arrOffset
+  valA <- addTAC $ TAC Copy (Just arr) (Just iwc)
   addTAC $ TAC Copy (Just valA) Nothing
 
+-- Get member
+--
+-- Generates code to evaluate struct expression.
+-- Gets the member size and offset. TODO: Should take the struct offset into account too!
+-- Generates code to get said size from said offset.
 genCodeExpr (MemberGet t expr mid) = do
-  str <- genCodeExpr expr
-  let off = memberOffset t mid -- Copy from the struct position, offset by ``off'' units
-  addTAC $ TAC Copy (Just str) (Just $ TACLit $ SutInt off)
+  str <- genCodeExpr expr      -- Evaluate struct expression
+  SutState{typesGraph = g} <- get
+  let (Just (_,elemSize)) = lookupTypeID t g  -- Get the member type size
+      offset = memberOffset t mid             -- Get member offset
+  addTAC $ TAC Copy (Just str) (Just $ TACLit $ SutInt offset) -- Copy of said size from the offset
 
+-- Syntactic arrays
+--
+-- Get the element and array sizes.
+-- Generate code to alloc memory for the array. TODO: Shouldn't this be stacked?
+-- Generate code to evaluate each element and copy to the corresponding offset from array position.
 genCodeExpr (ExprConstructor (SutChain _ t) (SutArray elems)) = do
-  addrs <- mapM genCodeExpr elems
-  arrA <- addTAC $ TAC Copy Nothing Nothing -- TODO: Where is the array?
   SutState{typesGraph = g} <- get
-  let (Just (_,offm)) = lookupType t g -- Copy from the array position, offset by ``offm * index'' units
-  mapM_ (addElem offm arrA) (zip [0..] addrs)
+  let (Just (_,elemSize)) = lookupType t g  -- Get the element type size
+      arrSize = length elems * elemSize
+  arrA <- addTAC $ TAC (SysCall SysAlloc) (Just $ TACLit $ SutInt arrSize) Nothing -- Request mem for array
+  mapM_ (addElem arrA) (zip (map (elemSize *) [0..]) elems)             -- Generate code for each element and 'append' to array
   return arrA
-  where
-    addElem offm arr (idx, valueA) = do
-      posA <- addTAC $ TAC Addr (Just arr) (Just $ TACLit $ SutInt (idx * offm))
-      addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just valueA)
+  where addElem arrA (pos, elem) = do
+          elemA <- genCodeExpr elem
+          posA <- addTAC $ TAC Addr (Just arrA) (Just $ TACLit $ SutInt pos)
+          addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just elemA)
 
-genCodeExpr (ExprConstructor _ (SutStruct members)) = do
-  addrs <- mapM (genCodeExpr . snd) members
-  strA <- addTAC $ TAC Copy Nothing Nothing -- TODO: Where is the struct?
+-- Syntactic structs
+--
+-- Gets the struct size. TODO: Ha, problems with `struct A { a: A }`.
+-- Generates code to alloc said size of memory.
+-- Generates code to copy each member of the struct to the struct, given its offset.
+genCodeExpr (ExprConstructor t (SutStruct members)) = do
   SutState{typesGraph = g} <- get
-  addElems strA (zip (map (snd .fromJust . (`lookupTypeID` g) . expressionType . snd) members) addrs)
-  return strA
-  where
-    addElems :: TACAddress -> [(Int, TACAddress)] -> SutMonad ()
-    addElems str = foldM_ (addMember str) 0
+  let (Just (_,strSize)) = lookupTypeID t g  -- Get the element type size
 
-    addMember :: TACAddress -> Int -> (Int, TACAddress) -> SutMonad Int
-    addMember strA acc (size, valA) = do
-      posA <- addTAC $ TAC Addr (Just strA) (Just $ TACLit $ SutInt acc)
-      addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just valA)
-      return (acc + size)
+  strA <- addTAC $ TAC (SysCall SysAlloc) (Just $ TACLit $ SutInt strSize) Nothing -- Request mem for struct
+  mapM_ (addMember strA) members             -- Generate code for each member and append to struct
+  return strA
+  where addMember strA (mid, mexpr) = do
+          let offset = memberOffset t mid   -- Get member offset
+          memA <- genCodeExpr mexpr         -- Generate code for member expression
+          posA <- addTAC $ TAC Addr (Just strA) (Just $ TACLit $ SutInt offset) -- Generate code to get member position
+          addTAC $ TAC (Basic SutOpAssign) (Just posA) (Just memA)              -- Generate code to copy member

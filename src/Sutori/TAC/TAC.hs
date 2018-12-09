@@ -19,9 +19,9 @@ data TACTable = TACTable
 -- |TACAddress for TAC Instructions
 data TACAddress
   = TACName (SutID, Int)  -- ^An actual ID from the source code. Identified using 'SutID' and 'Scope'. Used for variables
-  | TACLit SutLiteral     -- ^A literal either explicit in the source code or calculated on the run.
+  | TACLit SutLiteral     -- ^A literal value either explicit in the source code or calculated on the run.
   | TACID Int             -- ^The TAC number that calculated the relevant expression.
-  | TACLabel Int          -- ^An inc label to some code.
+  | TACLabel Int          -- ^An incremental label to some code.
 
 -- |TAC Instruction
 data TAC
@@ -42,7 +42,7 @@ data TACType
   | Addr                           -- ^Address for an indirection
   | Jump                           -- ^Unconditional jump, just where to.
   | JumpUnless                     -- ^Condition jump
-  | Pointed                        -- ^Assign a address from a indirect pointer.
+  | Pointed                        -- ^Assign an address from a indirect pointer.
   | Param                          -- ^Stack a function parameter
   | Call                           -- ^Call a function of so many (already stacked) parameters
   | Return                         -- ^Return from a function (possibly a value).
