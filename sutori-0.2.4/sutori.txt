@@ -224,8 +224,6 @@ instance Sutori.Logger.Log.SutShow Sutori.Lexer.Posn.SutPosn
 module Sutori.Error.Logger
 instance Sutori.Logger.Log.SutShow Sutori.Error.Error.SutError
 
-module Sutori.MIPS.MIPS
-
 
 module Sutori.Monad.Logger
 
@@ -1725,6 +1723,110 @@ lexerGetInput :: SutMonad SutoriInput
 
 -- | Set remaining input
 lexerSetInput :: SutoriInput -> SutMonad ()
+
+module Sutori.MIPS.MIPS
+
+-- | MIPS Available instructions
+data MIPS
+Label :: String -> MIPS
+LoadWord :: Reg -> MemAddr -> MIPS
+LoadByte :: Reg -> MemAddr -> MIPS
+LoadImmediate :: Reg -> MemAddr -> MIPS
+LoadAddress :: Reg -> MemAddr -> MIPS
+StoreWord :: Reg -> MemAddr -> MIPS
+StoreByte :: Reg -> MemAddr -> MIPS
+Add :: Reg -> Reg -> Reg -> MIPS
+Sub :: Reg -> Reg -> Reg -> MIPS
+Mult :: Reg -> Reg -> MIPS
+Div :: Reg -> Reg -> MIPS
+MoveFromHi :: Reg -> MIPS
+MoveFromLo :: Reg -> MIPS
+Move :: Reg -> Reg -> MIPS
+Jump :: String -> MIPS
+JumpReg :: Reg -> MIPS
+JumpAndLink :: String -> MIPS
+BranchNEq :: Reg -> Reg -> String -> MIPS
+Syscall :: MIPS
+
+-- | A memory address for memory instructions
+data MemAddr
+
+-- | Some offset from an address kept in a register
+MemReg :: Reg -> Offset -> MemAddr
+
+-- | A label somewhere in the code
+MemLabel :: String -> MemAddr
+
+-- | MIPS available registers
+data Reg
+T0 :: Reg
+T1 :: Reg
+T2 :: Reg
+T3 :: Reg
+T4 :: Reg
+T5 :: Reg
+T6 :: Reg
+T7 :: Reg
+T8 :: Reg
+
+-- | TX: temporal values (caller-saved)
+T9 :: Reg
+S0 :: Reg
+S1 :: Reg
+S2 :: Reg
+S3 :: Reg
+S4 :: Reg
+S5 :: Reg
+S6 :: Reg
+
+-- | SX: saved values (calle-saved)
+S7 :: Reg
+A0 :: Reg
+A1 :: Reg
+A2 :: Reg
+
+-- | AX: function arguments (first few, then we stack)
+A3 :: Reg
+V0 :: Reg
+
+-- | VX: function return values
+V1 :: Reg
+
+-- | Global Pointer
+GP :: Reg
+
+-- | Frame Pointer
+FP :: Reg
+
+-- | Stack Pointer
+SP :: Reg
+
+-- | Return Address
+RA :: Reg
+
+-- | Always Zero (useful)
+RZ :: Reg
+
+-- | Defines descriptors for registers, so we keep track of which variables
+--   live on each register
+type RegsDescriptor = Map Reg (Set (SutID, Scope))
+
+-- | Defines descriptors for variables, so we keep track of which registers
+--   have their current value
+type VarsDescriptor = Map (SutID, Scope) (Set Reg)
+
+module Sutori.MIPS.CodeGen
+
+-- | Given a TAC instruction, outputs an equivalent sequence of MIPS
+--   instructions
+genCode :: TAC -> SutMonad [MIPS]
+
+-- | Given a TAC instruction, gives a list of registers to use for the
+--   equivalent MIPS instruction
+getReg :: TAC -> [Reg]
+
+
+module Sutori.MIPS
 
 
 module Sutori.Error.Report
