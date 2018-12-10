@@ -20,6 +20,8 @@ import Sutori.Parser         (parseModule)
 import Sutori.SymTable       (lookupAllFunctions)
 import Sutori.TAC            (genCode)
 
+import Sutori.TAC.ControlFlow
+
 -- | Routes a call to the CLI with passed options and files into the correct mode of operation
 route :: (Options, [FilePath]) -> IO ()
 route (opt@Options{optDebug = True}, fs)       = showDebugInfo opt fs
@@ -101,6 +103,7 @@ runTACOnly opt@Options{ optVerbose = v } input = do
             when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
             when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
             when v $ printTitledInfo "Intermediate Code TAC" (showSut $ tacTable s)
+            when v $ printGraph $ flowGraph (tacTable s)
             unless (null infos) $ printTitledInfos "Verbose" infos
             unless (null errs)  $ printTitledErrors "There were errors while processing the input" errs
 
