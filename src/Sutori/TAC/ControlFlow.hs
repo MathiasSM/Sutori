@@ -18,15 +18,30 @@ type PreNode       = [Int]
 type FlowNode      = Vector.Vector Int
 type FlowNodeKey   = Int
 type FlowNodeEdges = (FlowNode, FlowNodeKey, [FlowNodeKey])
+type FlowControlGraph = (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
 
 
+printGraph (graph, v2e, k2v) = let vs = vertices graph in mapM_ (print . v2e) vs
 
-printGraph (graph, v2e, k2v)
-  = let vs = vertices graph
-     in mapM_ (print . v2e) vs
+flowNodes :: TACTable -> FlowControlGraph -> [Vector.Vector TAC]
+flowNodes
+  t@TACTable
+    { tacInstructions = reversedInstrs
+    , tacTriplets     = reversedTriplets
+    , tacFunctions    = funs
+    , tacLabels       = labels }
+  (graph, v2e, k2v)
+    = let vs = vertices graph
+       in map (int2tacV.(\(t,_,_) -> t).v2e) vs
+      where int2tacV :: Vector.Vector Int -> Vector.Vector TAC
+            int2tacV = Vector.map int2tac
+            int2tac :: Int -> TAC
+            int2tac  = (Vector.!) tv
+            tv :: Vector.Vector TAC
+            tv = Vector.fromList $ reverse reversedTriplets
 
 
-flowGraph :: TACTable -> (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
+flowGraph :: TACTable -> FlowControlGraph
 flowGraph t@TACTable
   { tacInstructions = reversedInstrs
   , tacTriplets     = triplets
@@ -112,7 +127,7 @@ flowGraph t@TACTable
                                  nodeAdj    = let mt = anyJumpTarget lastInst in [fromJust mt | isJust mt]
                              in (Vector.fromList node, nodeID node, nodeAdj)
             where
-              -- | The target instruction, if current is an explicit jump
+              -- | The target instruction, if is an explicit jump
               anyJumpTarget :: TAC -> Maybe Int
               anyJumpTarget TAC{tacType = Jump,       tac1 = Just addr} = Just $ addrID addr
               anyJumpTarget TAC{tacType = JumpUnless, tac2 = Just addr} = Just $ addrID addr
