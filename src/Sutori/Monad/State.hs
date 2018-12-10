@@ -11,9 +11,8 @@ import Sutori.AST         (SutModule)
 import Sutori.Lexer.Posn  (SutPosn, initialPosn)
 import Sutori.Error.Error (SutError(NoError))
 import Sutori.SymTable    (SymTable, Scope)
-import Sutori.TAC.TAC     (TACTable(..))
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
-import Sutori.TAC.TAC     (Offset)
+import Sutori.TAC.TAC     (TACTable(..), Offset)
 
 
 -- |Monadic Lexer/Parser current state.
@@ -59,7 +58,7 @@ initialSutoriState = SutState
   , parserOffsetStk = []
   , parserNextScope = 0
   , mainModule      = undefined
-  , tacTable        = TACTable [] []
+  , tacTable        = TACTable [] [] Map.empty Map.empty
   , tacNext         = 0
   , tacLabel        = 0
   , typesGraph      = initialTypeGraph

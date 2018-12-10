@@ -8,6 +8,7 @@ import Control.Monad (void, foldM_)
 import Control.Monad.State (get, put)
 import Data.Maybe (fromJust, isJust)
 import Data.List (find)
+import qualified Data.Map as Map
 
 import Sutori.AST
 import Sutori.Monad
@@ -22,14 +23,36 @@ import Sutori.TAC.TAC
 -- |Appends to the TAC table a new triplet, references it on the instructions TAC table
 --
 -- Returns the Address of the inserted TAC
+--
+-- TODO: Figure out how to remove duplicated code.
 addTAC :: TAC -> SutMonad TACAddress
+addTAC tac@(Label id) = do
+  s@SutState{ tacNext = i
+            , tacTable = t@TACTable{ tacInstructions = is
+                                   , tacTriplets     = tacs
+                                   , tacLabels       = labels } } <- get
+  put s{ tacNext = i + 1
+       , tacTable = t { tacInstructions = i:is
+                      , tacTriplets     = tac:tacs
+                      , tacLabels       = Map.insert id i labels } }
+  return $ TACID i
+addTAC tac@(FunLabel sid) = do
+  s@SutState{ tacNext = i
+            , tacTable = t@TACTable{ tacInstructions = is
+                                   , tacTriplets     = tacs
+                                   , tacFunctions    = funs } } <- get
+  put s{ tacNext = i + 1
+       , tacTable = t { tacInstructions = i:is
+                      , tacTriplets     = tac:tacs
+                      , tacFunctions    = Map.insert sid i funs } }
+  return $ TACID i
 addTAC tac = do
   s@SutState{ tacNext = i
-            , tacTable = TACTable{ tacInstructions = is
-                                 , tacTriplets     = tacs } } <- get
+            , tacTable = t@TACTable{ tacInstructions = is
+                                   , tacTriplets     = tacs } } <- get
   put s{ tacNext = i + 1
-       , tacTable = TACTable{ tacInstructions = i:is
-                            , tacTriplets     = tac:tacs } }
+       , tacTable = t { tacInstructions = i:is
+                      , tacTriplets     = tac:tacs } }
   return $ TACID i
 
 

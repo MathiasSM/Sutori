@@ -10,6 +10,8 @@ module Sutori.TAC.TAC
 , Offset
 ) where
 
+import qualified Data.Map as Map
+
 import Sutori.AST   (SutID, SutLiteral, SutOperator)
 
 type Offset = Int -- An offset in bytes
@@ -17,7 +19,9 @@ type Offset = Int -- An offset in bytes
 -- |The actual generated code is a list of instruction triplets and a list of pointers to them
 data TACTable = TACTable
   { tacInstructions :: [Int]   -- ^Table of pointers to triplets
-  , tacTriplets     :: [TAC] } -- ^Table of triplets
+  , tacTriplets     :: [TAC]   -- ^Table of triplets
+  , tacFunctions    :: Map.Map SutID Int -- ^Maps function labels to their instruction number
+  , tacLabels       :: Map.Map Int Int } -- ^Maps inc labels to their instruction number
 
 -- |TACAddress for TAC Instructions
 data TACAddress

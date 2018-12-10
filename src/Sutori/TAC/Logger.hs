@@ -3,16 +3,21 @@
 -}
 module Sutori.TAC.Logger() where
 
-import Sutori.Logger       (SutShow(showSut), SutLog(SutLogNode, SutLogLeave), fromLeave)
+import qualified Data.Map as Map
 
+import Sutori.Logger       (SutShow(showSut), SutLog(SutLogNode, SutLogLeave), fromLeave)
 import Sutori.AST
 import Sutori.TAC.TAC
 
 instance SutShow TACTable where
-  showSut (TACTable is ts) = let instrs   = SutLogNode "TAC Instructions (refs)" [SutLogLeave "--- No optimizations done, still sorted --"]
-                                 triplets = SutLogNode "TAC Triplets" $ zipWith f [0..] (reverse ts)
-                              in SutLogNode "TAC Table" [instrs, triplets]
-                             where f i tr = SutLogLeave $ show i ++ "\t: " ++ fromLeave (showSut tr)
+  showSut (TACTable is ts fs ls) = let instrs   = SutLogNode "TAC Instructions (refs)" [SutLogLeave "--- No optimizations done, still sorted --"]
+                                       triplets = SutLogNode "TAC Triplets" $ zipWith f [0..] (reverse ts)
+                                       functs   = SutLogNode "Fun Labels" $ map showF $ Map.toAscList fs
+                                       labels   = SutLogNode "Inc Labels" $ map showL $ Map.toAscList ls
+                                    in SutLogNode "TAC Table" [instrs, triplets, functs, labels]
+                                   where f i tr  = SutLogLeave $ show i ++ "\t: " ++ fromLeave (showSut tr)
+                                         showL (l,i) = SutLogLeave $ "LABEL_" ++ show l ++ "\t: (( " ++ show i ++ " ))"
+                                         showF (f,i) = SutLogLeave $ "FUN_" ++ f ++ "\t: (( " ++ show i ++ " ))"
 
 instance SutShow TACAddress where
   showSut (TACOffset off)                 = fillTabLog $ "base[" ++ show off ++ "]"
