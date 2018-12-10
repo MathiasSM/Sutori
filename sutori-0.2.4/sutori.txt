@@ -1133,7 +1133,11 @@ type PreNode = [Int]
 type FlowNode = Vector Int
 type FlowNodeKey = Int
 type FlowNodeEdges = (FlowNode, FlowNodeKey, [FlowNodeKey])
+printGraph :: Show a => (Graph, Vertex -> a, c) -> IO ()
 flowGraph :: TACTable -> (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
+
+-- | Is the instruction an implicit or explicit jump?
+isJump :: TAC -> Bool
 
 
 module Sutori.TAC.Logger
