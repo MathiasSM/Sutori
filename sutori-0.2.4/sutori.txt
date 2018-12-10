@@ -1020,12 +1020,18 @@ module Sutori.TAC.TAC
 --   of pointers to them
 data TACTable
 
--- | Table of triplets
-TACTable :: [Int] -> [TAC] -> TACTable
+-- | Maps inc labels to their instruction number
+TACTable :: [Int] -> [TAC] -> Map SutID Int -> Map Int Int -> TACTable
 
 -- | Table of pointers to triplets
 [tacInstructions] :: TACTable -> [Int]
+
+-- | Table of triplets
 [tacTriplets] :: TACTable -> [TAC]
+
+-- | Maps function labels to their instruction number
+[tacFunctions] :: TACTable -> Map SutID Int
+[tacLabels] :: TACTable -> Map Int Int
 
 -- | TACAddress for TAC Instructions
 data TACAddress
@@ -1120,6 +1126,14 @@ SysAlloc :: SutSys
 -- | Memory freeing operation
 SysFree :: SutSys
 type Offset = Int
+
+
+module Sutori.TAC.ControlFlow
+type PreNode = [Int]
+type FlowNode = Vector Int
+type FlowNodeKey = Int
+type FlowNodeEdges = (FlowNode, FlowNodeKey, [FlowNodeKey])
+flowGraph :: TACTable -> (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
 
 
 module Sutori.TAC.Logger
@@ -1827,6 +1841,8 @@ module Sutori.TAC.CodeGen
 --   instructions TAC table
 --   
 --   Returns the Address of the inserted TAC
+--   
+--   TODO: Figure out how to remove duplicated code.
 addTAC :: TAC -> SutMonad TACAddress
 
 -- | Gets the next label
@@ -1857,12 +1873,18 @@ module Sutori.TAC
 --   of pointers to them
 data TACTable
 
--- | Table of triplets
-TACTable :: [Int] -> [TAC] -> TACTable
+-- | Maps inc labels to their instruction number
+TACTable :: [Int] -> [TAC] -> Map SutID Int -> Map Int Int -> TACTable
 
 -- | Table of pointers to triplets
 [tacInstructions] :: TACTable -> [Int]
+
+-- | Table of triplets
 [tacTriplets] :: TACTable -> [TAC]
+
+-- | Maps function labels to their instruction number
+[tacFunctions] :: TACTable -> Map SutID Int
+[tacLabels] :: TACTable -> Map Int Int
 
 -- | TACAddress for TAC Instructions
 data TACAddress
@@ -1946,6 +1968,8 @@ FunLabel :: SutID -> TAC
 --   instructions TAC table
 --   
 --   Returns the Address of the inserted TAC
+--   
+--   TODO: Figure out how to remove duplicated code.
 addTAC :: TAC -> SutMonad TACAddress
 
 -- | Generates code from the already built <a>mainModule</a> AST
