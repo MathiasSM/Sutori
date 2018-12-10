@@ -224,6 +224,8 @@ instance Sutori.Logger.Log.SutShow Sutori.Lexer.Posn.SutPosn
 module Sutori.Error.Logger
 instance Sutori.Logger.Log.SutShow Sutori.Error.Error.SutError
 
+module Sutori.MIPS.MIPS
+
 
 module Sutori.Monad.Logger
 
@@ -1133,8 +1135,10 @@ type PreNode = [Int]
 type FlowNode = Vector Int
 type FlowNodeKey = Int
 type FlowNodeEdges = (FlowNode, FlowNodeKey, [FlowNodeKey])
+type FlowControlGraph = (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
 printGraph :: Show a => (Graph, Vertex -> a, c) -> IO ()
-flowGraph :: TACTable -> (Graph, Vertex -> FlowNodeEdges, FlowNodeKey -> Maybe Vertex)
+flowNodes :: TACTable -> FlowControlGraph -> [Vector TAC]
+flowGraph :: TACTable -> FlowControlGraph
 
 -- | Is the instruction an implicit or explicit jump?
 isJump :: TAC -> Bool
