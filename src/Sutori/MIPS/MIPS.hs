@@ -10,25 +10,25 @@ import Sutori.SymTable (Scope)
 
 -- | MIPS Available instructions
 data MIPS
-  = Label String
-  | LoadWord      Reg MemAddr
-  | LoadByte      Reg MemAddr
-  | LoadImmediate Reg MemAddr
-  | LoadAddress   Reg MemAddr
-  | StoreWord     Reg MemAddr
-  | StoreByte     Reg MemAddr
-  | Add           Reg Reg Reg
-  | Sub           Reg Reg Reg
-  | Mult          Reg Reg
-  | Div           Reg Reg
-  | MoveFromHi    Reg
-  | MoveFromLo    Reg
-  | Move          Reg Reg
-  | Jump          String
-  | JumpReg       Reg
-  | JumpAndLink   String
-  | BranchNEq     Reg Reg String
-  | Syscall
+  = MLabel String
+  | MLoadWord      Reg MemAddr
+  | MLoadByte      Reg MemAddr
+  | MLoadImmediate Reg MemAddr
+  | MLoadAddress   Reg MemAddr
+  | MStoreWord     Reg MemAddr
+  | MStoreByte     Reg MemAddr
+  | MAdd           Reg Reg Reg
+  | MSub           Reg Reg Reg
+  | MMult          Reg Reg
+  | MDiv           Reg Reg
+  | MMoveFromHi    Reg
+  | MMoveFromLo    Reg
+  | MMove          Reg Reg
+  | MJump          String
+  | MJumpReg       Reg
+  | MJumpAndLink   String
+  | MBranchNEq     Reg Reg String
+  | MSyscall
 
 -- | A memory address for memory instructions
 data MemAddr = MemReg Reg Offset  -- ^Some offset from an address kept in a register
