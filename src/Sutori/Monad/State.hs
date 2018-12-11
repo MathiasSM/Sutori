@@ -13,6 +13,7 @@ import Sutori.Error.Error (SutError(NoError))
 import Sutori.SymTable    (SymTable, Scope)
 import Sutori.Types       (SutTypeID, TypeGraph, initialTypeGraph, initialNextTypeID)
 import Sutori.TAC.TAC     (TACTable(..), Offset)
+import Sutori.MIPS.MIPS   (VarDescriptors, RegDescriptors)
 
 
 -- |Monadic Lexer/Parser current state.
@@ -32,6 +33,8 @@ data SutState = SutState
   , parserOffsetStk :: [Offset]      -- ^ Stack of past scope offsets (to return to, once the scopes are closed
   , parserNextScope :: Scope         -- ^ The next scope ID to open
   , mainModule      :: SutModule     -- ^ The main module (where compilation began)
+  , mipsRegDescriptors :: RegDescriptors
+  , mipsVarDescriptors :: VarDescriptors
   , tacTable        :: TACTable      -- ^ The table of generated TAC
   , tacNext         :: Int           -- ^ The next triplet index/The size of the current table
   , tacLabel        :: Int           -- ^ The next label for TAC generation
@@ -58,6 +61,8 @@ initialSutoriState = SutState
   , parserOffsetStk = []
   , parserNextScope = 0
   , mainModule      = undefined
+  , mipsRegDescriptors = Map.empty
+  , mipsVarDescriptors = Map.empty
   , tacTable        = TACTable [] [] Map.empty Map.empty
   , tacNext         = 0
   , tacLabel        = 0

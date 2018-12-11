@@ -13,26 +13,37 @@ data MIPS
   = MLabel String
   | MLoadWord      Reg MemAddr
   | MLoadByte      Reg MemAddr
-  | MLoadImmediate Reg MemAddr
+  | MLoadImmediate Reg Int
   | MLoadAddress   Reg MemAddr
   | MStoreWord     Reg MemAddr
   | MStoreByte     Reg MemAddr
   | MAdd           Reg Reg Reg
   | MSub           Reg Reg Reg
-  | MMult          Reg Reg
-  | MDiv           Reg Reg
-  | MMoveFromHi    Reg
-  | MMoveFromLo    Reg
+  | MMul           Reg Reg Reg
+  | MRem           Reg Reg Reg
+  | MDiv           Reg Reg Reg
+  | MDivS          Reg Reg Reg
+  | MAnd           Reg Reg Reg
+  | MOr            Reg Reg Reg
+  | MEq            Reg Reg Reg
+  | MNe            Reg Reg Reg
+  | MGt            Reg Reg Reg
+  | MGe            Reg Reg Reg
+  | MLt            Reg Reg Reg
+  | MLe            Reg Reg Reg
+  | MNot           Reg Reg
+  | MNeg           Reg Reg
   | MMove          Reg Reg
   | MJump          String
   | MJumpReg       Reg
   | MJumpAndLink   String
-  | MBranchNEq     Reg Reg String
+  | MBne           Reg Reg String
+  | MNoop
   | MSyscall
 
 -- | A memory address for memory instructions
-data MemAddr = MemReg Reg Offset  -- ^Some offset from an address kept in a register
-             | MemLabel String    -- ^A label somewhere in the code
+data MemAddr = MemReg Reg Offset        -- ^Some offset from an address kept in a register
+             | MemLabel String Offset   -- ^A label somewhere in the code
 
 -- | MIPS available registers
 data Reg
@@ -45,9 +56,10 @@ data Reg
   | SP        -- ^Stack Pointer
   | RA        -- ^Return Address
   | RZ        -- ^Always Zero (useful)
+  deriving (Eq, Ord)
 
 -- | Defines descriptors for registers, so we keep track of which variables live on each register
-type RegsDescriptor = Map.Map Reg (Set.Set (SutID,Scope))
+type RegDescriptors = Map.Map Reg (Set.Set TACAddress)
 
 -- | Defines descriptors for variables, so we keep track of which registers have their current value
-type VarsDescriptor = Map.Map (SutID, Scope) (Set.Set Reg)
+type VarDescriptors = Map.Map TACAddress (Set.Set Reg)

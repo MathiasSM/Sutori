@@ -31,6 +31,7 @@ data TACAddress
   | TACID Int             -- ^The TAC number that calculated the relevant expression.
   | TACLabel Int          -- ^An incremental label to some code.
   | TACFun SutID          -- ^A function name/label
+  deriving (Eq, Ord)
 
 -- |TAC Instruction
 data TAC

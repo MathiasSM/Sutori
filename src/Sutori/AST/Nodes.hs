@@ -60,7 +60,7 @@ data SutLiteral = SutString String    -- ^ Phrase (String)
                 | SutFloat  Float     -- ^ Wallet (Float)
                 | SutChar   String    -- ^ Letter (Char)
                 | SutBool   Bool      -- ^ Light (Bool)
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- |Complex data structure constructors
 data SutConstructor = SutArray [SutExpression]           -- ^ "Literal" Chains (Srrays)
