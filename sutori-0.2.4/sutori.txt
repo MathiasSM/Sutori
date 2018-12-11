@@ -1487,7 +1487,7 @@ MMove :: Reg -> Reg -> MIPS
 MJump :: String -> MIPS
 MJumpReg :: Reg -> MIPS
 MJumpAndLink :: String -> MIPS
-MBne :: Reg -> Reg -> String -> MIPS
+MBeq :: Reg -> Reg -> String -> MIPS
 MNoop :: MIPS
 MSyscall :: MIPS
 
@@ -1847,6 +1847,8 @@ genCode :: TAC -> SutMonad [MIPS]
 
 -- | Given a TAC instruction, gives a list of registers to use for the
 --   equivalent MIPS instruction
+--   
+--   TODO
 getRegs :: TAC -> [Reg]
 
 
