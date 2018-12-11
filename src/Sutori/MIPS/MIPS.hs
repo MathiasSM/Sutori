@@ -37,7 +37,7 @@ data MIPS
   | MJump          String
   | MJumpReg       Reg
   | MJumpAndLink   String
-  | MBne           Reg Reg String
+  | MBeq           Reg Reg String
   | MNoop
   | MSyscall
 

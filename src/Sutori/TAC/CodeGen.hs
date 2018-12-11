@@ -278,7 +278,7 @@ genCodeExpr (UnaryOp _ op op1) = do
 -- Generate 'call' instruction for the function with the given number of parameters.
 genCodeExpr (SutCall _ fid ps) = do
   psa <- mapM genCodeExpr ps
-  mapM_ (\pa -> addTAC $ TAC Param (Just pa) Nothing) psa
+  mapM_ (\(i,pa) -> addTAC $ TAC Param (Just pa) (Just $ TACLit $ SutInt i)) (zip [0..] psa)
   addTAC $ TAC Call (Just $ TACFun fid) (Just $ TACLit $ SutInt $ length ps)
 
 -- Pointer creation / memory allocation
