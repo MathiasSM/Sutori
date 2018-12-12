@@ -31,7 +31,7 @@ data TACAddress
   | TACID Int             -- ^The TAC number that calculated the relevant expression.
   | TACLabel Int          -- ^An incremental label to some code.
   | TACFun SutID          -- ^A function name/label
-  deriving (Eq, Ord)
+  deriving (Show, Eq, Ord)
 
 -- |TAC Instruction
 data TAC
@@ -43,6 +43,7 @@ data TAC
     }
   | Label    Int    -- ^A numbered label to output literally
   | FunLabel SutID  -- ^A string label to output literally
+  deriving (Show)
 
 -- |A TAC Instruction to be appended to the generated intermediate code
 data TACType
@@ -56,6 +57,7 @@ data TACType
   | Param                          -- ^Stack a function parameter
   | Call                           -- ^Call a function of so many (already stacked) parameters
   | Return                         -- ^Return from a function (possibly a value).
+  deriving (Show)
 
 -- |Represents a kind of possible system call
 data SutSys
@@ -63,3 +65,4 @@ data SutSys
   | SysPrint  -- ^IO Print operation
   | SysAlloc  -- ^Memory allocation operation
   | SysFree   -- ^Memory freeing operation
+  deriving (Show)

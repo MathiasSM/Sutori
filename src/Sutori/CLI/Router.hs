@@ -19,6 +19,7 @@ import Sutori.Options        (Options(..), usage)
 import Sutori.Parser         (parseModule)
 import Sutori.SymTable       (lookupAllFunctions)
 import Sutori.TAC            (genCode)
+import Sutori.MIPS           (genMIPS)
 
 import Sutori.TAC.ControlFlow
 
@@ -102,17 +103,33 @@ runTACOnly opt@Options{ optVerbose = v } input = do
             when v $ printInfo (showSut (typesGraph s))
             when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
             when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
-            when v $ printTitledInfo "Intermediate Code TAC" (showSut $ tacTable s)
-            when v $ printGraph $ flowGraph (tacTable s)
+            let tacT = tacTable s
+
+            when v $ printTitledInfo "Intermediate Code TAC" (showSut tacT)
+
             unless (null infos) $ printTitledInfos "Verbose" infos
             unless (null errs)  $ printTitledErrors "There were errors while processing the input" errs
 
-
--- |Runs the whole compiler to generate machine code
+-- |Runs all
 --
--- TODO: Still incomplete compiler => Still incomplete ``runAll''
+-- This won't generate an AST, even on verbose output.
+--
+-- TODO: Check state for error code and fail
 runAll :: Options -> [FilePath] -> IO ()
-runAll = runTACOnly
+runAll opt@Options{ optVerbose = v } input = do
+  result <- runOnFile (parseModule >> genCode >> genMIPS) opt input
+  reportResult f result
+    where f ((e, s), SutLogger{logInfo = infos, logError = errs}) = do
+            when v $ printInfo (showSut (typesGraph s))
+            when v $ printTitledInfo "Main AST" (showSut $ mainModule s)
+            when v $ printTitledInfos "Functions" (map showSut $ lookupAllFunctions 0 $ parserTable s)
+            let tacT = tacTable s
+
+            when v $ printTitledInfo "Intermediate Code TAC" (showSut tacT)
+
+            unless (null infos) $ printTitledInfos "Verbose" infos
+            unless (null errs)  $ printTitledErrors "There were errors while processing the input" errs
+
 
 
 

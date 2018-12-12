@@ -2,8 +2,10 @@ module Sutori.MIPS.CodeGen where
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Control.Monad ((>=>))
 import Control.Monad.State (get)
 import Data.Maybe (isJust, fromJust)
+import qualified Data.Vector as Vector
 
 import Sutori.TAC.TAC
 import Sutori.TAC.ControlFlow
@@ -27,6 +29,16 @@ loadData (r, t, o) = do
                     TACID i           -> return $ error "MIPS spilled temps reuse not implemented"
                     TACFun fid        -> return [MLoadWord r $ MemLabel ("FUN_" ++ fid) o]
                     TACLit (SutInt l) -> return [MLoadImmediate r l]
+
+
+genMIPS :: SutMonad [MIPS]
+genMIPS = do
+  SutState{tacTable = tt} <- get
+  let flow = flowGraph tt
+      nodes = flowNodes tt flow
+  mipsNodes <- mapM (Vector.mapM genCode >=> (return .concat)) nodes
+  return $ concat mipsNodes
+
 
 
 -- | Given a TAC instruction, outputs an equivalent sequence of MIPS instructions
